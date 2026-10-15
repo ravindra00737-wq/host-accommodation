@@ -7,6 +7,8 @@
 <title>Host Accommodation Management</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <!-- Firebase SDK -->
 <script type="module">
@@ -204,7 +206,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 </div>
 </main>
 </div>
-<!-- ================= CREATE PROFILE MODAL ================= -->
+<!-- ================= CREATE PROFILE MODAL (Onroll / Casual) ================= -->
 <div id="create-profile-modal" class="modal">
 <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
 <div class="p-6 border-b flex justify-between items-center sticky top-0 bg-white">
@@ -212,6 +214,20 @@ input:checked + .slider:before { transform: translateX(20px); }
 <button onclick="closeCreateProfile()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
 </div>
 <div class="p-6">
+<!-- Type choice -->
+<div id="reg-step-0" class="space-y-3">
+<p class="text-sm text-gray-600 font-semibold">Select your host type:</p>
+<button onclick="chooseRegType('onroll')" class="w-full p-4 border-2 rounded-xl text-left hover:border-blue-500 bg-blue-50">
+<strong class="text-blue-800"> Onroll Host</strong>
+<span class="block text-xs text-blue-700 mt-1">Already uploaded by admin — search your name, verify details & activate.</span>
+</button>
+<button onclick="chooseRegType('casual')" class="w-full p-4 border-2 rounded-xl text-left hover:border-teal-500 bg-teal-50">
+<strong class="text-teal-800">🧳 Casual / Third-party Host</strong>
+<span class="block text-xs text-teal-700 mt-1">New registration — submitted to admin for approval.</span>
+</button>
+</div>
+<!-- Onroll flow -->
+<div id="reg-onroll" class="hidden">
 <div class="bg-blue-50 p-3 rounded-lg mb-4 text-sm text-blue-800">
 <strong>Step 1:</strong> Search your name (as uploaded by admin).<br>
 <strong>Step 2:</strong> Verify your department.<br>
@@ -237,6 +253,26 @@ input:checked + .slider:before { transform: translateX(20px); }
 <input type="password" id="reg-password2" class="w-full px-3 py-2 border rounded mb-3" placeholder="Re-enter password" required>
 <button onclick="completeRegistration()" id="reg-submit-btn" class="w-full bg-green-600 text-white py-2.5 rounded-lg font-semibold hover:bg-green-700">Create Profile & Activate</button>
 <button onclick="resetRegistration()" class="w-full mt-2 text-sm text-gray-500 hover:underline">← Search different name</button>
+</div>
+<button onclick="backToRegType()" class="mt-3 text-sm text-gray-500 hover:underline">← Back to host type</button>
+</div>
+<!-- Casual flow -->
+<div id="reg-casual" class="hidden">
+<div class="bg-teal-50 p-3 rounded-lg mb-4 text-sm text-teal-800">
+Enter your details below. Your profile will be sent to <strong>admin for approval</strong>. You can log in once approved & a room is assigned.
+</div>
+<label class="block text-sm font-medium mb-1">Full Name *</label>
+<input type="text" id="cas-name" class="w-full px-3 py-2 border rounded mb-3" placeholder="Your full name">
+<label class="block text-sm font-medium mb-1">Department *</label>
+<select id="cas-dept" class="w-full px-3 py-2 border rounded mb-3"></select>
+<label class="block text-sm font-medium mb-1">Email ID *</label>
+<input type="email" id="cas-email" class="w-full px-3 py-2 border rounded mb-3" placeholder="your.email@company.com">
+<label class="block text-sm font-medium mb-1">Create Password *</label>
+<input type="password" id="cas-password" class="w-full px-3 py-2 border rounded mb-3" placeholder="Min 6 characters">
+<label class="block text-sm font-medium mb-1">Confirm Password *</label>
+<input type="password" id="cas-password2" class="w-full px-3 py-2 border rounded mb-3" placeholder="Re-enter password">
+<button onclick="submitCasualRegistration()" id="cas-submit-btn" class="w-full bg-teal-600 text-white py-2.5 rounded-lg font-semibold hover:bg-teal-700">Submit for Admin Approval</button>
+<button onclick="backToRegType()" class="w-full mt-2 text-sm text-gray-500 hover:underline">← Back to host type</button>
 </div>
 </div>
 </div>
@@ -337,7 +373,6 @@ input:checked + .slider:before { transform: translateX(20px); }
 </div>
 <div id="step-2" class="hidden fade-in">
 <h4 class="font-bold text-lg mb-3">Room Amenities Checklist</h4>
-<!-- NEW: DISCLAIMER (auto room number) -->
 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
 <h4 class="font-bold text-lg underline text-center mb-2">Check list</h4>
 <p class="text-sm text-gray-800">I hereby agree that I have taken charge of the following items in working and fit condition as per inventory placed in my room no. <strong id="disclaimer-room" class="bg-blue-100 px-2 py-0.5 rounded">____</strong>. I hereby agree to pay charges as deemed appropriate by the resort for any unfair wear &amp; tear, breakage or loss of these items. I also take personal responsibility to hand over full inventory back to the hotel as per the list of items mentioned below in event of my leaving the job or accommodation at the <span id="disclaimer-hotel">Six Senses Southern Dunes, The Red Sea Host accommodation</span>.</p>
@@ -507,6 +542,9 @@ I have read and agree to abide by all accommodation rules.
 <button onclick="showAdminSection('inventory')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-inventory">📦 Inventory</button>
 <button onclick="showAdminSection('employees')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-employees">👥 Employees</button>
 <button onclick="showAdminSection('modguest')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-modguest">⭐ MOD & Guests</button>
+<button onclick="showAdminSection('alerts')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-alerts">🔔 Alerts</button>
+<button onclick="showAdminSection('reports')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-reports">📊 Reports</button>
+<button onclick="showAdminSection('backup')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-backup">💾 Backup</button>
 <button onclick="showAdminSection('branding')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-branding">🎨 Branding</button>
 </div>
 <div class="p-6">
@@ -594,7 +632,7 @@ I have read and agree to abide by all accommodation rules.
 <div id="block-summary" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 mb-4 text-xs"></div>
 <div id="room-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
 </div>
-<!-- INVENTORY (REDESIGNED + TYPE TEMPLATES) -->
+<!-- INVENTORY -->
 <div id="admin-inventory" class="hidden fade-in">
 <h3 class="text-lg font-bold mb-4">📦 Room Amenities / Inventory Management</h3>
 <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
@@ -611,7 +649,6 @@ I have read and agree to abide by all accommodation rules.
 </div>
 <div class="bg-white p-4 rounded-lg border mb-4">
 <h4 class="font-semibold mb-2">2️⃣ Inventory Items (will apply to ALL selected rooms)</h4>
-<!-- NEW: single/sharing template bar -->
 <div class="flex flex-wrap gap-2 items-center mb-3 bg-gray-50 p-3 rounded border">
 <label class="text-sm font-semibold">Template for:</label>
 <select id="inv-template-type" onchange="document.getElementById('inv-template-type-label').textContent = this.value === 'single' ? 'Single' : 'Sharing'" class="px-3 py-2 border rounded text-sm"><option value="single">Single Rooms</option><option value="sharing">Sharing Rooms</option></select>
@@ -653,6 +690,7 @@ I have read and agree to abide by all accommodation rules.
 <button onclick="setEmpStatusTab('all')" id="emptab-all" class="block-tab active">All</button>
 <button onclick="setEmpStatusTab('active')" id="emptab-active" class="block-tab">Active</button>
 <button onclick="setEmpStatusTab('resigned')" id="emptab-resigned" class="block-tab">Resigned</button>
+<button onclick="setEmpStatusTab('pendingapproval')" id="emptab-pendingapproval" class="block-tab">⏳ Pending Approval</button>
 </div>
 <div class="flex gap-2 mb-4 flex-wrap">
 <select id="filter-gender" onchange="renderEmpTable()" class="px-3 py-2 border rounded text-sm"><option value="">All Genders</option><option>Male</option><option>Female</option></select>
@@ -697,6 +735,62 @@ I have read and agree to abide by all accommodation rules.
 <thead class="bg-gray-50 text-xs text-gray-500 uppercase"><tr><th class="p-2">Guest</th><th class="p-2">Room</th><th class="p-2">Check-In</th><th class="p-2">Check-Out</th><th class="p-2">Status</th><th class="p-2"></th></tr></thead>
 <tbody id="guest-stays-body"><tr><td colspan="6" class="p-3 text-center text-gray-500 italic">No guest stays yet</td></tr></tbody></table></div>
 </div>
+</div>
+<!-- ALERTS -->
+<div id="admin-alerts" class="hidden fade-in">
+<h3 class="text-lg font-bold mb-4">🔔 Alerts & Notifications</h3>
+<div class="flex gap-3 mb-3 flex-wrap items-center">
+<label class="text-sm font-medium">Govt ID expiry window:</label>
+<select id="alert-threshold" onchange="renderAlerts()" class="px-3 py-2 border rounded text-sm"><option value="30">30 days</option><option value="60" selected>60 days</option><option value="90">90 days</option></select>
+<button onclick="renderAlerts()" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">🔄 Refresh</button>
+<button onclick="downloadAlertsExcel()" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">⬇ Download Excel Report</button>
+</div>
+<div id="alert-summary" class="flex flex-wrap gap-2 mb-3"></div>
+<div class="overflow-x-auto bg-white border rounded">
+<table class="w-full text-sm text-left">
+<thead class="bg-gray-50 text-gray-600 uppercase text-xs"><tr><th class="p-2">Level</th><th class="p-2">Alert</th><th class="p-2">Employee / Room</th><th class="p-2">Department</th><th class="p-2">Govt ID No.</th><th class="p-2">Expiry Date</th><th class="p-2">Room</th><th class="p-2">Detail</th></tr></thead>
+<tbody id="alerts-body"><tr><td colspan="8" class="p-4 text-center text-gray-500 italic">No alerts</td></tr></tbody>
+</table>
+</div>
+</div>
+<!-- REPORTS -->
+<div id="admin-reports" class="hidden fade-in">
+<h3 class="text-lg font-bold mb-4">📊 Custom Reports</h3>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+<select id="rep-source" class="px-3 py-2 border rounded text-sm"><option value="employees">Employees</option><option value="rooms">Rooms</option><option value="checkins">Check-Ins</option><option value="checkouts">Check-Outs</option><option value="modstays">MOD Stays</option><option value="guests">Guests</option></select>
+<select id="rep-block" class="px-3 py-2 border rounded text-sm"><option value="">All Blocks</option></select>
+<select id="rep-dept" class="px-3 py-2 border rounded text-sm"><option value="">All Departments</option></select>
+<select id="rep-gender" class="px-3 py-2 border rounded text-sm"><option value="">All Genders</option><option>Male</option><option>Female</option><option>Other</option></select>
+<select id="rep-emptype" class="px-3 py-2 border rounded text-sm"><option value="">Onroll + Casual</option><option value="Onroll">Onroll</option><option value="Casual">Casual</option></select>
+<select id="rep-roomtype" class="px-3 py-2 border rounded text-sm"><option value="">Single + Sharing</option><option value="single">Single</option><option value="sharing">Sharing</option></select>
+<select id="rep-empstatus" class="px-3 py-2 border rounded text-sm"><option value="">Active + Resigned</option><option value="active">Active</option><option value="resigned">Resigned</option></select>
+<select id="rep-occupancy" class="px-3 py-2 border rounded text-sm"><option value="">Any Occupancy</option><option value="vacant">Vacant</option><option value="occupied">Occupied</option></select>
+</div>
+<div class="flex gap-2 mb-3 flex-wrap">
+<button onclick="generateReport()" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">🔎 Generate Preview</button>
+<button onclick="exportReportExcel()" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">⬇ Excel (.xlsx)</button>
+<button onclick="exportReportPdf()" class="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700">⬇ PDF</button>
+<span id="rep-count" class="text-sm text-gray-600 self-center"></span>
+</div>
+<div id="rep-preview" class="overflow-x-auto bg-white border rounded max-h-96 overflow-y-auto"></div>
+</div>
+<!-- BACKUP -->
+<div id="admin-backup" class="hidden fade-in">
+<h3 class="text-lg font-bold mb-4">💾 Backup & Restore</h3>
+<div class="grid md:grid-cols-2 gap-4">
+<div class="bg-green-50 p-4 rounded-lg border border-green-200">
+<h4 class="font-bold text-green-900">Download Full Backup</h4>
+<p class="text-xs text-green-800 mt-1">Exports rooms, employees, guests, check-ins, check-outs, MOD stays, MOD assignments & settings as a JSON file.</p>
+<button onclick="downloadBackup()" class="mt-3 px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">⬇ Download Backup (JSON)</button>
+</div>
+<div class="bg-red-50 p-4 rounded-lg border border-red-200">
+<h4 class="font-bold text-red-900">Restore From Backup</h4>
+<p class="text-xs text-red-800 mt-1">Upload a previously downloaded backup JSON. Existing documents with same IDs will be overwritten.</p>
+<input type="file" id="restore-file" accept=".json" class="hidden" onchange="restoreBackup(event)">
+<button onclick="document.getElementById('restore-file').click()" class="mt-3 px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700">📤 Upload & Restore</button>
+</div>
+</div>
+<div id="backup-status" class="text-sm mt-3"></div>
 </div>
 <!-- BRANDING -->
 <div id="admin-branding" class="hidden fade-in">
@@ -778,6 +872,8 @@ I have read and agree to abide by all accommodation rules.
 <div><label class="block text-sm font-medium mb-1">Gender</label><select name="gender" id="edit-gender" class="w-full px-3 py-2 border rounded"><option>Male</option><option>Female</option><option>Other</option></select></div>
 <div><label class="block text-sm font-medium mb-1">Employment Type</label><select name="employmentType" id="edit-type" class="w-full px-3 py-2 border rounded"><option value="">--</option><option>Onroll</option><option>Casual</option></select></div>
 <div><label class="block text-sm font-medium mb-1">Employee Status</label><select name="empStatus" id="edit-status" class="w-full px-3 py-2 border rounded"><option value="active">Active</option><option value="resigned">Resigned</option></select></div>
+<div><label class="block text-sm font-medium mb-1">Company Name <span class="text-xs text-gray-500">(casual / third-party)</span></label><input type="text" id="edit-company" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Approval</label><select id="edit-approval" class="w-full px-3 py-2 border rounded"><option value="approved">Approved</option><option value="pending">Pending Approval</option></select></div>
 <div class="flex items-center gap-2"><input type="checkbox" id="edit-is-mod" class="w-4 h-4"><label for="edit-is-mod" class="text-sm">MOD employee</label></div>
 <div class="flex items-center gap-2"><input type="checkbox" id="edit-login-enabled" class="w-4 h-4"><label for="edit-login-enabled" class="text-sm">Login enabled</label></div>
 <div class="flex items-center gap-2"><input type="checkbox" id="edit-room-change" class="w-4 h-4"><label for="edit-room-change" class="text-sm">Room change enabled</label></div>
@@ -867,6 +963,7 @@ let registering = false;
 let guestSession = null;
 let empStatusTab = 'all';
 let editingEmpId = null;
+let lastReportRows = [];
 let layoutFilters = { single:false, sharing:false, occupied:false, vacant:false, male:false, female:false, onroll:false, casual:false };
 const amenitiesList = ["Single Bed", "Mattress", "Pillow", "Blanket", "Wardrobe", "Study Table", "Chair", "AC", "Fan", "Light", "Mirror", "Curtains"];
 const departmentList = ["IT","Front Office","Kitchen","F&B Service","Spa","Stewarding","Finance","Engineering","Landscaping","Security","Sales and Marketing","Human Resources","Housekeeping & Laundry","Executive Office","Reservations","Purchasing","Sustainability","Pest Control"];
@@ -876,7 +973,7 @@ const opts = [...departmentList];
 if (selected && !opts.includes(selected)) opts.unshift(selected);
 sel.innerHTML = '<option value="">-- Select Department --</option>' + opts.map(d => `<option value="${d}" ${d === selected ? 'selected' : ''}>${d}</option>`).join('');
 }
-// ===== NATURAL ROOM SORTING (fixes A-1, A-10, A-2 order) =====
+// ===== NATURAL ROOM SORTING =====
 function natCompare(a, b) { return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }); }
 function sortRooms(arr) {
 return arr.slice().sort((x, y) =>
@@ -1098,6 +1195,38 @@ const suffix = roomsData.filter(r => (r.room && r.room === input) || r.number.en
 if (suffix.length === 1) return suffix[0].number;
 return input;
 }
+// ===== EXCEL / PDF EXPORT HELPERS =====
+function exportRowsXlsx(filename, rows, sheetName) {
+if (!rows || !rows.length) { alert('No rows to export.'); return; }
+const ws = XLSX.utils.json_to_sheet(rows);
+const wb = XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb, ws, (sheetName || 'Report').slice(0, 30));
+XLSX.writeFile(wb, filename);
+}
+function exportRowsPdf(filename, rows, title) {
+if (!rows || !rows.length) { alert('No rows to export.'); return; }
+const doc = new window.jspdf.jsPDF({ orientation: 'landscape' });
+const cols = Object.keys(rows[0]);
+doc.setFontSize(14);
+doc.text(title || 'Report', 10, 12);
+doc.setFontSize(9);
+doc.text('Generated: ' + new Date().toLocaleString(), 10, 18);
+doc.autoTable({ head: [cols], body: rows.map(r => cols.map(c => String(r[c] ?? ''))), startY: 22, styles: { fontSize: 7 }, headStyles: { fillColor: [37, 99, 235] } });
+doc.save(filename);
+}
+function flattenRow(obj) {
+const o = {};
+for (const k in obj) {
+const v = obj[k];
+if (v === null || v === undefined) continue;
+if (k === 'id') continue;
+if (typeof v === 'object') {
+if (Array.isArray(v)) o[k] = v.map(x => (x && typeof x === 'object') ? (x.name || JSON.stringify(x)) : x).join('; ');
+else o[k] = JSON.stringify(v);
+} else o[k] = v;
+}
+return o;
+}
 // ===== INIT =====
 window.addEventListener('DOMContentLoaded', () => {
 const checkFirebase = setInterval(() => {
@@ -1197,12 +1326,17 @@ await logout();
 return;
 }
 const empData = empDoc.data();
+if (empData.approvalStatus === 'pending') {
+alert('⏳ Your profile is awaiting ADMIN APPROVAL.\nYou will be able to login once an admin approves your profile and assigns a room.');
+await logout();
+return;
+}
 if (!empData.loginEnabled) { alert('Your login is disabled. Contact admin.'); await logout(); return; }
 currentUser = { role: 'employee', uid: user.uid, ...empData, id: empDoc.id };
 document.getElementById('login-screen').classList.add('hidden');
 document.getElementById('employee-dashboard').classList.remove('hidden');
 document.getElementById('emp-name-display').textContent = empData.name;
-document.getElementById('emp-role-badge').textContent = empData.isMOD ? 'MOD' : 'Employee';
+document.getElementById('emp-role-badge').textContent = empData.isMOD ? 'MOD' : (empData.employmentType === 'Casual' ? 'Casual' : 'Employee');
 document.getElementById('current-room-display').textContent = empData.room || 'Not assigned';
 document.getElementById('card-mod').style.display = empData.isMOD ? '' : 'none';
 document.getElementById('card-changeroom').style.display = empData.roomChangeEnabled ? '' : 'none';
@@ -1221,15 +1355,34 @@ document.getElementById('login-screen').classList.remove('hidden');
 document.getElementById('login-form').reset();
 switchLoginTab('employee');
 }
-// ===== SELF REGISTRATION =====
+// ===== SELF REGISTRATION (Onroll / Casual) =====
 function openCreateProfile() { document.getElementById('create-profile-modal').classList.add('show'); resetRegistration(); }
 function closeCreateProfile() { document.getElementById('create-profile-modal').classList.remove('show'); }
 function resetRegistration() {
+document.getElementById('reg-step-0').classList.remove('hidden');
+document.getElementById('reg-onroll').classList.add('hidden');
+document.getElementById('reg-casual').classList.add('hidden');
 document.getElementById('reg-step-1').classList.remove('hidden');
 document.getElementById('reg-step-2').classList.add('hidden');
 document.getElementById('reg-name-search').value = '';
 document.getElementById('reg-search-results').innerHTML = '';
 regSearchEmpId = null;
+}
+function backToRegType() {
+document.getElementById('reg-step-0').classList.remove('hidden');
+document.getElementById('reg-onroll').classList.add('hidden');
+document.getElementById('reg-casual').classList.add('hidden');
+}
+function chooseRegType(type) {
+document.getElementById('reg-step-0').classList.add('hidden');
+if (type === 'onroll') {
+document.getElementById('reg-onroll').classList.remove('hidden');
+document.getElementById('reg-casual').classList.add('hidden');
+} else {
+document.getElementById('reg-casual').classList.remove('hidden');
+document.getElementById('reg-onroll').classList.add('hidden');
+fillDeptSelect(document.getElementById('cas-dept'), '');
+}
 }
 async function searchRegName(query) {
 const resDiv = document.getElementById('reg-search-results');
@@ -1282,7 +1435,7 @@ uid = cred.user.uid;
 } else throw authErr;
 }
 await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', regSearchEmpId), {
-uid, email, registered: true, loginEnabled: true, status: 'pending'
+uid, email, registered: true, loginEnabled: true, status: 'pending', approvalStatus: 'approved'
 });
 const chk = await window.fb.getDoc(window.fb.doc(window.fb.db, 'employees', regSearchEmpId));
 if (!chk.exists() || chk.data().uid !== uid) {
@@ -1296,6 +1449,54 @@ let msg = 'Registration failed.';
 if (error.code === 'auth/wrong-password') msg = 'An account with this email exists but password differs. Use "Forgot Password?" first, then register again.';
 else if (error.code === 'auth/weak-password') msg = 'Password too weak.';
 else if (error.code === 'permission-denied') msg = 'Permission denied. Publish the Firestore Rules first, then try again.';
+else msg = error.message;
+alert(msg);
+try { await window.fb.signOut(window.fb.auth); } catch(e) {}
+} finally {
+btn.disabled = false;
+setTimeout(() => { registering = false; }, 800);
+}
+}
+// Casual / third-party self registration → admin approval
+async function submitCasualRegistration() {
+const name = document.getElementById('cas-name').value.trim();
+const dept = document.getElementById('cas-dept').value;
+const email = document.getElementById('cas-email').value.trim();
+const pass = document.getElementById('cas-password').value;
+const pass2 = document.getElementById('cas-password2').value;
+const btn = document.getElementById('cas-submit-btn');
+if (!name || !dept || !email) { alert('Please fill name, department and email'); return; }
+if (pass.length < 6) { alert('Password must be 6+ characters'); return; }
+if (pass !== pass2) { alert('Passwords do not match'); return; }
+btn.disabled = true;
+registering = true;
+try {
+let uid;
+try {
+const userCred = await window.fb.createUserWithEmailAndPassword(window.fb.auth, email, pass);
+uid = userCred.user.uid;
+} catch (authErr) {
+if (authErr.code === 'auth/email-already-in-use') {
+const cred = await window.fb.signInWithEmailAndPassword(window.fb.auth, email, pass);
+uid = cred.user.uid;
+} else throw authErr;
+}
+await window.fb.addDoc(window.fb.collection(window.fb.db, 'employees'), {
+name, dept, email, uid,
+code: 'CAS-' + String(Date.now()).slice(-6),
+designation: '', gender: '', employmentType: 'Casual', empStatus: 'active',
+companyName: '', room: '', block: '',
+approvalStatus: 'pending', registered: true, loginEnabled: false,
+status: 'pending', isMOD: false, roomChangeEnabled: false,
+createdAt: new Date().toISOString()
+});
+await window.fb.signOut(window.fb.auth);
+closeCreateProfile();
+alert('✓ Submitted for admin approval!\nYou will be able to login once an admin approves your profile and assigns a room.');
+} catch (error) {
+let msg = 'Registration failed.';
+if (error.code === 'auth/weak-password') msg = 'Password too weak.';
+else if (error.code === 'permission-denied') msg = 'Permission denied. Publish the Firestore Rules first.';
 else msg = error.message;
 alert(msg);
 try { await window.fb.signOut(window.fb.auth); } catch(e) {}
@@ -1401,7 +1602,7 @@ const data = contexts[i].getImageData(0, 0, canvas.width, canvas.height).data;
 for (let j = 3; j < data.length; j += 4) { if (data[j] !== 0) return true; }
 return false;
 }
-// ===== AMENITIES (+ disclaimer room auto-fill) =====
+// ===== AMENITIES (+ disclaimer auto room) =====
 function getMyRoom() { return roomsData.find(r => r.number === (currentUser && currentUser.room)); }
 function renderAmenitiesTable() {
 const tbody = document.getElementById('amenities-table-body');
@@ -1720,8 +1921,8 @@ const room = roomsData.find(r => r.number === roomNo);
 await window.fb.addDoc(window.fb.collection(window.fb.db, 'employees'), {
 name, code: 'EMP' + String(Date.now()).slice(-6) + i, dept, designation, room: roomNo,
 block: room ? room.block : '', gender: 'Male', email: '', uid: '',
-employmentType: (empType || '').trim(), empStatus: 'active',
-status: 'pending', isMOD: false, roomChangeEnabled: false, loginEnabled: false, registered: false,
+employmentType: (empType || '').trim(), empStatus: 'active', companyName: '',
+status: 'pending', isMOD: false, roomChangeEnabled: false, loginEnabled: false, registered: false, approvalStatus: 'approved',
 createdAt: new Date().toISOString()
 });
 count++;
@@ -1806,7 +2007,7 @@ el.innerHTML = `<span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full te
 <span class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">Unassigned: ${roomsData.length - male - female}</span>`;
 }
 function refreshSectionUI() { populateSectionDropdowns(); renderSecChecklist(); }
-// ===== INVENTORY (MULTI-ROOM + TYPE TEMPLATES) =====
+// ===== INVENTORY (MULTI-ROOM + TEMPLATES) =====
 function populateInventoryDropdowns() {
 const bSel = document.getElementById('inv-block');
 if (!bSel) return;
@@ -1895,7 +2096,6 @@ ok++;
 alert(`✓ Inventory saved to ${ok} room(s).`);
 } catch (e) { alert('Error: ' + e.message); }
 }
-// --- Single / Sharing templates ---
 async function loadInvTemplatesFromDb() {
 try {
 const s = await window.fb.getDoc(window.fb.doc(window.fb.db, 'settings', 'inventoryTemplates'));
@@ -1905,7 +2105,7 @@ if (s.exists()) invTemplates = { single: s.data().single || [], sharing: s.data(
 function loadInvTemplate() {
 const t = document.getElementById('inv-template-type').value;
 invEditList = (invTemplates[t] || []).map(it => ({ ...it }));
-if (!invEditList.length) { addInvRow(); } else renderInvTable();
+if (!invEditList.length) addInvRow(); else renderInvTable();
 }
 async function saveInvTemplate() {
 const t = document.getElementById('inv-template-type').value;
@@ -1970,7 +2170,7 @@ reader.readAsText(file);
 }
 // ===== ADMIN NAV =====
 function showAdminSection(section) {
-['upload','layout','inventory','employees','modguest','branding'].forEach(s => {
+['upload','layout','inventory','employees','modguest','alerts','reports','backup','branding'].forEach(s => {
 document.getElementById('admin-' + s).classList.add('hidden');
 document.getElementById('tab-' + s).classList.remove('tab-active');
 document.getElementById('tab-' + s).classList.add('text-gray-500');
@@ -1987,6 +2187,8 @@ if (!invEditList.length) { addInvRow(); addInvRow(); addInvRow(); } else renderI
 if (section === 'layout') refreshSectionUI();
 if (section === 'branding') loadBrandingIntoForm();
 if (section === 'modguest') renderGuestControls();
+if (section === 'alerts') renderAlerts();
+if (section === 'reports') populateReportFilters();
 }
 function showMODGuestTab(tab) {
 ['mod','assign','guests'].forEach(t => {
@@ -1999,6 +2201,183 @@ document.getElementById('mg-tab-' + tab).classList.add('tab-active');
 document.getElementById('mg-tab-' + tab).classList.remove('text-gray-500');
 if (tab === 'assign') populateMODAssignDropdowns();
 if (tab === 'guests') renderGuestControls();
+}
+// ===== ALERTS & NOTIFICATIONS =====
+function computeAlerts() {
+const alerts = [];
+const today = new Date(); today.setHours(0,0,0,0);
+const days = parseInt(document.getElementById('alert-threshold')?.value) || 60;
+employeesData.forEach(e => {
+if (e.id_expiry) {
+const exp = new Date(e.id_expiry);
+const diff = Math.ceil((exp - today) / 86400000);
+if (diff < 0) alerts.push({ level: '🔴 EXPIRED', type: 'Govt ID Expired', who: e.name, dept: e.dept || '', idNo: e.govt_id || '', expiry: e.id_expiry, room: e.room || '', detail: `Expired ${-diff} day(s) ago` });
+else if (diff <= days) alerts.push({ level: '🟠 EXPIRING', type: 'Govt ID Expiring Soon', who: e.name, dept: e.dept || '', idNo: e.govt_id || '', expiry: e.id_expiry, room: e.room || '', detail: `${diff} day(s) left` });
+} else if (e.registered) {
+alerts.push({ level: '🟡 MISSING', type: 'Govt ID expiry missing', who: e.name, dept: e.dept || '', idNo: e.govt_id || '', expiry: '', room: e.room || '', detail: 'No expiry date on file' });
+}
+if (!e.room) alerts.push({ level: '🟡 MISSING', type: 'No room assigned', who: e.name, dept: e.dept || '', idNo: e.govt_id || '', expiry: e.id_expiry || '', room: '', detail: 'Employee has no room' });
+if (e.approvalStatus === 'pending') alerts.push({ level: '🔵 APPROVAL', type: 'Casual approval pending', who: e.name, dept: e.dept || '', idNo: e.govt_id || '', expiry: e.id_expiry || '', room: e.room || '', detail: 'Awaiting admin approval' });
+if (e.registered && e.loginEnabled === false && e.approvalStatus !== 'pending') alerts.push({ level: '⚪ INFO', type: 'Login disabled', who: e.name, dept: e.dept || '', idNo: e.govt_id || '', expiry: e.id_expiry || '', room: e.room || '', detail: 'Employee cannot sign in' });
+});
+roomsData.forEach(r => {
+if ((r.occupants || []).length && !(r.inventory || []).length) {
+alerts.push({ level: '🟡 MISSING', type: 'Room without inventory', who: 'Room ' + r.number, dept: '', idNo: '', expiry: '', room: r.number, detail: 'Occupied but no inventory list' });
+}
+});
+return alerts;
+}
+function renderAlerts() {
+const alerts = computeAlerts();
+const summary = document.getElementById('alert-summary');
+const counts = {};
+alerts.forEach(a => { counts[a.level] = (counts[a.level] || 0) + 1; });
+summary.innerHTML = Object.keys(counts).map(k => `<span class="px-3 py-1 bg-white border rounded-full text-xs font-semibold">${k}: ${counts[k]}</span>`).join('') || '<span class="text-xs text-green-600 font-semibold">✓ No alerts — everything looks good</span>';
+const tbody = document.getElementById('alerts-body');
+tbody.innerHTML = alerts.length ? alerts.map(a => `
+<tr class="border-b hover:bg-gray-50">
+<td class="p-2 text-xs font-semibold">${a.level}</td>
+<td class="p-2">${a.type}</td>
+<td class="p-2">${a.who}</td>
+<td class="p-2">${a.dept}</td>
+<td class="p-2">${a.idNo}</td>
+<td class="p-2">${a.expiry}</td>
+<td class="p-2">${a.room}</td>
+<td class="p-2 text-xs text-gray-600">${a.detail}</td>
+</tr>`).join('') : '<tr><td colspan="8" class="p-4 text-center text-gray-500 italic">No alerts</td></tr>';
+}
+function downloadAlertsExcel() {
+const alerts = computeAlerts();
+exportRowsXlsx(`alerts-report-${new Date().toISOString().slice(0,10)}.xlsx`, alerts.map(a => ({ Level: a.level, Alert: a.type, Employee: a.who, Department: a.dept, 'Govt ID No': a.idNo, 'Expiry Date': a.expiry, Room: a.room, Detail: a.detail })), 'Alerts');
+}
+// ===== CUSTOM REPORTS =====
+function populateReportFilters() {
+const bSel = document.getElementById('rep-block');
+if (bSel) {
+const blocks = [...new Set(roomsData.map(r => r.block))].filter(Boolean).sort(natCompare);
+const cur = bSel.value;
+bSel.innerHTML = '<option value="">All Blocks</option>' + blocks.map(b => `<option value="${b}">${b}</option>`).join('');
+if (cur && blocks.includes(cur)) bSel.value = cur;
+}
+const dSel = document.getElementById('rep-dept');
+if (dSel) {
+const cur = dSel.value;
+dSel.innerHTML = '<option value="">All Departments</option>' + departmentList.map(d => `<option value="${d}">${d}</option>`).join('');
+if (cur) dSel.value = cur;
+}
+}
+function reportFilterValues() {
+return {
+block: document.getElementById('rep-block').value,
+dept: document.getElementById('rep-dept').value,
+gender: document.getElementById('rep-gender').value,
+empType: document.getElementById('rep-emptype').value,
+roomType: (document.getElementById('rep-roomtype').value || '').toLowerCase(),
+empStatus: document.getElementById('rep-empstatus').value,
+occupancy: document.getElementById('rep-occupancy').value
+};
+}
+async function gatherReport() {
+const src = document.getElementById('rep-source').value;
+const f = reportFilterValues();
+let rows = [];
+if (src === 'employees') {
+rows = employeesData.filter(e =>
+(!f.block || e.block === f.block) &&
+(!f.dept || e.dept === f.dept) &&
+(!f.gender || e.gender === f.gender) &&
+(!f.empType || e.employmentType === f.empType) &&
+(!f.empStatus || (e.empStatus || 'active') === f.empStatus)
+).map(e => ({ Name: e.name, Code: e.code || '', Department: e.dept || '', Designation: e.designation || '', Room: e.room || '', Block: e.block || '', Gender: e.gender || '', Type: e.employmentType || '', Company: e.companyName || '', Status: e.empStatus || 'active', Registration: e.registered ? 'Registered' : 'Pending', Approval: e.approvalStatus || '-', Email: e.email || '', Mobile: e.mobile || '', 'Govt ID': e.govt_id || '', 'ID Expiry': e.id_expiry || '', 'Check-In Date': e.lastCheckIn ? e.lastCheckIn.slice(0,10) : '' }));
+} else if (src === 'rooms') {
+rows = roomsData.filter(r =>
+(!f.block || r.block === f.block) &&
+(!f.roomType || (r.type || '').toLowerCase() === f.roomType) &&
+(!f.occupancy || (f.occupancy === 'vacant' ? (r.occupants || []).length === 0 : (r.occupants || []).length > 0))
+).map(r => ({ Room: r.number, Block: r.block, Cabin: r.cabin, Type: r.type, Beds: r.capacity, Occupied: (r.occupants || []).length, Occupants: (r.occupants || []).join('; '), Section: r.genderSection || '', 'Guest Room': r.guestRoom ? 'Yes' : 'No', 'Inventory Items': (r.inventory || []).length }));
+} else {
+try {
+const snap = await window.fb.getDocs(window.fb.collection(window.fb.db, src));
+rows = snap.docs.map(d => flattenRow(d.data())).filter(r => {
+if (f.dept) { const emp = employeesData.find(e => e.name === r.employeeName); if (!emp || emp.dept !== f.dept) return false; }
+if (f.block) { const rm = roomsData.find(x => x.number === r.room); if (!rm || rm.block !== f.block) return false; }
+return true;
+});
+} catch (e) { alert('Error loading ' + src + ': ' + e.message); }
+}
+return rows;
+}
+async function generateReport() {
+lastReportRows = await gatherReport();
+document.getElementById('rep-count').textContent = `${lastReportRows.length} record(s)`;
+const prev = document.getElementById('rep-preview');
+if (!lastReportRows.length) { prev.innerHTML = '<p class="p-4 text-center text-gray-500 italic">No records match the filters.</p>'; return; }
+const cols = Object.keys(lastReportRows[0]);
+prev.innerHTML = `<table class="w-full text-xs"><thead class="bg-gray-100 sticky top-0"><tr>${cols.map(c => `<th class="p-2 text-left">${c}</th>`).join('')}</tr></thead><tbody>` +
+lastReportRows.slice(0, 50).map(r => `<tr class="border-b">${cols.map(c => `<td class="p-2">${String(r[c] ?? '')}</td>`).join('')}</tr>`).join('') +
+`</tbody></table>` + (lastReportRows.length > 50 ? `<p class="p-2 text-xs text-gray-500">Showing first 50 of ${lastReportRows.length} rows — export to see all.</p>` : '');
+}
+function exportReportExcel() {
+if (!lastReportRows.length) { alert('Generate a preview first.'); return; }
+exportRowsXlsx(`report-${document.getElementById('rep-source').value}-${new Date().toISOString().slice(0,10)}.xlsx`, lastReportRows, 'Report');
+}
+function exportReportPdf() {
+if (!lastReportRows.length) { alert('Generate a preview first.'); return; }
+exportRowsPdf(`report-${document.getElementById('rep-source').value}-${new Date().toISOString().slice(0,10)}.pdf`, lastReportRows, (brandSettings.title || 'Host Accommodation') + ' — ' + document.getElementById('rep-source').value.toUpperCase() + ' Report');
+}
+// ===== BACKUP & RESTORE =====
+async function downloadBackup() {
+const status = document.getElementById('backup-status');
+status.textContent = 'Collecting data...';
+try {
+const cols = ['rooms','employees','guests','checkins','checkouts','modstays','modAssignments'];
+const data = { app: 'host-accommodation', exportedAt: new Date().toISOString(), collections: {}, settings: {} };
+for (const c of cols) {
+const snap = await window.fb.getDocs(window.fb.collection(window.fb.db, c));
+data.collections[c] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+for (const s of ['branding','inventoryTemplates']) {
+const d = await window.fb.getDoc(window.fb.doc(window.fb.db, 'settings', s));
+if (d.exists()) data.settings[s] = d.data();
+}
+const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url; a.download = `host-accommodation-backup-${new Date().toISOString().slice(0,10)}.json`; a.click();
+URL.revokeObjectURL(url);
+const total = Object.values(data.collections).reduce((s, c) => s + c.length, 0);
+status.innerHTML = `<span class="text-green-600">✓ Backup downloaded (${total} documents + settings).</span>`;
+} catch (e) { status.innerHTML = `<span class="text-red-600">Backup failed: ${e.message}</span>`; }
+}
+async function restoreBackup(event) {
+const file = event.target.files[0]; if (!file) return;
+if (!confirm('RESTORE will overwrite existing documents with the backup contents. Continue?')) { event.target.value = ''; return; }
+const status = document.getElementById('backup-status');
+status.textContent = 'Reading backup file...';
+try {
+const text = await file.text();
+const data = JSON.parse(text);
+if (!data.collections) throw new Error('Invalid backup file (no collections found).');
+let count = 0;
+for (const coll in data.collections) {
+for (const item of data.collections[coll]) {
+const { id, ...rest } = item;
+if (!id) continue;
+await window.fb.setDoc(window.fb.doc(window.fb.db, coll, id), rest);
+count++;
+}
+}
+for (const s in (data.settings || {})) {
+await window.fb.setDoc(window.fb.doc(window.fb.db, 'settings', s), data.settings[s], { merge: true });
+count++;
+}
+status.innerHTML = `<span class="text-green-600">✓ Restore complete — ${count} documents written.</span>`;
+alert(`✓ Backup restored (${count} documents).`);
+} catch (e) {
+status.innerHTML = `<span class="text-red-600">Restore failed: ${e.message}</span>`;
+alert('Restore failed: ' + e.message);
+}
+event.target.value = '';
 }
 // ===== GUEST ADMIN =====
 function renderGuestControls() {
@@ -2029,7 +2408,7 @@ const room = roomsData.find(r => r.number === g.room);
 if (room) await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.number), { occupants: (room.occupants || []).filter(n => n !== g.name) });
 } catch (e) { alert('Error: ' + e.message); }
 }
-// ===== ADMIN CREATE / EDIT / DELETE =====
+// ===== ADMIN CREATE / EDIT / DELETE / APPROVE =====
 function openAdminCreateProfile() {
 document.getElementById('admin-create-profile-modal').classList.add('show');
 document.getElementById('admin-room-select').innerHTML = '<option value="">-- Select Room --</option>' + sortRooms(roomsData).map(r => `<option value="${r.number}">${r.number} (${r.block}, ${r.type}, ${r.capacity} beds)</option>`).join('');
@@ -2047,10 +2426,10 @@ try {
 await window.fb.addDoc(window.fb.collection(window.fb.db, 'employees'), {
 name: data.name || '', code: data.code || '', dept: data.dept || '',
 designation: data.designation || '', gender: data.gender || 'Male',
-employmentType: data.employmentType || '', empStatus: 'active',
+employmentType: data.employmentType || '', empStatus: 'active', companyName: '',
 email: '', uid: '', room: roomNo, block: room ? room.block : '',
 status: 'pending', isMOD: document.getElementById('admin-is-mod').checked,
-roomChangeEnabled: document.getElementById('admin-room-change').checked,
+roomChangeEnabled: document.getElementById('admin-room-change').checked, approvalStatus: 'approved',
 loginEnabled: true, registered: false, createdAt: new Date().toISOString()
 });
 closeAdminCreateProfile();
@@ -2070,6 +2449,8 @@ document.getElementById('edit-room').innerHTML = '<option value="">-- No Room --
 document.getElementById('edit-gender').value = emp.gender || 'Male';
 document.getElementById('edit-type').value = emp.employmentType || '';
 document.getElementById('edit-status').value = emp.empStatus || 'active';
+document.getElementById('edit-company').value = emp.companyName || '';
+document.getElementById('edit-approval').value = emp.approvalStatus || 'approved';
 document.getElementById('edit-is-mod').checked = !!emp.isMOD;
 document.getElementById('edit-login-enabled').checked = emp.loginEnabled !== false;
 document.getElementById('edit-room-change').checked = !!emp.roomChangeEnabled;
@@ -2083,6 +2464,7 @@ if (!editingEmpId) return;
 const old = employeesData.find(e => e.id === editingEmpId);
 const roomNo = resolveRoomNo(document.getElementById('edit-room').value || '');
 const room = roomsData.find(r => r.number === roomNo);
+const approval = document.getElementById('edit-approval').value;
 const updates = {
 name: document.getElementById('edit-name').value.trim(),
 code: document.getElementById('edit-code').value.trim(),
@@ -2093,9 +2475,11 @@ block: room ? room.block : '',
 gender: document.getElementById('edit-gender').value,
 employmentType: document.getElementById('edit-type').value,
 empStatus: document.getElementById('edit-status').value,
+companyName: document.getElementById('edit-company').value.trim(),
+approvalStatus: approval,
 isMOD: document.getElementById('edit-is-mod').checked,
 roomChangeEnabled: document.getElementById('edit-room-change').checked,
-loginEnabled: document.getElementById('edit-login-enabled').checked
+loginEnabled: approval === 'pending' ? false : document.getElementById('edit-login-enabled').checked
 };
 if (document.getElementById('edit-clear-uid').checked) { updates.uid = ''; updates.registered = false; }
 try {
@@ -2114,6 +2498,15 @@ await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.n
 await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', editingEmpId), updates);
 closeEditEmpModal();
 alert('✓ Employee updated.');
+} catch (e) { alert('Error: ' + e.message); }
+}
+async function approveEmployee(empId) {
+const emp = employeesData.find(e => e.id === empId);
+if (!emp) return;
+if (!confirm(`Approve ${emp.name} (Casual / Third-party)?\nThey will be able to login once approved. You can still edit room & company name afterwards.`)) return;
+try {
+await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', empId), { approvalStatus: 'approved', loginEnabled: true, status: 'active' });
+alert(`✓ ${emp.name} approved. They can now login.`);
 } catch (e) { alert('Error: ' + e.message); }
 }
 async function deleteEmployee(empId) {
@@ -2180,10 +2573,10 @@ const name = data.name || 'Unnamed';
 try {
 const docRef = await window.fb.addDoc(window.fb.collection(window.fb.db, 'employees'), {
 name, code: data.code || '', dept: data.dept || '', designation: data.designation || '',
-gender: data.gender || 'Male', employmentType: data.employmentType || '', empStatus: 'active',
+gender: data.gender || 'Male', employmentType: data.employmentType || '', empStatus: 'active', companyName: '',
 email: '', uid: '', room: allocateTargetRoom,
 block: allocateTargetRoom ? allocateTargetRoom.split('-')[0] : '',
-status: 'active', isMOD: document.getElementById('alloc-is-mod').checked, roomChangeEnabled: false,
+status: 'active', isMOD: document.getElementById('alloc-is-mod').checked, roomChangeEnabled: false, approvalStatus: 'approved',
 loginEnabled: true, registered: false, createdAt: new Date().toISOString()
 });
 await allocateToRoom(allocateTargetRoom, name, docRef.id);
@@ -2208,7 +2601,7 @@ catch (error) { alert('Error: ' + error.message); }
 }
 function setEmpStatusTab(tab) {
 empStatusTab = tab;
-['all','active','resigned'].forEach(t => document.getElementById('emptab-' + t).classList.toggle('active', t === tab));
+['all','active','resigned','pendingapproval'].forEach(t => document.getElementById('emptab-' + t).classList.toggle('active', t === tab));
 renderEmpTable();
 }
 function empTypeSelect(emp) {
@@ -2225,10 +2618,15 @@ return `<select onchange="setEmpStatus('${emp.id}', this.value)" class="px-2 py-
 <option value="resigned" ${v === 'resigned' ? 'selected' : ''}>Resigned</option>
 </select>`;
 }
+function approvalBadge(emp) {
+if (emp.approvalStatus === 'pending') return '<span class="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">⏳ Pending Approval</span>';
+return '<span class="text-xs px-2 py-1 rounded bg-green-100 text-green-700">Approved</span>';
+}
 function currentFilteredEmployees() {
 let f = employeesData;
 if (empStatusTab === 'active') f = f.filter(e => (e.empStatus || 'active') === 'active');
 if (empStatusTab === 'resigned') f = f.filter(e => e.empStatus === 'resigned');
+if (empStatusTab === 'pendingapproval') f = f.filter(e => e.approvalStatus === 'pending');
 const g = document.getElementById('filter-gender')?.value;
 const r = document.getElementById('filter-reg')?.value;
 const t = document.getElementById('filter-type')?.value;
@@ -2244,14 +2642,14 @@ const list = currentFilteredEmployees();
 if (!list.length) { tbody.innerHTML = '<tr><td colspan="11" class="p-4 text-center text-gray-500 italic">No employees match the current filters.</td></tr>'; return; }
 tbody.innerHTML = list.map(emp => `
 <tr class="border-b hover:bg-gray-50">
-<td class="p-3 font-medium">${emp.name} ${emp.isMOD?'<span class="text-xs bg-orange-100 text-orange-700 px-1 rounded ml-1">MOD</span>':''}</td>
+<td class="p-3 font-medium">${emp.name} ${emp.isMOD?'<span class="text-xs bg-orange-100 text-orange-700 px-1 rounded ml-1">MOD</span>':''}<br>${approvalBadge(emp)}</td>
 <td class="p-3 text-xs"><code>${emp.username||emp.email||'-'}</code></td>
 <td class="p-3">${emp.dept}</td><td class="p-3">${emp.designation||'-'}</td><td class="p-3">${emp.room||'-'}</td>
 <td class="p-3">${empTypeSelect(emp)}</td>
 <td class="p-3">${empStatusSelect(emp)}</td>
 <td class="p-3"><span class="text-xs px-2 py-1 rounded ${emp.registered?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${emp.registered?'Registered':'Pending'}</span></td>
 <td class="p-3"><label class="toggle-switch"><input type="checkbox" ${emp.loginEnabled?'checked':''} onchange="toggleLogin('${emp.id}')"><span class="slider"></span></label></td>
-<td class="p-3"><button onclick="openEditEmpModal('${emp.id}')" class="text-blue-600 text-xs font-semibold hover:underline">✏️ Edit</button></td>
+<td class="p-3"><div class="flex flex-col gap-1"><button onclick="openEditEmpModal('${emp.id}')" class="text-blue-600 text-xs font-semibold hover:underline">✏️ Edit</button>${emp.approvalStatus==='pending'?`<button onclick="approveEmployee('${emp.id}')" class="text-green-600 text-xs font-semibold hover:underline">✔ Approve</button>`:''}</div></td>
 <td class="p-3"><button onclick="deleteEmployee('${emp.id}')" class="text-red-600 text-xs font-semibold hover:underline">🗑 Delete</button></td>
 </tr>`).join('');
 }
@@ -2296,7 +2694,7 @@ if (!okDemo) return false;
 }
 return true;
 }
-// ===== ROOMS RENDER (sorted) =====
+// ===== ROOMS RENDER =====
 function filterBlock(block) {
 currentBlock = block;
 document.querySelectorAll('#block-tabs-container .block-tab').forEach(t => t.classList.remove('active'));
@@ -2394,7 +2792,7 @@ document.getElementById('stat-cap').textContent = cap;
 document.getElementById('stat-occ').textContent = occ;
 document.getElementById('stat-vac').textContent = cap-occ;
 document.getElementById('stat-emp').textContent = employeesData.length;
-document.getElementById('stat-pend').textContent = employeesData.filter(e=>!e.registered).length;
+document.getElementById('stat-pend').textContent = employeesData.filter(e=>!e.registered).length + employeesData.filter(e=>e.approvalStatus==='pending').length;
 }
 function renderUploadPreview() {
 document.getElementById('room-count').textContent = roomsData.length;
@@ -2408,6 +2806,7 @@ window.fb.onSnapshot(window.fb.collection(window.fb.db, 'rooms'), (snapshot) => 
 roomsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 if (currentUser?.role === 'admin') {
 renderBlockTabs(); renderBlockSummary(); renderRooms(); renderUploadPreview(); updateStats(); populateInventoryDropdowns(); renderGuestControls(); refreshSectionUI();
+if (!document.getElementById('admin-alerts').classList.contains('hidden')) renderAlerts();
 } else if (currentUser?.role === 'employee') {
 loadMODRoomDropdown();
 if (!document.getElementById('emp-checkin').classList.contains('hidden')) renderAmenitiesTable();
@@ -2418,6 +2817,7 @@ if (currentUser?.role === 'admin') {
 window.fb.onSnapshot(window.fb.collection(window.fb.db, 'employees'), (snapshot) => {
 employeesData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 renderEmpTable(); renderUploadPreview(); updateStats();
+if (!document.getElementById('admin-alerts').classList.contains('hidden')) renderAlerts();
 }, (err) => console.warn('employees listener:', err.message));
 window.fb.onSnapshot(window.fb.collection(window.fb.db, 'guests'), (snapshot) => {
 guestsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
