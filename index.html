@@ -337,6 +337,11 @@ input:checked + .slider:before { transform: translateX(20px); }
 </div>
 <div id="step-2" class="hidden fade-in">
 <h4 class="font-bold text-lg mb-3">Room Amenities Checklist</h4>
+<!-- NEW: DISCLAIMER (auto room number) -->
+<div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
+<h4 class="font-bold text-lg underline text-center mb-2">Check list</h4>
+<p class="text-sm text-gray-800">I hereby agree that I have taken charge of the following items in working and fit condition as per inventory placed in my room no. <strong id="disclaimer-room" class="bg-blue-100 px-2 py-0.5 rounded">____</strong>. I hereby agree to pay charges as deemed appropriate by the resort for any unfair wear &amp; tear, breakage or loss of these items. I also take personal responsibility to hand over full inventory back to the hotel as per the list of items mentioned below in event of my leaving the job or accommodation at the <span id="disclaimer-hotel">Six Senses Southern Dunes, The Red Sea Host accommodation</span>.</p>
+</div>
 <div id="shared-checklist-note" class="hidden bg-blue-50 border-l-4 border-blue-400 p-3 mb-3 text-sm text-blue-800"></div>
 <div class="overflow-x-auto">
 <table class="w-full text-sm border">
@@ -550,13 +555,12 @@ I have read and agree to abide by all accommodation rules.
 </div>
 <!-- LAYOUT -->
 <div id="admin-layout" class="hidden fade-in">
-<!-- NEW: GENDER SECTION MANAGEMENT -->
 <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 mb-4">
 <h4 class="font-semibold mb-2">🚹🚺 Gender Section Management — mark rooms as Male / Female section</h4>
 <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
 <select id="sec-block" onchange="onSecBlockChange()" class="px-3 py-2 border rounded text-sm"><option value="">-- Block --</option></select>
 <select id="sec-cabin" onchange="onSecCabinChange()" class="px-3 py-2 border rounded text-sm"><option value="">-- Cabin (all if empty) --</option></select>
-<select id="sec-gender" class="px-3 py-2 border rounded text-sm"><option value="male"> Male Section</option><option value="female">🚺 Female Section</option></select>
+<select id="sec-gender" class="px-3 py-2 border rounded text-sm"><option value="male">🚹 Male Section</option><option value="female">🚺 Female Section</option></select>
 <div class="flex gap-2">
 <button onclick="saveSection(true)" class="flex-1 px-3 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700">💾 Save Section</button>
 <button onclick="saveSection(false)" class="flex-1 px-3 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">✖ Remove</button>
@@ -590,14 +594,15 @@ I have read and agree to abide by all accommodation rules.
 <div id="block-summary" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 mb-4 text-xs"></div>
 <div id="room-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
 </div>
-<!-- INVENTORY (REDESIGNED) -->
+<!-- INVENTORY (REDESIGNED + TYPE TEMPLATES) -->
 <div id="admin-inventory" class="hidden fade-in">
 <h3 class="text-lg font-bold mb-4">📦 Room Amenities / Inventory Management</h3>
 <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
 <h4 class="font-semibold mb-2">1️⃣ Select Rooms (individual or bulk)</h4>
-<div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+<div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
 <select id="inv-block" onchange="onInvBlockChange()" class="px-3 py-2 border rounded text-sm"><option value="">-- Block --</option></select>
 <select id="inv-cabin" onchange="onInvCabinChange()" class="px-3 py-2 border rounded text-sm"><option value="">-- Cabin (all if empty) --</option></select>
+<select id="inv-type-filter" onchange="renderInvRoomChecklist()" class="px-3 py-2 border rounded text-sm"><option value="">All Room Types</option><option value="single">Single</option><option value="sharing">Sharing</option></select>
 <button onclick="selectAllInvRooms(true)" class="px-3 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">☑ Select All Listed</button>
 <button onclick="selectAllInvRooms(false)" class="px-3 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">✖ Clear Selection</button>
 </div>
@@ -606,6 +611,14 @@ I have read and agree to abide by all accommodation rules.
 </div>
 <div class="bg-white p-4 rounded-lg border mb-4">
 <h4 class="font-semibold mb-2">2️⃣ Inventory Items (will apply to ALL selected rooms)</h4>
+<!-- NEW: single/sharing template bar -->
+<div class="flex flex-wrap gap-2 items-center mb-3 bg-gray-50 p-3 rounded border">
+<label class="text-sm font-semibold">Template for:</label>
+<select id="inv-template-type" onchange="document.getElementById('inv-template-type-label').textContent = this.value === 'single' ? 'Single' : 'Sharing'" class="px-3 py-2 border rounded text-sm"><option value="single">Single Rooms</option><option value="sharing">Sharing Rooms</option></select>
+<button onclick="loadInvTemplate()" class="px-3 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">📥 Load Template</button>
+<button onclick="saveInvTemplate()" class="px-3 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700">💾 Save as Template</button>
+<button onclick="applyInvToAllOfType()" class="px-3 py-2 bg-orange-600 text-white rounded text-sm hover:bg-orange-700">🚀 Apply to ALL <span id="inv-template-type-label">Single</span> rooms (current block/cabin)</button>
+</div>
 <div class="overflow-x-auto">
 <table class="w-full text-sm border">
 <thead class="bg-gray-100">
@@ -839,6 +852,7 @@ let modAssignments = [];
 let brandSettings = {};
 let invEditList = [];
 let invSelectedRooms = [];
+let invTemplates = { single: [], sharing: [] };
 let secSelectedRooms = [];
 let checkinItems = [];
 let checkoutItems = [];
@@ -861,6 +875,16 @@ if (!sel) return;
 const opts = [...departmentList];
 if (selected && !opts.includes(selected)) opts.unshift(selected);
 sel.innerHTML = '<option value="">-- Select Department --</option>' + opts.map(d => `<option value="${d}" ${d === selected ? 'selected' : ''}>${d}</option>`).join('');
+}
+// ===== NATURAL ROOM SORTING (fixes A-1, A-10, A-2 order) =====
+function natCompare(a, b) { return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }); }
+function sortRooms(arr) {
+return arr.slice().sort((x, y) =>
+natCompare(x.block || '', y.block || '') ||
+natCompare(x.cabin || '', y.cabin || '') ||
+natCompare(x.room || x.number || '', y.room || y.number || '') ||
+natCompare(x.number || '', y.number || '')
+);
 }
 const defaultRulesHtml = `<ol class="list-decimal pl-5 space-y-2">
 <li>Rooms are allocated as per company policy based on designation and availability.</li>
@@ -1377,18 +1401,22 @@ const data = contexts[i].getImageData(0, 0, canvas.width, canvas.height).data;
 for (let j = 3; j < data.length; j += 4) { if (data[j] !== 0) return true; }
 return false;
 }
-// ===== AMENITIES =====
+// ===== AMENITIES (+ disclaimer room auto-fill) =====
 function getMyRoom() { return roomsData.find(r => r.number === (currentUser && currentUser.room)); }
 function renderAmenitiesTable() {
 const tbody = document.getElementById('amenities-table-body');
 const note = document.getElementById('shared-checklist-note');
 if (!tbody) return;
+const dr = document.getElementById('disclaimer-room');
+if (dr) dr.textContent = (currentUser && currentUser.room) || '____';
+const dh = document.getElementById('disclaimer-hotel');
+if (dh) dh.textContent = (brandSettings.title || 'Host Accommodation') + ' Host accommodation';
 const room = getMyRoom();
 let items = [], shared = false, sharedBy = '';
 if (room && room.currentChecklist && room.currentChecklist.items && room.currentChecklist.items.length) {
 items = room.currentChecklist.items; shared = true; sharedBy = room.currentChecklist.by || 'previous occupant';
 } else if (room && room.inventory && room.inventory.length) {
-items = room.inventory.map(it => ({ name: it.name, present: it.available !== false, remarks: '' }));
+items = room.inventory.map(it => ({ name: it.name, present: it.available !== false, remarks: it.remarks || '' }));
 } else items = amenitiesList.map(n => ({ name: n, present: false, remarks: '' }));
 checkinItems = items;
 if (shared) { note.classList.remove('hidden'); note.innerHTML = `🔗 Shared room: checklist signed by <strong>${sharedBy}</strong>. Same list applies to you.`; }
@@ -1512,7 +1540,7 @@ document.getElementById('mod-tab-' + tab).classList.remove('text-gray-500');
 function loadMODRoomDropdown() {
 const sel = document.getElementById('mod-room');
 if (!sel) return;
-const vacant = roomsData.filter(r => (r.occupants?.length || 0) < (r.capacity || 0));
+const vacant = sortRooms(roomsData.filter(r => (r.occupants?.length || 0) < (r.capacity || 0)));
 sel.innerHTML = '<option value="">-- Select or wait for admin --</option>' + vacant.map(r => `<option value="${r.number}">${r.number} (Block ${r.block})</option>`).join('');
 }
 function loadMODAssignment() {
@@ -1545,10 +1573,10 @@ if (!sig && !hasSignature('mod-co')) { alert('Please provide signature'); return
 alert('✓ MOD Check-Out submitted.');
 }
 // ===== GUEST FLOW =====
-function guestRooms() { return roomsData.filter(r => r.guestRoom && (r.occupants?.length || 0) < (r.capacity || 0)); }
+function guestRooms() { return sortRooms(roomsData.filter(r => r.guestRoom && (r.occupants?.length || 0) < (r.capacity || 0))); }
 function populateGuestEntryRooms() {
 const sel = document.getElementById('guest-entry-room');
-const gr = roomsData.filter(r => r.guestRoom);
+const gr = sortRooms(roomsData.filter(r => r.guestRoom));
 sel.innerHTML = '<option value="">-- Select Guest Room --</option>' + gr.map(r => `<option value="${r.number}">${r.number} ${(r.occupants?.length||0) < (r.capacity||0) ? '' : '(Full)'}</option>`).join('');
 }
 function enterGuestPortal(roomPreselect) {
@@ -1704,11 +1732,11 @@ statusDiv.innerHTML = `<span class="text-green-600">✓ ${count} employees uploa
 };
 reader.readAsText(file);
 }
-// ===== GENDER SECTION MANAGEMENT (NEW) =====
+// ===== GENDER SECTION MANAGEMENT =====
 function populateSectionDropdowns() {
 const bSel = document.getElementById('sec-block');
 if (!bSel) return;
-const blocks = [...new Set(roomsData.map(r => r.block))].filter(Boolean).sort();
+const blocks = [...new Set(roomsData.map(r => r.block))].filter(Boolean).sort(natCompare);
 const curB = bSel.value;
 bSel.innerHTML = '<option value="">-- Block --</option>' + blocks.map(b => `<option value="${b}">${b}</option>`).join('');
 if (curB && blocks.includes(curB)) bSel.value = curB;
@@ -1717,11 +1745,11 @@ function secListedRooms() {
 const bEl = document.getElementById('sec-block'); const cEl = document.getElementById('sec-cabin');
 if (!bEl) return [];
 const b = bEl.value, c = cEl ? cEl.value : '';
-return roomsData.filter(r => r.block === b && (!c || r.cabin === c));
+return sortRooms(roomsData.filter(r => r.block === b && (!c || r.cabin === c)));
 }
 function onSecBlockChange() {
 const b = document.getElementById('sec-block').value;
-const cabins = [...new Set(roomsData.filter(r => r.block === b).map(r => r.cabin))].filter(Boolean).sort();
+const cabins = [...new Set(roomsData.filter(r => r.block === b).map(r => r.cabin))].filter(Boolean).sort(natCompare);
 document.getElementById('sec-cabin').innerHTML = '<option value="">-- Cabin (all if empty) --</option>' + cabins.map(c => `<option value="${c}">${c}</option>`).join('');
 secSelectedRooms = [];
 renderSecChecklist();
@@ -1778,11 +1806,11 @@ el.innerHTML = `<span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full te
 <span class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">Unassigned: ${roomsData.length - male - female}</span>`;
 }
 function refreshSectionUI() { populateSectionDropdowns(); renderSecChecklist(); }
-// ===== INVENTORY (MULTI-ROOM DESIGN) =====
+// ===== INVENTORY (MULTI-ROOM + TYPE TEMPLATES) =====
 function populateInventoryDropdowns() {
 const bSel = document.getElementById('inv-block');
 if (!bSel) return;
-const blocks = [...new Set(roomsData.map(r => r.block))].filter(Boolean).sort();
+const blocks = [...new Set(roomsData.map(r => r.block))].filter(Boolean).sort(natCompare);
 const curB = bSel.value;
 bSel.innerHTML = '<option value="">-- Block --</option>' + blocks.map(b => `<option value="${b}">${b}</option>`).join('');
 if (curB && blocks.includes(curB)) bSel.value = curB;
@@ -1790,21 +1818,24 @@ if (curB && blocks.includes(curB)) bSel.value = curB;
 function invListedRooms() {
 const b = document.getElementById('inv-block').value;
 const c = document.getElementById('inv-cabin').value;
-return roomsData.filter(r => r.block === b && (!c || r.cabin === c));
+const t = (document.getElementById('inv-type-filter')?.value || '').toLowerCase();
+let rooms = roomsData.filter(r => r.block === b && (!c || r.cabin === c));
+if (t) rooms = rooms.filter(r => (r.type || '').toLowerCase() === t);
+return sortRooms(rooms);
 }
 function onInvBlockChange() {
 const b = document.getElementById('inv-block').value;
-const cabins = [...new Set(roomsData.filter(r => r.block === b).map(r => r.cabin))].filter(Boolean).sort();
+const cabins = [...new Set(roomsData.filter(r => r.block === b).map(r => r.cabin))].filter(Boolean).sort(natCompare);
 document.getElementById('inv-cabin').innerHTML = '<option value="">-- Cabin (all if empty) --</option>' + cabins.map(c => `<option value="${c}">${c}</option>`).join('');
 invSelectedRooms = [];
 renderInvRoomChecklist();
 }
-function onInvCabinChange() { renderInvRoomChecklist(); }
+function onInvCabinChange() { invSelectedRooms = []; renderInvRoomChecklist(); }
 function renderInvRoomChecklist() {
 const el = document.getElementById('inv-room-checklist');
 if (!el) return;
 const rooms = invListedRooms();
-el.innerHTML = rooms.map(r => `<label class="flex items-center gap-2 text-xs bg-gray-50 border rounded px-2 py-1 cursor-pointer"><input type="checkbox" class="w-4 h-4" ${invSelectedRooms.includes(r.number) ? 'checked' : ''} onchange="toggleInvRoom('${r.number}', this.checked)"> ${r.number}</label>`).join('') || '<p class="text-xs text-gray-500 italic">Select a block first</p>';
+el.innerHTML = rooms.map(r => `<label class="flex items-center gap-2 text-xs bg-gray-50 border rounded px-2 py-1 cursor-pointer"><input type="checkbox" class="w-4 h-4" ${invSelectedRooms.includes(r.number) ? 'checked' : ''} onchange="toggleInvRoom('${r.number}', this.checked)"> ${r.number} <span class="text-gray-400">(${r.type})</span></label>`).join('') || '<p class="text-xs text-gray-500 italic">Select a block first</p>';
 renderInvChips();
 }
 function toggleInvRoom(num, on) {
@@ -1840,16 +1871,18 @@ tbody.innerHTML = invEditList.map((it, i) => `
 <td class="p-2 border text-center"><button onclick="invEditList.splice(${i},1);renderInvTable();" class="text-red-500 text-sm">✕</button></td>
 </tr>`).join('');
 }
+function cleanInvList() {
+return invEditList.filter(r => (r.name || '').trim()).map(r => ({ name: r.name.trim(), qty: parseInt(r.qty) || 1, available: r.available !== false, remarks: r.remarks || '' }));
+}
 function loadInvFromFirstSelected() {
 if (!invSelectedRooms.length) { alert('Select at least one room first'); return; }
 const room = roomsData.find(r => r.number === invSelectedRooms[0]);
 invEditList = (room && room.inventory ? room.inventory : []).map(it => ({ ...it }));
-if (!invEditList.length) addInvRow();
-renderInvTable();
+if (!invEditList.length) addInvRow(); else renderInvTable();
 }
 async function saveInvToSelectedRooms() {
 if (!invSelectedRooms.length) { alert('Select at least one room first'); return; }
-const clean = invEditList.filter(r => (r.name || '').trim()).map(r => ({ name: r.name.trim(), qty: parseInt(r.qty) || 1, available: r.available !== false, remarks: r.remarks || '' }));
+const clean = cleanInvList();
 if (!clean.length) { alert('Add at least one item row with a name'); return; }
 let ok = 0;
 try {
@@ -1860,6 +1893,46 @@ await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.n
 ok++;
 }
 alert(`✓ Inventory saved to ${ok} room(s).`);
+} catch (e) { alert('Error: ' + e.message); }
+}
+// --- Single / Sharing templates ---
+async function loadInvTemplatesFromDb() {
+try {
+const s = await window.fb.getDoc(window.fb.doc(window.fb.db, 'settings', 'inventoryTemplates'));
+if (s.exists()) invTemplates = { single: s.data().single || [], sharing: s.data().sharing || [] };
+} catch (e) { console.warn('templates load:', e.message); }
+}
+function loadInvTemplate() {
+const t = document.getElementById('inv-template-type').value;
+invEditList = (invTemplates[t] || []).map(it => ({ ...it }));
+if (!invEditList.length) { addInvRow(); } else renderInvTable();
+}
+async function saveInvTemplate() {
+const t = document.getElementById('inv-template-type').value;
+const clean = cleanInvList();
+invTemplates[t] = clean;
+try {
+await window.fb.setDoc(window.fb.doc(window.fb.db, 'settings', 'inventoryTemplates'), { [t]: clean, updatedAt: new Date().toISOString() }, { merge: true });
+alert(`✓ Template saved for ${t === 'single' ? 'SINGLE' : 'SHARING'} rooms.`);
+} catch (e) { alert('Error: ' + e.message); }
+}
+async function applyInvToAllOfType() {
+const t = document.getElementById('inv-template-type').value;
+const b = document.getElementById('inv-block').value;
+if (!b) { alert('Select a block first (section 1)'); return; }
+const c = document.getElementById('inv-cabin').value;
+const clean = cleanInvList();
+if (!clean.length) { alert('Add items to the list first'); return; }
+const targets = roomsData.filter(r => r.block === b && (!c || r.cabin === c) && (r.type || '').toLowerCase() === t);
+if (!targets.length) { alert(`No ${t} rooms found in this block/cabin.`); return; }
+if (!confirm(`Apply the current list to ALL ${targets.length} ${t} room(s) in block ${b}${c ? ' / cabin ' + c : ''}?`)) return;
+let ok = 0;
+try {
+for (const r of targets) {
+await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', r.id || r.number), { inventory: clean });
+ok++;
+}
+alert(`✓ Applied to ${ok} ${t} room(s).`);
 } catch (e) { alert('Error: ' + e.message); }
 }
 async function uploadInventoryCSV(event) {
@@ -1908,6 +1981,7 @@ document.getElementById('tab-' + section).classList.remove('text-gray-500');
 if (section === 'inventory') {
 populateInventoryDropdowns();
 renderInvRoomChecklist();
+loadInvTemplatesFromDb();
 if (!invEditList.length) { addInvRow(); addInvRow(); addInvRow(); } else renderInvTable();
 }
 if (section === 'layout') refreshSectionUI();
@@ -1929,7 +2003,7 @@ if (tab === 'guests') renderGuestControls();
 // ===== GUEST ADMIN =====
 function renderGuestControls() {
 const sel = document.getElementById('guest-room-select');
-if (sel) sel.innerHTML = '<option value="">-- Select Room --</option>' + roomsData.map(r => `<option value="${r.number}">${r.number}</option>`).join('');
+if (sel) sel.innerHTML = '<option value="">-- Select Room --</option>' + sortRooms(roomsData).map(r => `<option value="${r.number}">${r.number}</option>`).join('');
 const chips = document.getElementById('guest-rooms-chips');
 if (chips) chips.innerHTML = roomsData.filter(r => r.guestRoom).map(r => `<span class="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs font-semibold">${r.number}</span>`).join('') || '<span class="text-xs text-gray-500 italic">No guest rooms marked yet</span>';
 const tbody = document.getElementById('guest-stays-body');
@@ -1958,7 +2032,7 @@ if (room) await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id
 // ===== ADMIN CREATE / EDIT / DELETE =====
 function openAdminCreateProfile() {
 document.getElementById('admin-create-profile-modal').classList.add('show');
-document.getElementById('admin-room-select').innerHTML = '<option value="">-- Select Room --</option>' + roomsData.map(r => `<option value="${r.number}">${r.number} (${r.block}, ${r.type}, ${r.capacity} beds)</option>`).join('');
+document.getElementById('admin-room-select').innerHTML = '<option value="">-- Select Room --</option>' + sortRooms(roomsData).map(r => `<option value="${r.number}">${r.number} (${r.block}, ${r.type}, ${r.capacity} beds)</option>`).join('');
 fillDeptSelect(document.getElementById('admin-create-dept'), '');
 document.getElementById('admin-is-mod').checked = false;
 document.getElementById('admin-room-change').checked = false;
@@ -1992,7 +2066,7 @@ document.getElementById('edit-name').value = emp.name || '';
 document.getElementById('edit-code').value = emp.code || '';
 fillDeptSelect(document.getElementById('edit-dept'), emp.dept || '');
 document.getElementById('edit-designation').value = emp.designation || '';
-document.getElementById('edit-room').innerHTML = '<option value="">-- No Room --</option>' + roomsData.map(r => `<option value="${r.number}" ${r.number === emp.room ? 'selected' : ''}>${r.number}</option>`).join('');
+document.getElementById('edit-room').innerHTML = '<option value="">-- No Room --</option>' + sortRooms(roomsData).map(r => `<option value="${r.number}" ${r.number === emp.room ? 'selected' : ''}>${r.number}</option>`).join('');
 document.getElementById('edit-gender').value = emp.gender || 'Male';
 document.getElementById('edit-type').value = emp.employmentType || '';
 document.getElementById('edit-status').value = emp.empStatus || 'active';
@@ -2181,7 +2255,7 @@ tbody.innerHTML = list.map(emp => `
 <td class="p-3"><button onclick="deleteEmployee('${emp.id}')" class="text-red-600 text-xs font-semibold hover:underline">🗑 Delete</button></td>
 </tr>`).join('');
 }
-// ===== LAYOUT FILTERS (multi-select chips) =====
+// ===== LAYOUT FILTERS =====
 function toggleLayoutFilter(key) {
 layoutFilters[key] = !layoutFilters[key];
 const b = document.getElementById('lf-' + key);
@@ -2222,7 +2296,7 @@ if (!okDemo) return false;
 }
 return true;
 }
-// ===== ROOMS RENDER =====
+// ===== ROOMS RENDER (sorted) =====
 function filterBlock(block) {
 currentBlock = block;
 document.querySelectorAll('#block-tabs-container .block-tab').forEach(t => t.classList.remove('active'));
@@ -2230,13 +2304,13 @@ document.getElementById('block-' + block).classList.add('active');
 renderRooms();
 }
 function renderBlockTabs() {
-const blocks = [...new Set(roomsData.map(r => r.block))].filter(b => b).sort();
+const blocks = [...new Set(roomsData.map(r => r.block))].filter(b => b).sort(natCompare);
 const container = document.getElementById('block-tabs-container');
 if (!blocks.length) { container.innerHTML = '<p class="text-sm text-gray-500 italic">No rooms uploaded yet.</p>'; return; }
 container.innerHTML = `<button onclick="filterBlock('ALL')" class="block-tab ${currentBlock==='ALL'?'active':''}" id="block-ALL">All</button>` + blocks.map(b => `<button onclick="filterBlock('${b}')" class="block-tab ${currentBlock===b?'active':''}" id="block-${b}">${b}</button>`).join('');
 }
 function renderBlockSummary() {
-const blocks = [...new Set(roomsData.map(r => r.block))].filter(b => b).sort();
+const blocks = [...new Set(roomsData.map(r => r.block))].filter(b => b).sort(natCompare);
 document.getElementById('block-summary').innerHTML = blocks.map(b => {
 const rooms = roomsData.filter(r => r.block === b);
 const cap = rooms.reduce((s,r)=>s+(r.capacity||0),0);
@@ -2248,7 +2322,7 @@ function renderRooms() {
 const grid = document.getElementById('room-grid');
 if (!roomsData.length) { grid.innerHTML = '<p class="col-span-full text-center text-gray-500 italic py-8">No rooms uploaded yet.</p>'; return; }
 let filtered = currentBlock === 'ALL' ? roomsData : roomsData.filter(r => r.block === currentBlock);
-filtered = filtered.filter(roomMatchesFilters);
+filtered = sortRooms(filtered.filter(roomMatchesFilters));
 if (!filtered.length) { grid.innerHTML = '<p class="col-span-full text-center text-gray-500 italic py-8">No rooms match the selected filters.</p>'; return; }
 grid.innerHTML = filtered.map(room => {
 const occ = room.occupants?.length || 0, cap = room.capacity || 0;
@@ -2264,7 +2338,7 @@ return `<div class="flex-1 min-w-[40px] text-xs p-1 rounded text-center ${o?'bed
 const o = room.occupants?.[0];
 bedDisplay = `<div class="mt-2 text-xs ${o?'text-red-700':'text-green-700'}">${o||'Vacant'}</div>`;
 }
-const secBadge = room.genderSection === 'male' ? ' ' : room.genderSection === 'female' ? ' 🚺' : '';
+const secBadge = room.genderSection === 'male' ? ' 🚹' : room.genderSection === 'female' ? ' 🚺' : '';
 return `<div onclick="openRoomModal('${room.number}')" class="room-card p-3 rounded-lg border-2 ${cls} cursor-pointer">
 <div class="flex justify-between items-center mb-1"><span class="font-bold text-sm">${room.number}</span><span class="text-xs px-1.5 py-0.5 bg-white rounded border">${room.type}${secBadge}${room.guestRoom ? ' 🧳' : ''}</span></div>
 <p class="text-xs text-gray-600">Block ${room.block} • Cabin ${room.cabin||''} • ${occ}/${cap}</p>${bedDisplay}</div>`;
@@ -2273,7 +2347,7 @@ return `<div onclick="openRoomModal('${room.number}')" class="room-card p-3 roun
 function populateMODAssignDropdowns() {
 const modEmps = employeesData.filter(e => e.isMOD && e.registered);
 document.getElementById('assign-emp').innerHTML = '<option value="">-- Select MOD Employee --</option>' + modEmps.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
-const vacant = roomsData.filter(r => (r.occupants?.length||0) < (r.capacity||0));
+const vacant = sortRooms(roomsData.filter(r => (r.occupants?.length||0) < (r.capacity||0)));
 document.getElementById('assign-room').innerHTML = '<option value="">-- Select Room --</option>' + vacant.map(r=>`<option value="${r.number}">${r.number} (${(r.capacity||0)-(r.occupants?.length||0)} free)</option>`).join('');
 }
 async function assignMODRoom() {
@@ -2291,7 +2365,7 @@ currentModalRoom = room.number;
 document.getElementById('modal-room-title').textContent = `Room ${room.number} (Block ${room.block}, Cabin ${room.cabin||''})`;
 document.getElementById('guest-room-badge').classList.toggle('hidden', !room.guestRoom);
 const cap = room.capacity || 0;
-const secLabel = room.genderSection === 'male' ? ' Male Section' : room.genderSection === 'female' ? '🚺 Female Section' : 'Unassigned';
+const secLabel = room.genderSection === 'male' ? '🚹 Male Section' : room.genderSection === 'female' ? '🚺 Female Section' : 'Unassigned';
 let html = `<div class="mb-4"><p class="text-sm"><strong>Type:</strong> ${room.type} | <strong>Beds:</strong> ${cap} | <strong>Section:</strong> ${secLabel}</p></div><h4 class="font-semibold mb-2">Occupants</h4><div class="space-y-2">`;
 for (let i=0;i<cap;i++){
 const o = room.occupants?.[i];
@@ -2325,7 +2399,7 @@ document.getElementById('stat-pend').textContent = employeesData.filter(e=>!e.re
 function renderUploadPreview() {
 document.getElementById('room-count').textContent = roomsData.length;
 document.getElementById('emp-count').textContent = employeesData.length;
-document.getElementById('preview-rooms').innerHTML = roomsData.length ? roomsData.map(r=>`<tr class="border-b"><td class="p-2">${r.block}</td><td class="p-2">${r.cabin||'-'}</td><td class="p-2">${r.number}</td><td class="p-2">${r.type}</td><td class="p-2">${r.capacity}</td></tr>`).join('') : '<tr><td colspan="5" class="p-3 text-center text-gray-500 italic">No rooms uploaded</td></tr>';
+document.getElementById('preview-rooms').innerHTML = roomsData.length ? sortRooms(roomsData).map(r=>`<tr class="border-b"><td class="p-2">${r.block}</td><td class="p-2">${r.cabin||'-'}</td><td class="p-2">${r.number}</td><td class="p-2">${r.type}</td><td class="p-2">${r.capacity}</td></tr>`).join('') : '<tr><td colspan="5" class="p-3 text-center text-gray-500 italic">No rooms uploaded</td></tr>';
 document.getElementById('preview-emps').innerHTML = employeesData.length ? employeesData.map(e=>`<tr class="border-b"><td class="p-2">${e.name}</td><td class="p-2">${e.dept}</td><td class="p-2">${e.room||'-'}</td><td class="p-2"><span class="px-2 py-0.5 rounded text-xs ${e.registered?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${e.registered?'Registered':'Pending'}</span></td></tr>`).join('') : '<tr><td colspan="4" class="p-3 text-center text-gray-500 italic">No employees uploaded</td></tr>';
 }
 // ===== REALTIME LISTENERS =====
