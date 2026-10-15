@@ -6,6 +6,7 @@
     <title>Host Accommodation Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     
     <!-- Firebase SDK -->
     <script type="module">
@@ -71,6 +72,7 @@
         .modal.show { display: flex; }
         .loading { display: inline-block; width: 16px; height: 16px; border: 2px solid #fff; border-radius: 50%; border-top-color: transparent; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .rules-text { white-space: pre-wrap; font-size: 0.875rem; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans">
@@ -87,17 +89,18 @@
     <div id="login-screen" class="hidden min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-800 p-4">
         <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md fade-in">
             <div class="text-center mb-6">
+                <img id="brand-logo" data-brand-logo class="hidden mx-auto mb-3 max-h-20 object-contain" alt="logo">
                 <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden" id="logo-wrap">
-                    <img id="brand-logo" class="hidden w-full h-full object-contain" alt="logo">
                     <svg id="default-logo" class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                 </div>
-                <h1 class="text-2xl font-bold text-gray-800" id="brand-title">Host Accommodation</h1>
+                <h1 class="text-2xl font-bold text-gray-800" id="brand-title" data-brand-name>Host Accommodation</h1>
                 <p class="text-gray-500 text-sm mt-1" id="brand-desc">Secure Employee Housing Portal</p>
             </div>
             
             <div class="flex mb-6 border-b">
-                <button onclick="switchLoginTab('employee')" id="login-tab-employee" class="flex-1 py-2 text-sm font-medium tab-active">Employee Login</button>
-                <button onclick="switchLoginTab('admin')" id="login-tab-admin" class="flex-1 py-2 text-sm font-medium text-gray-500">Admin Login</button>
+                <button onclick="switchLoginTab('employee')" id="login-tab-employee" class="flex-1 py-2 text-sm font-medium tab-active">Employee</button>
+                <button onclick="switchLoginTab('admin')" id="login-tab-admin" class="flex-1 py-2 text-sm font-medium text-gray-500">Admin</button>
+                <button onclick="switchLoginTab('guest')" id="login-tab-guest" class="flex-1 py-2 text-sm font-medium text-gray-500">Guest Access</button>
             </div>
             
             <form id="login-form" class="space-y-4" onsubmit="handleLogin(event)">
@@ -105,7 +108,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
                     <input type="text" id="login-email" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="your.email@company.com">
                 </div>
-                <div>
+                <div id="login-pass-wrap">
                     <label class="block text-sm font-medium text-gray-700 mb-1" id="login-password-label">Password</label>
                     <input type="password" id="login-password" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••" required>
                 </div>
@@ -117,7 +120,100 @@
                     <button type="button" onclick="openCreateProfile()" class="text-green-600 font-semibold hover:underline">New Employee? Create Profile →</button>
                 </div>
             </form>
+
+            <!-- Guest entry panel -->
+            <div id="guest-entry" class="hidden space-y-4">
+                <p class="text-sm text-gray-600">No password needed. Select your assigned guest room to continue.</p>
+                <select id="guest-entry-room" class="w-full px-4 py-2 border rounded-lg">
+                    <option value="">-- Select Guest Room --</option>
+                </select>
+                <button onclick="enterGuestPortal()" class="w-full bg-teal-600 text-white py-2.5 rounded-lg font-semibold hover:bg-teal-700">Continue as Guest →</button>
+            </div>
         </div>
+    </div>
+
+    <!-- ================= GUEST PORTAL ================= -->
+    <div id="guest-dashboard" class="hidden min-h-screen bg-gray-50">
+        <nav class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2">
+                    <img data-brand-logo class="hidden w-8 h-8 object-contain" alt="logo">
+                    <h2 class="text-xl font-bold text-teal-600" data-brand-name>Host Accommodation</h2>
+                    <span class="text-xs px-2 py-0.5 bg-teal-100 text-teal-700 rounded">GUEST</span>
+                </div>
+                <button onclick="exitGuest()" class="text-sm text-red-500 hover:text-red-700 font-medium">Exit</button>
+            </div>
+        </nav>
+        <main class="max-w-3xl mx-auto p-4 sm:p-6 space-y-6">
+            <!-- Guest Check-In -->
+            <div id="guest-checkin-panel" class="bg-white p-6 rounded-xl shadow-sm border fade-in">
+                <div class="flex items-center gap-3 mb-4 pb-3 border-b">
+                    <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
+                    <div>
+                        <p class="font-bold text-lg" data-brand-name>Host Accommodation</p>
+                        <p class="text-sm text-gray-600 font-semibold">GUEST CHECK-IN FORM</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label class="block text-sm font-medium mb-1">Room</label><select id="guest-room" onchange="renderGuestAmenities()" class="w-full px-3 py-2 border rounded bg-gray-50"></select></div>
+                    <div><label class="block text-sm font-medium mb-1">Check-In Date</label><input type="date" id="guest-ci-date" class="w-full px-3 py-2 border rounded"></div>
+                    <div><label class="block text-sm font-medium mb-1">Full Name</label><input type="text" id="guest-name" class="w-full px-3 py-2 border rounded"></div>
+                    <div><label class="block text-sm font-medium mb-1">Mobile Number</label><input type="tel" id="guest-mobile" class="w-full px-3 py-2 border rounded"></div>
+                    <div><label class="block text-sm font-medium mb-1">Email ID</label><input type="email" id="guest-email" class="w-full px-3 py-2 border rounded"></div>
+                    <div><label class="block text-sm font-medium mb-1">Gender</label><select id="guest-gender" class="w-full px-3 py-2 border rounded"><option>Male</option><option>Female</option><option>Other</option></select></div>
+                    <div><label class="block text-sm font-medium mb-1">Country</label><input type="text" id="guest-country" class="w-full px-3 py-2 border rounded"></div>
+                    <div><label class="block text-sm font-medium mb-1">Govt ID Number</label><input type="text" id="guest-govt" class="w-full px-3 py-2 border rounded"></div>
+                    <div><label class="block text-sm font-medium mb-1">Emergency Contact Name</label><input type="text" id="guest-emerg-name" class="w-full px-3 py-2 border rounded"></div>
+                    <div><label class="block text-sm font-medium mb-1">Emergency Contact Number</label><input type="tel" id="guest-emerg-num" class="w-full px-3 py-2 border rounded"></div>
+                </div>
+                <div class="mt-4">
+                    <h4 class="font-semibold mb-2">Room Amenities Checklist</h4>
+                    <div class="overflow-x-auto"><table class="w-full text-sm border">
+                        <thead class="bg-gray-100"><tr><th class="p-2 border w-12">#</th><th class="p-2 border text-left">Amenity</th><th class="p-2 border w-24 text-center">Present ✓</th><th class="p-2 border text-left">Remarks</th></tr></thead>
+                        <tbody id="guest-amenities-body"></tbody>
+                    </table></div>
+                </div>
+                <div class="mt-4">
+                    <h4 class="font-semibold mb-2">Accommodation Rules</h4>
+                    <div id="guest-rules-box" class="bg-gray-50 p-4 rounded-lg border max-h-64 overflow-y-auto rules-text text-gray-700"></div>
+                    <label class="flex items-center text-sm mt-2"><input type="checkbox" id="guest-rules-agree" class="mr-2"> I agree to the rules.</label>
+                </div>
+                <div class="mt-4">
+                    <label class="block text-sm font-medium mb-2">Signature *</label>
+                    <canvas id="signature-canvas-guest-sig" class="signature-pad w-full h-32 rounded bg-gray-50"></canvas>
+                    <div class="flex gap-2 mt-2">
+                        <button type="button" onclick="clearSignature('guest-sig')" class="text-sm text-red-500">Clear</button>
+                        <input type="text" id="typed-signature-guest-sig" class="flex-1 px-3 py-1 border rounded text-sm" placeholder="Or type full name">
+                    </div>
+                </div>
+                <button onclick="submitGuestCheckIn()" class="mt-4 px-6 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 font-semibold">✓ Submit Guest Check-In</button>
+            </div>
+
+            <!-- Guest Check-Out -->
+            <div id="guest-checkout-panel" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
+                <div class="flex items-center gap-3 mb-4 pb-3 border-b">
+                    <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
+                    <div>
+                        <p class="font-bold text-lg" data-brand-name>Host Accommodation</p>
+                        <p class="text-sm text-gray-600 font-semibold">GUEST CHECK-OUT FORM</p>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600 mb-3">Current stay: <strong id="guest-session-info"></strong></p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label class="block text-sm font-medium mb-1">Check-Out Date</label><input type="date" id="guest-co-date" class="w-full px-3 py-2 border rounded"></div>
+                    <div><label class="block text-sm font-medium mb-1">Remarks</label><input type="text" id="guest-co-remarks" class="w-full px-3 py-2 border rounded"></div>
+                </div>
+                <div class="mt-4">
+                    <label class="block text-sm font-medium mb-2">Signature *</label>
+                    <canvas id="signature-canvas-guest-co" class="signature-pad w-full h-32 rounded bg-gray-50"></canvas>
+                    <div class="flex gap-2 mt-2">
+                        <button type="button" onclick="clearSignature('guest-co')" class="text-sm text-red-500">Clear</button>
+                        <input type="text" id="typed-signature-guest-co" class="flex-1 px-3 py-1 border rounded text-sm" placeholder="Or type full name">
+                    </div>
+                </div>
+                <button onclick="submitGuestCheckOut()" class="mt-4 px-6 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 font-semibold">✓ Submit Guest Check-Out</button>
+            </div>
+        </main>
     </div>
 
     <!-- ================= CREATE PROFILE MODAL ================= -->
@@ -167,12 +263,9 @@
             </div>
             <div class="p-6">
                 <p class="text-sm text-gray-600 mb-4">Enter your registered email. We'll send you a password reset link.</p>
-                <label class="block text-sm font-medium mb-1">Email</label>
                 <input type="email" id="fp-input" class="w-full px-3 py-2 border rounded mb-4" placeholder="your.email@company.com">
                 <button onclick="submitForgotPassword()" class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold hover:bg-blue-700">Send Reset Link</button>
-                <div id="fp-success" class="hidden mt-4 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-800">
-                    ✓ Password reset link sent! Check your email.
-                </div>
+                <div id="fp-success" class="hidden mt-4 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-800">✓ Password reset link sent! Check your email.</div>
             </div>
         </div>
     </div>
@@ -182,8 +275,8 @@
         <nav class="bg-white shadow-sm border-b">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16 items-center">
                 <div class="flex items-center gap-2">
-                    <img id="emp-brand-logo" class="hidden w-8 h-8 object-contain" alt="logo">
-                    <h2 class="text-xl font-bold text-blue-600" id="emp-brand-title">Host Accommodation</h2>
+                    <img id="emp-brand-logo" data-brand-logo class="hidden w-8 h-8 object-contain" alt="logo">
+                    <h2 class="text-xl font-bold text-blue-600" id="emp-brand-title" data-brand-name>Host Accommodation</h2>
                 </div>
                 <div class="flex items-center space-x-4">
                     <span class="text-sm text-gray-600 hidden sm:block">Welcome, <span id="emp-name-display" class="font-semibold"></span> <span id="emp-role-badge" class="ml-1 text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded"></span></span>
@@ -195,26 +288,28 @@
         <main class="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <button onclick="showEmpSection('checkin')" class="bg-white p-6 rounded-xl shadow-sm border hover:border-blue-500 text-left transition">
-                    <h3 class="font-bold text-lg text-gray-800">📝 Check-In</h3>
-                    <p class="text-sm text-gray-500 mt-1">Full check-in form.</p>
+                    <h3 class="font-bold text-lg text-gray-800">📝 Check-In</h3><p class="text-sm text-gray-500 mt-1">Full check-in form.</p>
                 </button>
                 <button onclick="showEmpSection('checkout')" class="bg-white p-6 rounded-xl shadow-sm border hover:border-blue-500 text-left transition">
-                    <h3 class="font-bold text-lg text-gray-800">🚪 Check-Out</h3>
-                    <p class="text-sm text-gray-500 mt-1">Request room release.</p>
+                    <h3 class="font-bold text-lg text-gray-800">🚪 Check-Out</h3><p class="text-sm text-gray-500 mt-1">Request room release.</p>
                 </button>
                 <button onclick="showEmpSection('mod')" class="bg-white p-6 rounded-xl shadow-sm border hover:border-orange-500 text-left transition">
-                    <h3 class="font-bold text-lg text-gray-800">⭐ MOD Quick Stay</h3>
-                    <p class="text-sm text-gray-500 mt-1">Fast check-in/out for MOD.</p>
+                    <h3 class="font-bold text-lg text-gray-800">⭐ MOD Quick Stay</h3><p class="text-sm text-gray-500 mt-1">Fast check-in/out for MOD.</p>
                 </button>
                 <button onclick="showEmpSection('changeroom')" class="bg-white p-6 rounded-xl shadow-sm border hover:border-blue-500 text-left transition">
-                    <h3 class="font-bold text-lg text-gray-800">🔄 Change Room</h3>
-                    <p class="text-sm text-gray-500 mt-1">Promotion/room change.</p>
+                    <h3 class="font-bold text-lg text-gray-800">🔄 Change Room</h3><p class="text-sm text-gray-500 mt-1">Promotion/room change.</p>
                 </button>
             </div>
 
             <!-- Multi-Step Check-In Form -->
             <div id="emp-checkin" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
-                <h3 class="text-xl font-bold mb-4">Employee Check-In Form</h3>
+                <div class="flex items-center gap-3 mb-4 pb-3 border-b">
+                    <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
+                    <div>
+                        <p class="font-bold text-lg" data-brand-name>Host Accommodation</p>
+                        <p class="text-sm text-gray-600 font-semibold">CHECK-IN FORM</p>
+                    </div>
+                </div>
                 <div id="missing-data-alert" class="hidden bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4 text-sm text-yellow-800">
                     <strong>⚠ Missing Information:</strong> Please complete the highlighted fields below.
                 </div>
@@ -225,16 +320,14 @@
                     <div class="flex items-center flex-1"><div id="step-3-indicator" class="w-8 h-8 rounded-full flex items-center justify-center font-bold step-pending">3</div></div>
                 </div>
                 <div class="flex justify-between text-xs text-gray-500 mb-6 -mt-4">
-                    <span class="flex-1 text-center">Details</span>
-                    <span class="flex-1 text-center">Amenities</span>
-                    <span class="flex-1 text-center">Rules</span>
+                    <span class="flex-1 text-center">Details</span><span class="flex-1 text-center">Amenities</span><span class="flex-1 text-center">Rules</span>
                 </div>
 
                 <form id="checkin-form" onsubmit="return false;">
                     <div id="step-1" class="fade-in">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label class="block text-sm font-medium mb-1">Full Name *</label><input type="text" name="name" class="w-full px-3 py-2 border rounded bg-gray-50" required readonly></div>
-                            <div><label class="block text-sm font-medium mb-1">Employee Code *</label><input type="text" name="code" class="w-full px-3 py-2 border rounded bg-gray-50" required readonly></div>
+                            <div><label class="block text-sm font-medium mb-1">Full Name</label><input type="text" name="name" class="w-full px-3 py-2 border rounded bg-gray-50" readonly></div>
+                            <div><label class="block text-sm font-medium mb-1">Employee Code</label><input type="text" name="code" class="w-full px-3 py-2 border rounded bg-gray-50" readonly></div>
                             <div><label class="block text-sm font-medium mb-1">Department</label><input type="text" name="dept" class="w-full px-3 py-2 border rounded bg-gray-50" readonly></div>
                             <div><label class="block text-sm font-medium mb-1">Designation</label><input type="text" name="designation" class="w-full px-3 py-2 border rounded bg-gray-50"></div>
                             <div><label class="block text-sm font-medium mb-1">Date of Joining</label><input type="date" name="doj" class="w-full px-3 py-2 border rounded"></div>
@@ -267,9 +360,7 @@
                         <div id="shared-checklist-note" class="hidden bg-blue-50 border-l-4 border-blue-400 p-3 mb-3 text-sm text-blue-800"></div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-sm border">
-                                <thead class="bg-gray-100">
-                                    <tr><th class="p-2 border text-left w-12">#</th><th class="p-2 border text-left">Amenity</th><th class="p-2 border text-center w-24">Present ✓</th><th class="p-2 border text-left">Remarks</th></tr>
-                                </thead>
+                                <thead class="bg-gray-100"><tr><th class="p-2 border text-left w-12">#</th><th class="p-2 border text-left">Amenity</th><th class="p-2 border text-center w-24">Present ✓</th><th class="p-2 border text-left">Remarks</th></tr></thead>
                                 <tbody id="amenities-table-body"></tbody>
                             </table>
                         </div>
@@ -289,21 +380,7 @@
 
                     <div id="step-3" class="hidden fade-in">
                         <h4 class="font-bold text-lg mb-3">Accommodation Rules</h4>
-                        <div class="bg-gray-50 p-4 rounded-lg border mb-4 max-h-96 overflow-y-auto">
-                            <ul class="text-sm text-gray-700 list-decimal pl-5 space-y-2">
-                                <li>Rooms are allocated as per company policy based on designation and availability.</li>
-                                <li>Maintain cleanliness and hygiene in your room and common areas.</li>
-                                <li>Do not damage room inventory. Any damage will be charged to the employee.</li>
-                                <li>Visitors are not allowed in accommodation premises after 8:00 PM.</li>
-                                <li>No smoking or alcohol consumption inside the accommodation.</li>
-                                <li>Report any maintenance issues to admin immediately.</li>
-                                <li>No cooking inside rooms; use designated kitchen areas only.</li>
-                                <li>Keep noise to a minimum, especially between 10 PM and 6 AM.</li>
-                                <li>Company reserves the right to inspect rooms at any time.</li>
-                                <li>Check-out must be done 24 hours in advance with admin approval.</li>
-                            </ul>
-                            <p class="text-xs text-gray-500 mt-3 italic">(Actual rules will be provided by admin later)</p>
-                        </div>
+                        <div id="rules-display" class="bg-gray-50 p-4 rounded-lg border mb-4 max-h-96 overflow-y-auto rules-text text-gray-700"></div>
                         <label class="flex items-center text-sm mb-4">
                             <input type="checkbox" id="rules-agree" class="mr-2" required>
                             I have read and agree to abide by all accommodation rules.
@@ -325,7 +402,13 @@
             </div>
 
             <div id="emp-checkout" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
-                <h3 class="text-xl font-bold mb-4">Check-Out Request</h3>
+                <div class="flex items-center gap-3 mb-4 pb-3 border-b">
+                    <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
+                    <div>
+                        <p class="font-bold text-lg" data-brand-name>Host Accommodation</p>
+                        <p class="text-sm text-gray-600 font-semibold">CHECK-OUT FORM</p>
+                    </div>
+                </div>
                 <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
                     <p class="text-sm text-yellow-800"><strong>Note:</strong> After check-out, your login will be disabled. Contact admin to re-enable.</p>
                 </div>
@@ -333,20 +416,14 @@
                     <div><label class="block text-sm font-medium mb-1">Check-Out Date</label><input type="date" id="co-date" class="w-full px-3 py-2 border rounded"></div>
                     <div><label class="block text-sm font-medium mb-1">Reason</label><select id="co-reason" class="w-full px-3 py-2 border rounded"><option>End of Assignment</option><option>Transfer</option><option>Resignation</option><option>Other</option></select></div>
                 </div>
-
                 <div id="co-checklist-wrap" class="hidden mt-4">
                     <h4 class="font-semibold mb-2">Amenities Verification (vs Check-In)</h4>
                     <div id="co-checklist-note" class="text-sm text-gray-600 mb-2"></div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm border">
-                            <thead class="bg-gray-100">
-                                <tr><th class="p-2 border text-left">Item</th><th class="p-2 border text-center w-24">At Check-In</th><th class="p-2 border w-32">Condition</th><th class="p-2 border text-left">Remarks</th></tr>
-                            </thead>
-                            <tbody id="co-checklist-body"></tbody>
-                        </table>
-                    </div>
+                    <div class="overflow-x-auto"><table class="w-full text-sm border">
+                        <thead class="bg-gray-100"><tr><th class="p-2 border text-left">Item</th><th class="p-2 border text-center w-24">At Check-In</th><th class="p-2 border w-32">Condition</th><th class="p-2 border text-left">Remarks</th></tr></thead>
+                        <tbody id="co-checklist-body"></tbody>
+                    </table></div>
                 </div>
-
                 <div class="mt-4">
                     <label class="block text-sm font-medium mb-2">Signature *</label>
                     <canvas id="signature-canvas-co" class="signature-pad w-full h-32 rounded bg-gray-50"></canvas>
@@ -359,7 +436,13 @@
             </div>
 
             <div id="emp-mod" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
-                <h3 class="text-xl font-bold mb-4">⭐ MOD Quick Stay</h3>
+                <div class="flex items-center gap-3 mb-4 pb-3 border-b">
+                    <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
+                    <div>
+                        <p class="font-bold text-lg" data-brand-name>Host Accommodation</p>
+                        <p class="text-sm text-gray-600 font-semibold">MOD CHECK-IN / CHECK-OUT</p>
+                    </div>
+                </div>
                 <div class="flex border-b mb-4">
                     <button onclick="showMODTab('checkin')" id="mod-tab-checkin" class="px-4 py-2 text-sm font-medium tab-active">MOD Check-In</button>
                     <button onclick="showMODTab('checkout')" id="mod-tab-checkout" class="px-4 py-2 text-sm font-medium text-gray-500">MOD Check-Out</button>
@@ -369,9 +452,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium mb-1">Room Number</label>
-                            <select id="mod-room" class="w-full px-3 py-2 border rounded">
-                                <option value="">-- Select or wait for admin --</option>
-                            </select>
+                            <select id="mod-room" class="w-full px-3 py-2 border rounded"><option value="">-- Select or wait for admin --</option></select>
                             <div id="mod-admin-assigned" class="hidden mt-2 p-2 bg-green-50 border border-green-300 rounded text-sm text-green-800"></div>
                         </div>
                         <div><label class="block text-sm font-medium mb-1">Check-In Date *</label><input type="date" id="mod-ci-date" class="w-full px-3 py-2 border rounded"></div>
@@ -406,9 +487,7 @@
                 <div id="mod-history" class="hidden fade-in">
                     <table class="w-full text-sm text-left">
                         <thead class="bg-gray-50 text-xs text-gray-500 uppercase"><tr><th class="p-2">Room</th><th class="p-2">Check-In</th><th class="p-2">Check-Out</th><th class="p-2">Purpose</th><th class="p-2">Status</th></tr></thead>
-                        <tbody id="mod-history-body">
-                            <tr><td colspan="5" class="p-4 text-center text-gray-500 italic">No MOD stays recorded yet</td></tr>
-                        </tbody>
+                        <tbody id="mod-history-body"><tr><td colspan="5" class="p-4 text-center text-gray-500 italic">No MOD stays recorded yet</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -426,7 +505,7 @@
         <nav class="bg-white shadow-sm border-b">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16 items-center">
                 <div class="flex items-center gap-2">
-                    <img id="admin-brand-logo" class="hidden w-8 h-8 object-contain" alt="logo">
+                    <img id="admin-brand-logo" data-brand-logo class="hidden w-8 h-8 object-contain" alt="logo">
                     <h2 class="text-xl font-bold text-gray-800">Admin Control Panel</h2>
                 </div>
                 <button onclick="logout()" class="text-sm text-red-500 hover:text-red-700 font-medium">Logout</button>
@@ -454,14 +533,13 @@
                 </div>
 
                 <div class="p-6">
-                    <!-- UPLOAD SECTION -->
+                    <!-- UPLOAD -->
                     <div id="admin-upload" class="fade-in">
                         <h3 class="text-lg font-bold mb-4">📤 Initial Data Upload</h3>
-                        
                         <div class="bg-blue-50 p-5 rounded-lg border border-blue-200 mb-6">
                             <h4 class="font-bold text-blue-900 mb-2">Step 1: Upload Room Structure</h4>
                             <p class="text-sm text-blue-800 mb-1">CSV: <code class="bg-white px-2 py-0.5 rounded">BlockNo, CabinNo, RoomNo, RoomType, Beds</code></p>
-                            <p class="text-xs text-blue-700 mb-3">ℹ RoomNo = room label inside the cabin (A, B, C…). The system auto-creates a unique full room ID like <strong>K-17-A</strong>.</p>
+                            <p class="text-xs text-blue-700 mb-3">ℹ RoomNo = room label inside the cabin (A, B…). System auto-creates unique ID like <strong>K-17-A</strong>.</p>
                             <input type="file" id="room-struct-csv" accept=".csv" class="hidden" onchange="uploadRoomStructure(event)">
                             <div class="flex gap-2 flex-wrap">
                                 <button onclick="document.getElementById('room-struct-csv').click()" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">📤 Upload Room CSV</button>
@@ -469,11 +547,10 @@
                             </div>
                             <div id="room-upload-status" class="mt-3 text-sm"></div>
                         </div>
-
                         <div class="bg-green-50 p-5 rounded-lg border border-green-200 mb-6">
                             <h4 class="font-bold text-green-900 mb-2">Step 2: Upload Employee List</h4>
                             <p class="text-sm text-green-800 mb-1">CSV: <code class="bg-white px-2 py-0.5 rounded">Name, Designation, Department, RoomNo</code></p>
-                            <p class="text-xs text-green-700 mb-3">ℹ RoomNo = full room ID shown in Layout / preview (e.g. <strong>K-17-A</strong>).</p>
+                            <p class="text-xs text-green-700 mb-3">ℹ RoomNo = full room ID (e.g. <strong>K-17-A</strong>).</p>
                             <input type="file" id="emp-list-csv" accept=".csv" class="hidden" onchange="uploadEmployeeList(event)">
                             <div class="flex gap-2 flex-wrap">
                                 <button onclick="document.getElementById('emp-list-csv').click()" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">📤 Upload Employee CSV</button>
@@ -481,31 +558,21 @@
                             </div>
                             <div id="emp-upload-status" class="mt-3 text-sm"></div>
                         </div>
-
                         <div class="bg-gray-50 p-5 rounded-lg border">
                             <h4 class="font-bold mb-3">📋 Uploaded Data Preview</h4>
                             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                 <div>
                                     <h5 class="text-sm font-semibold mb-2">Rooms (<span id="room-count">0</span>)</h5>
-                                    <div class="max-h-64 overflow-y-auto bg-white border rounded">
-                                        <table class="w-full text-xs">
-                                            <thead class="bg-gray-100 sticky top-0"><tr><th class="p-2 text-left">Block</th><th class="p-2 text-left">Cabin</th><th class="p-2 text-left">Room ID</th><th class="p-2 text-left">Type</th><th class="p-2 text-left">Beds</th></tr></thead>
-                                            <tbody id="preview-rooms"></tbody>
-                                        </table>
-                                    </div>
+                                    <div class="max-h-64 overflow-y-auto bg-white border rounded"><table class="w-full text-xs">
+                                        <thead class="bg-gray-100 sticky top-0"><tr><th class="p-2 text-left">Block</th><th class="p-2 text-left">Cabin</th><th class="p-2 text-left">Room ID</th><th class="p-2 text-left">Type</th><th class="p-2 text-left">Beds</th></tr></thead>
+                                        <tbody id="preview-rooms"></tbody></table></div>
                                 </div>
                                 <div>
                                     <h5 class="text-sm font-semibold mb-2">Employees (<span id="emp-count">0</span>)</h5>
-                                    <div class="max-h-64 overflow-y-auto bg-white border rounded">
-                                        <table class="w-full text-xs">
-                                            <thead class="bg-gray-100 sticky top-0"><tr><th class="p-2 text-left">Name</th><th class="p-2 text-left">Dept</th><th class="p-2 text-left">Room</th><th class="p-2 text-left">Status</th></tr></thead>
-                                            <tbody id="preview-emps"></tbody>
-                                        </table>
-                                    </div>
+                                    <div class="max-h-64 overflow-y-auto bg-white border rounded"><table class="w-full text-xs">
+                                        <thead class="bg-gray-100 sticky top-0"><tr><th class="p-2 text-left">Name</th><th class="p-2 text-left">Dept</th><th class="p-2 text-left">Room</th><th class="p-2 text-left">Status</th></tr></thead>
+                                        <tbody id="preview-emps"></tbody></table></div>
                                 </div>
-                            </div>
-                            <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
-                                <strong>Next Step:</strong> Share portal link with employees. They will click <strong>"New Employee? Create Profile"</strong> on login page, search their name, verify department, and set their email + password.
                             </div>
                         </div>
                     </div>
@@ -521,7 +588,7 @@
                         <div id="room-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
                     </div>
 
-                    <!-- INVENTORY SECTION -->
+                    <!-- INVENTORY -->
                     <div id="admin-inventory" class="hidden fade-in">
                         <h3 class="text-lg font-bold mb-4">📦 Room Amenities / Inventory Management</h3>
                         <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
@@ -544,17 +611,15 @@
                         </div>
                         <div id="inv-list-wrap" class="hidden">
                             <h4 class="font-semibold mb-2">Current Inventory: <span id="inv-room-label" class="text-blue-700"></span></h4>
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-sm border bg-white">
-                                    <thead class="bg-gray-100"><tr><th class="p-2 border w-12">#</th><th class="p-2 border text-left">Item</th><th class="p-2 border w-20">Qty</th><th class="p-2 border w-28">Available</th><th class="p-2 border w-16"></th></tr></thead>
-                                    <tbody id="inv-table-body"></tbody>
-                                </table>
-                            </div>
+                            <div class="overflow-x-auto"><table class="w-full text-sm border bg-white">
+                                <thead class="bg-gray-100"><tr><th class="p-2 border w-12">#</th><th class="p-2 border text-left">Item</th><th class="p-2 border w-20">Qty</th><th class="p-2 border w-28">Available</th><th class="p-2 border w-16"></th></tr></thead>
+                                <tbody id="inv-table-body"></tbody></table></div>
                             <button onclick="saveRoomInventory()" class="mt-3 px-5 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">💾 Save Inventory</button>
                         </div>
-                        <p id="inv-empty" class="text-sm text-gray-500 italic">Select a block, cabin and room to manage its inventory. One list per room (shared rooms use a single list).</p>
+                        <p id="inv-empty" class="text-sm text-gray-500 italic">Select a block, cabin and room to manage its inventory.</p>
                     </div>
 
+                    <!-- EMPLOYEES -->
                     <div id="admin-employees" class="hidden fade-in">
                         <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
                             <h3 class="text-lg font-bold">Employee Profiles</h3>
@@ -564,25 +629,20 @@
                             <select onchange="filterEmployees('gender', this.value)" class="px-3 py-2 border rounded text-sm"><option value="">All Genders</option><option>Male</option><option>Female</option></select>
                             <select onchange="filterEmployees('reg', this.value)" class="px-3 py-2 border rounded text-sm"><option value="">All Status</option><option value="registered">Registered</option><option value="pending">Pending Registration</option></select>
                         </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm text-left">
-                                <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
-                                    <tr><th class="p-3">Name</th><th class="p-3">Username</th><th class="p-3">Department</th><th class="p-3">Designation</th><th class="p-3">Room</th><th class="p-3">Status</th><th class="p-3">Login</th></tr>
-                                </thead>
-                                <tbody id="emp-table-body"></tbody>
-                            </table>
-                        </div>
+                        <div class="overflow-x-auto"><table class="w-full text-sm text-left">
+                            <thead class="bg-gray-50 text-gray-600 uppercase text-xs"><tr><th class="p-3">Name</th><th class="p-3">Username</th><th class="p-3">Department</th><th class="p-3">Designation</th><th class="p-3">Room</th><th class="p-3">Status</th><th class="p-3">Login</th></tr></thead>
+                            <tbody id="emp-table-body"></tbody></table></div>
                     </div>
 
+                    <!-- MOD & GUESTS -->
                     <div id="admin-modguest" class="hidden fade-in">
                         <h3 class="text-lg font-bold mb-4">⭐ MOD & Guest Management</h3>
                         <div class="flex border-b mb-4">
                             <button onclick="showMODGuestTab('mod')" id="mg-tab-mod" class="px-4 py-2 text-sm font-medium tab-active">MOD Stays</button>
                             <button onclick="showMODGuestTab('assign')" id="mg-tab-assign" class="px-4 py-2 text-sm font-medium text-gray-500">Assign MOD Room</button>
+                            <button onclick="showMODGuestTab('guests')" id="mg-tab-guests" class="px-4 py-2 text-sm font-medium text-gray-500">🧳 Guests</button>
                         </div>
-                        <div id="mg-mod" class="fade-in">
-                            <p class="text-sm text-gray-600 italic">No MOD stays recorded yet.</p>
-                        </div>
+                        <div id="mg-mod" class="fade-in"><p class="text-sm text-gray-600 italic">No MOD stays recorded yet.</p></div>
                         <div id="mg-assign" class="hidden fade-in">
                             <div class="bg-blue-50 p-4 rounded-lg border">
                                 <p class="text-sm text-blue-800 mb-3">Assign a room to an MOD employee.</p>
@@ -593,34 +653,33 @@
                                 </div>
                             </div>
                         </div>
+                        <div id="mg-guests" class="hidden fade-in">
+                            <div class="bg-teal-50 p-4 rounded-lg border border-teal-200 mb-4">
+                                <h4 class="font-bold text-teal-900 mb-2">Guest Rooms (visible to Guest Access login)</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <select id="guest-room-select" class="px-3 py-2 border rounded text-sm"></select>
+                                    <button onclick="markGuestRoom(true)" class="px-4 py-2 bg-teal-600 text-white rounded text-sm hover:bg-teal-700">Mark as Guest Room</button>
+                                    <button onclick="markGuestRoom(false)" class="px-4 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">Unmark</button>
+                                </div>
+                                <div id="guest-rooms-chips" class="flex flex-wrap gap-2 mt-3"></div>
+                            </div>
+                            <h4 class="font-semibold mb-2">Guest Stays</h4>
+                            <div class="overflow-x-auto"><table class="w-full text-sm text-left">
+                                <thead class="bg-gray-50 text-xs text-gray-500 uppercase"><tr><th class="p-2">Guest</th><th class="p-2">Room</th><th class="p-2">Check-In</th><th class="p-2">Check-Out</th><th class="p-2">Status</th><th class="p-2"></th></tr></thead>
+                                <tbody id="guest-stays-body"><tr><td colspan="6" class="p-3 text-center text-gray-500 italic">No guest stays yet</td></tr></tbody></table></div>
+                        </div>
                     </div>
 
                     <!-- BRANDING -->
                     <div id="admin-branding" class="hidden fade-in">
                         <h3 class="text-lg font-bold mb-4">🎨 Customize Portal (Branding)</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label class="block text-sm font-medium mb-1">Accommodation Name</label>
-                                <input type="text" id="brand-title-input" class="w-full px-3 py-2 border rounded" value="Host Accommodation">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-1">Brand Primary Color</label>
-                                <input type="color" id="brand-color-input" class="w-full h-10 border rounded" value="#2563eb">
-                            </div>
-                            <div class="md:col-span-2">
-                                <label class="block text-sm font-medium mb-1">Description / Tagline (under name)</label>
-                                <textarea id="brand-desc-input" rows="2" class="w-full px-3 py-2 border rounded" placeholder="e.g., Comfortable & secure stay for our employees"></textarea>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-1">Company Logo</label>
-                                <input type="file" id="brand-logo-input" accept="image/*" class="w-full text-sm" onchange="uploadBrandingImage('logo', event)">
-                                <img id="brand-logo-preview" class="hidden mt-2 h-12 object-contain" alt="logo preview">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-1">Homepage Background Picture</label>
-                                <input type="file" id="brand-bg-input" accept="image/*" class="w-full text-sm" onchange="uploadBrandingImage('bg', event)">
-                                <img id="brand-bg-preview" class="hidden mt-2 h-12 object-cover rounded" alt="bg preview">
-                            </div>
+                            <div><label class="block text-sm font-medium mb-1">Accommodation Name</label><input type="text" id="brand-title-input" class="w-full px-3 py-2 border rounded" value="Host Accommodation"></div>
+                            <div><label class="block text-sm font-medium mb-1">Brand Primary Color</label><input type="color" id="brand-color-input" class="w-full h-10 border rounded" value="#2563eb"></div>
+                            <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Description / Tagline (under name)</label><textarea id="brand-desc-input" rows="2" class="w-full px-3 py-2 border rounded" placeholder="e.g., Comfortable & secure stay for our employees"></textarea></div>
+                            <div><label class="block text-sm font-medium mb-1">Company Logo (shows above title & on forms)</label><input type="file" id="brand-logo-input" accept="image/*" class="w-full text-sm" onchange="uploadBrandingImage('logo', event)"><img id="brand-logo-preview" class="hidden mt-2 h-12 object-contain" alt="logo preview"></div>
+                            <div><label class="block text-sm font-medium mb-1">Homepage Background Picture</label><input type="file" id="brand-bg-input" accept="image/*" class="w-full text-sm" onchange="uploadBrandingImage('bg', event)"><img id="brand-bg-preview" class="hidden mt-2 h-12 object-cover rounded" alt="bg preview"></div>
+                            <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Accommodation Rules PDF (text extracted & shown in check-in)</label><input type="file" id="rules-pdf-input" accept="application/pdf" class="w-full text-sm" onchange="uploadRulesPdf(event)"><div id="rules-pdf-status" class="text-xs mt-1 text-gray-600"></div></div>
                         </div>
                         <div class="mt-6 flex gap-3">
                             <button onclick="saveBranding()" class="px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700">💾 Preview & Apply</button>
@@ -641,20 +700,50 @@
             </div>
             <div class="p-6">
                 <form id="admin-create-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label class="block text-sm font-medium mb-1">Full Name *</label><input type="text" name="name" class="w-full px-3 py-2 border rounded" required></div>
-                    <div><label class="block text-sm font-medium mb-1">Employee Code *</label><input type="text" name="code" class="w-full px-3 py-2 border rounded" required></div>
-                    <div><label class="block text-sm font-medium mb-1">Department *</label><input type="text" name="dept" class="w-full px-3 py-2 border rounded" required></div>
+                    <div><label class="block text-sm font-medium mb-1">Full Name</label><input type="text" name="name" class="w-full px-3 py-2 border rounded"></div>
+                    <div><label class="block text-sm font-medium mb-1">Employee Code</label><input type="text" name="code" class="w-full px-3 py-2 border rounded"></div>
+                    <div><label class="block text-sm font-medium mb-1">Department</label><input type="text" name="dept" class="w-full px-3 py-2 border rounded"></div>
                     <div><label class="block text-sm font-medium mb-1">Designation</label><input type="text" name="designation" class="w-full px-3 py-2 border rounded"></div>
                     <div><label class="block text-sm font-medium mb-1">Assigned Room</label><select name="room" class="w-full px-3 py-2 border rounded" id="admin-room-select"></select></div>
                     <div><label class="block text-sm font-medium mb-1">Gender</label><select name="gender" class="w-full px-3 py-2 border rounded"><option>Male</option><option>Female</option><option>Other</option></select></div>
                     <div class="md:col-span-2 flex items-center gap-2 mt-2">
-                        <input type="checkbox" id="admin-is-mod" class="w-4 h-4">
-                        <label for="admin-is-mod" class="text-sm">Mark as MOD employee</label>
+                        <input type="checkbox" id="admin-is-mod" class="w-4 h-4"><label for="admin-is-mod" class="text-sm">Mark as MOD employee</label>
                     </div>
                 </form>
                 <div class="flex justify-end gap-3 mt-6">
                     <button onclick="closeAdminCreateProfile()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Cancel</button>
                     <button onclick="saveAdminProfile()" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold">Create Profile</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= ALLOCATE ROOM MODAL ================= -->
+    <div id="allocate-modal" class="modal">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b flex justify-between items-center sticky top-0 bg-white">
+                <h3 class="text-xl font-bold">Allocate Bed — <span id="allocate-room-label" class="text-blue-700"></span></h3>
+                <button onclick="closeAllocateModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <div class="p-6">
+                <div class="flex gap-3 mb-4">
+                    <button onclick="switchAllocateType('existing')" id="alloc-tab-existing" class="px-4 py-2 text-sm font-medium tab-active">Existing Employee</button>
+                    <button onclick="switchAllocateType('new')" id="alloc-tab-new" class="px-4 py-2 text-sm font-medium text-gray-500">New Employee</button>
+                </div>
+                <div id="alloc-existing">
+                    <input type="text" id="alloc-search" class="w-full px-3 py-2 border rounded mb-3" placeholder="Search employee by name or code..." oninput="renderAllocSearch(this.value)">
+                    <div id="alloc-search-results" class="space-y-2 max-h-64 overflow-y-auto"></div>
+                </div>
+                <div id="alloc-new" class="hidden">
+                    <form id="alloc-new-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label class="block text-sm font-medium mb-1">Full Name</label><input type="text" name="name" class="w-full px-3 py-2 border rounded"></div>
+                        <div><label class="block text-sm font-medium mb-1">Employee Code</label><input type="text" name="code" class="w-full px-3 py-2 border rounded"></div>
+                        <div><label class="block text-sm font-medium mb-1">Department</label><input type="text" name="dept" class="w-full px-3 py-2 border rounded"></div>
+                        <div><label class="block text-sm font-medium mb-1">Designation</label><input type="text" name="designation" class="w-full px-3 py-2 border rounded"></div>
+                        <div><label class="block text-sm font-medium mb-1">Gender</label><select name="gender" class="w-full px-3 py-2 border rounded"><option>Male</option><option>Female</option><option>Other</option></select></div>
+                        <div class="flex items-center gap-2"><input type="checkbox" id="alloc-is-mod" class="w-4 h-4"><label for="alloc-is-mod" class="text-sm">MOD employee</label></div>
+                    </form>
+                    <button onclick="allocateNewEmployee()" class="mt-4 px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700">Create & Allocate</button>
                 </div>
             </div>
         </div>
@@ -669,8 +758,9 @@
             </div>
             <div class="p-6">
                 <div id="room-detail-content"></div>
-                <div class="mt-5 pt-4 border-t flex justify-end">
+                <div class="mt-5 pt-4 border-t flex justify-between">
                     <button id="delete-room-btn" onclick="deleteCurrentRoom()" class="px-4 py-2 bg-red-500 text-white rounded text-sm hover:bg-red-600">🗑 Delete This Room</button>
+                    <span id="guest-room-badge" class="hidden px-3 py-2 bg-teal-100 text-teal-700 rounded text-sm font-semibold">Guest Room</span>
                 </div>
             </div>
         </div>
@@ -680,6 +770,7 @@
         // ===== GLOBAL STATE =====
         let roomsData = [];
         let employeesData = [];
+        let guestsData = [];
         let currentBlock = 'ALL';
         let currentUser = null;
         let regSearchEmpId = null;
@@ -692,9 +783,27 @@
         let checkoutEditable = false;
         let pendingLogoUrl = null;
         let pendingBgUrl = null;
+        let pendingRulesText = null;
         let currentLoginTab = 'employee';
         let currentModalRoom = null;
+        let allocateTargetRoom = null;
+        let registering = false;   // guards auth-listener during self-registration
+        let guestSession = null;
         const amenitiesList = ["Single Bed", "Mattress", "Pillow", "Blanket", "Wardrobe", "Study Table", "Chair", "AC", "Fan", "Light", "Mirror", "Curtains"];
+        const defaultRulesHtml = `<ol class="list-decimal pl-5 space-y-2">
+            <li>Rooms are allocated as per company policy based on designation and availability.</li>
+            <li>Maintain cleanliness and hygiene in your room and common areas.</li>
+            <li>Do not damage room inventory. Any damage will be charged to the employee.</li>
+            <li>Visitors are not allowed in accommodation premises after 8:00 PM.</li>
+            <li>No smoking or alcohol consumption inside the accommodation.</li>
+            <li>Report any maintenance issues to admin immediately.</li>
+            <li>No cooking inside rooms; use designated kitchen areas only.</li>
+            <li>Keep noise to a minimum, especially between 10 PM and 6 AM.</li>
+            <li>Company reserves the right to inspect rooms at any time.</li>
+            <li>Check-out must be done 24 hours in advance with admin approval.</li>
+        </ol><p class="text-xs text-gray-500 mt-3 italic">(Actual rules PDF can be uploaded by admin in Branding)</p>`;
+
+        if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
         // ===== COLOR HELPERS =====
         function shadeColor(hex, percent) {
@@ -706,7 +815,6 @@
             r=Math.round((t-r)*p+r); g=Math.round((t-g)*p+g); b=Math.round((t-b)*p+b);
             return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
         }
-
         function applyBrandColor(color) {
             if (!color) return;
             let el = document.getElementById('dynamic-brand');
@@ -725,58 +833,52 @@
                 .block-tab.active{background:${color}!important}
                 .tab-active{border-bottom-color:${color}!important;color:${color}!important}
                 .step-active{background:${color}!important}
-                #logo-wrap{background-color:${light}!important}
-                #default-logo{color:${color}!important}
             `;
             ['login-screen','loading-screen'].forEach(id=>{
                 const s = document.getElementById(id);
                 if (s && !s.dataset.bgset) s.style.background = `linear-gradient(135deg, ${color}, ${shadeColor(color,-40)})`;
             });
         }
-
         function applyBrandSettings(s) {
             brandSettings = s || {};
-            if (s.title) {
-                ['brand-title','emp-brand-title'].forEach(id=>{const e=document.getElementById(id); if(e)e.textContent=s.title;});
-                document.title = s.title;
-                const ti=document.getElementById('brand-title-input'); if(ti) ti.value=s.title;
-            }
-            if (s.description !== undefined) {
-                const d=document.getElementById('brand-desc');
-                if(d){ d.textContent = s.description || 'Secure Employee Housing Portal'; }
-                const di=document.getElementById('brand-desc-input'); if(di) di.value = s.description || '';
-            }
+            const title = s.title || 'Host Accommodation';
+            document.querySelectorAll('[data-brand-name]').forEach(e => e.textContent = title);
+            document.title = title;
+            const ti=document.getElementById('brand-title-input'); if(ti) ti.value = title;
+            const d=document.getElementById('brand-desc');
+            if(d){ d.textContent = s.description || 'Secure Employee Housing Portal'; }
+            const di=document.getElementById('brand-desc-input'); if(di) di.value = s.description || '';
             if (s.color) { applyBrandColor(s.color); const ci=document.getElementById('brand-color-input'); if(ci) ci.value=s.color; }
+            // LOGO: show everywhere (above title on login + letterheads + navs)
             if (s.logoUrl) {
-                ['brand-logo','emp-brand-logo','admin-brand-logo'].forEach(id=>{
-                    const e=document.getElementById(id);
-                    if(e){ e.src=s.logoUrl; e.classList.remove('hidden'); }
-                });
-                const dl=document.getElementById('default-logo'); if(dl) dl.classList.add('hidden');
+                document.querySelectorAll('[data-brand-logo]').forEach(img => { img.src = s.logoUrl; img.classList.remove('hidden'); });
+                const wrap=document.getElementById('logo-wrap'); if(wrap) wrap.classList.add('hidden');
             }
             const ls=document.getElementById('login-screen');
             if (s.bgUrl && ls) {
                 ls.style.background = `linear-gradient(rgba(15,23,42,0.55),rgba(15,23,42,0.55)), url('${s.bgUrl}') center/cover no-repeat`;
                 ls.dataset.bgset = '1';
             }
+            renderRulesDisplays();
         }
-
+        function renderRulesDisplays() {
+            const html = brandSettings.rulesText ? `<div class="rules-text">${brandSettings.rulesText.replace(/</g,'&lt;')}</div>` : defaultRulesHtml;
+            const a=document.getElementById('rules-display'); if(a) a.innerHTML = html;
+            const b=document.getElementById('guest-rules-box'); if(b) b.innerHTML = html;
+        }
         async function loadBrandingOnce() {
             try {
                 const snap = await window.fb.getDoc(window.fb.doc(window.fb.db, 'settings', 'branding'));
                 if (snap.exists()) applyBrandSettings(snap.data());
             } catch(e) { console.warn('Branding load:', e); }
         }
-
         function loadBrandingIntoForm() {
             const t=document.getElementById('brand-title-input'); if(t) t.value = brandSettings.title || 'Host Accommodation';
             const d=document.getElementById('brand-desc-input'); if(d) d.value = brandSettings.description || '';
             const c=document.getElementById('brand-color-input'); if(c) c.value = brandSettings.color || '#2563eb';
-            pendingLogoUrl = null; pendingBgUrl = null;
-            document.getElementById('brand-logo-preview').classList.add('hidden');
-            document.getElementById('brand-bg-preview').classList.add('hidden');
+            const rs=document.getElementById('rules-pdf-status');
+            if(rs) rs.textContent = brandSettings.rulesFileName ? ('Current rules: ' + brandSettings.rulesFileName) : '';
         }
-
         async function uploadBrandingImage(type, event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -796,7 +898,29 @@
             };
             reader.readAsDataURL(file);
         }
-
+        async function uploadRulesPdf(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const status = document.getElementById('rules-pdf-status');
+            status.textContent = 'Extracting text...';
+            try {
+                const buf = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+                let text = '';
+                for (let p = 1; p <= pdf.numPages; p++) {
+                    const page = await pdf.getPage(p);
+                    const tc = await page.getTextContent();
+                    text += tc.items.map(it => it.str).join(' ') + '\n\n';
+                }
+                if (!text.trim()) { alert('No extractable text found in PDF (scanned image?). Rules not updated.'); status.textContent = ''; return; }
+                pendingRulesText = text.trim();
+                status.textContent = `✓ Extracted ${text.trim().length} characters from "${file.name}". Click "Preview & Apply" to save.`;
+            } catch (err) {
+                console.error(err);
+                alert('PDF extraction failed: ' + err.message);
+                status.textContent = '';
+            }
+        }
         async function saveBranding() {
             const data = {
                 title: document.getElementById('brand-title-input').value.trim(),
@@ -804,44 +928,35 @@
                 color: document.getElementById('brand-color-input').value,
                 logoUrl: pendingLogoUrl || brandSettings.logoUrl || '',
                 bgUrl: pendingBgUrl || brandSettings.bgUrl || '',
+                rulesText: pendingRulesText || brandSettings.rulesText || '',
+                rulesFileName: pendingRulesText ? (document.getElementById('rules-pdf-input').files[0]?.name || brandSettings.rulesFileName || '') : (brandSettings.rulesFileName || ''),
                 updatedAt: new Date().toISOString()
             };
             try {
                 await window.fb.setDoc(window.fb.doc(window.fb.db, 'settings', 'branding'), data, { merge: true });
+                pendingLogoUrl = null; pendingBgUrl = null; pendingRulesText = null;
                 applyBrandSettings(data);
                 alert('✓ Branding applied!');
             } catch (e) {
                 console.error(e);
                 let msg = 'Error: ' + e.message;
-                if (e.code === 'permission-denied') {
-                    msg = 'Permission denied.\n\nPlease publish the updated Firestore Security Rules (Firebase Console → Firestore Database → Rules) that include the "settings" collection, then try again.';
-                }
+                if (e.code === 'permission-denied') msg = 'Permission denied. Publish the updated Firestore Rules first.';
                 alert(msg);
             }
         }
 
-        // ===== SAMPLE CSV DOWNLOAD =====
+        // ===== SAMPLE CSV =====
         function downloadSampleCSV(type) {
             let csv = '', filename = '';
-            if (type === 'rooms') {
-                csv = 'BlockNo,CabinNo,RoomNo,RoomType,Beds\nK,17,A,Sharing,2\nK,17,B,Sharing,2\nK,18,A,Sharing,2\nK,18,B,Single,1\nA,1,A,Single,1\nA,1,B,Sharing,2\n';
-                filename = 'sample_rooms.csv';
-            } else if (type === 'employees') {
-                csv = 'Name,Designation,Department,RoomNo\nJohn Doe,Manager,Engineering,K-17-A\nJane Smith,Executive,HR,K-17-B\nRobert Brown,Analyst,Finance,K-18-A\n';
-                filename = 'sample_employees.csv';
-            } else {
-                csv = 'BlockNo,RoomNo,ItemName,Available,Qty\nK,K-17-A,Single Bed,Yes,2\nK,K-17-A,Mattress,Yes,2\nK,K-17-A,Wardrobe,Yes,1\nK,K-17-A,AC,Yes,1\n';
-                filename = 'sample_inventory.csv';
-            }
+            if (type === 'rooms') { csv = 'BlockNo,CabinNo,RoomNo,RoomType,Beds\nK,17,A,Sharing,2\nK,17,B,Sharing,2\nK,18,A,Sharing,2\nK,18,B,Single,1\n'; filename = 'sample_rooms.csv'; }
+            else if (type === 'employees') { csv = 'Name,Designation,Department,RoomNo\nJohn Doe,Manager,Engineering,K-17-A\nJane Smith,Executive,HR,K-17-B\n'; filename = 'sample_employees.csv'; }
+            else { csv = 'BlockNo,RoomNo,ItemName,Available,Qty\nK,K-17-A,Single Bed,Yes,2\nK,K-17-A,Wardrobe,Yes,1\n'; filename = 'sample_inventory.csv'; }
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = filename; a.click();
+            const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
             URL.revokeObjectURL(url);
         }
 
-        // ===== ROOM ID RESOLVER =====
-        // Accepts full ID (K-17-A) or, if unique, a short label (A)
         function resolveRoomNo(input) {
             if (!input) return '';
             const exact = roomsData.find(r => r.number === input);
@@ -851,13 +966,14 @@
             return input;
         }
 
-        // ===== INITIALIZATION =====
+        // ===== INIT =====
         window.addEventListener('DOMContentLoaded', () => {
             const checkFirebase = setInterval(() => {
                 if (window.fb && window.fb.onAuthStateChanged) {
                     clearInterval(checkFirebase);
                     loadBrandingOnce();
                     window.fb.onAuthStateChanged(window.fb.auth, async (user) => {
+                        if (registering) return;   // ignore auth events during self-registration
                         document.getElementById('loading-screen').classList.add('hidden');
                         if (user) { await loadUserProfile(user); }
                         else { document.getElementById('login-screen').classList.remove('hidden'); }
@@ -869,32 +985,34 @@
         // ===== LOGIN =====
         function switchLoginTab(type) {
             currentLoginTab = type;
-            const empTab = document.getElementById('login-tab-employee');
-            const adminTab = document.getElementById('login-tab-admin');
+            ['employee','admin','guest'].forEach(t => {
+                const b = document.getElementById('login-tab-' + t);
+                b.classList.toggle('tab-active', t === type);
+                b.classList.toggle('text-gray-500', t !== type);
+            });
             const emailWrap = document.getElementById('login-email-wrap');
+            const passWrap = document.getElementById('login-pass-wrap');
             const emailInput = document.getElementById('login-email');
-            const passInput = document.getElementById('login-password');
             const passLabel = document.getElementById('login-password-label');
             const empLinks = document.getElementById('employee-links');
-            
-            if (type === 'employee') {
-                empTab.classList.add('tab-active'); empTab.classList.remove('text-gray-500');
-                adminTab.classList.remove('tab-active'); adminTab.classList.add('text-gray-500');
-                emailWrap.classList.remove('hidden');
-                emailInput.required = true;
-                emailInput.placeholder = 'your.email@company.com';
-                passLabel.textContent = 'Password';
-                passInput.placeholder = '••••••••';
-                empLinks.classList.remove('hidden');
+            const guestEntry = document.getElementById('guest-entry');
+            const form = document.getElementById('login-form');
+
+            if (type === 'guest') {
+                form.classList.add('hidden'); guestEntry.classList.remove('hidden');
+                populateGuestEntryRooms();
             } else {
-                adminTab.classList.add('tab-active'); adminTab.classList.remove('text-gray-500');
-                empTab.classList.remove('tab-active'); empTab.classList.add('text-gray-500');
-                emailWrap.classList.add('hidden');
-                emailInput.required = false;
-                emailInput.value = '';
-                passLabel.textContent = 'Admin Password';
-                passInput.placeholder = 'Enter admin password';
-                empLinks.classList.add('hidden');
+                form.classList.remove('hidden'); guestEntry.classList.add('hidden');
+                if (type === 'employee') {
+                    emailWrap.classList.remove('hidden'); passWrap.classList.remove('hidden');
+                    emailInput.required = true; passLabel.textContent = 'Password';
+                    empLinks.classList.remove('hidden');
+                } else {
+                    emailWrap.classList.add('hidden'); passWrap.classList.remove('hidden');
+                    emailInput.required = false; emailInput.value = '';
+                    passLabel.textContent = 'Admin Password';
+                    empLinks.classList.add('hidden');
+                }
             }
             document.getElementById('login-error').classList.add('hidden');
         }
@@ -906,30 +1024,18 @@
             const errDiv = document.getElementById('login-error');
             const btn = document.getElementById('login-btn');
             errDiv.classList.add('hidden');
-            btn.innerHTML = '<span class="loading"></span>';
-            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>'; btn.disabled = true;
             try {
                 let loginEmail;
-                if (currentLoginTab === 'admin') {
-                    loginEmail = 'admin@company.com';
-                } else {
-                    loginEmail = emailInput;
-                    if (!emailInput.includes('@')) loginEmail = `${emailInput}@company.com`;
-                }
+                if (currentLoginTab === 'admin') loginEmail = 'admin@company.com';
+                else { loginEmail = emailInput; if (!emailInput.includes('@')) loginEmail = `${emailInput}@company.com`; }
                 await window.fb.signInWithEmailAndPassword(window.fb.auth, loginEmail, password);
             } catch (error) {
                 let msg = 'Login failed.';
-                if (currentLoginTab === 'admin') {
-                    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                        msg = 'Incorrect admin password.';
-                    } else {
-                        msg = 'Admin login failed. Make sure admin@company.com exists in Firebase Console.';
-                    }
-                } else {
-                    if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') msg = 'Invalid credentials.';
-                    else if (error.code === 'auth/wrong-password') msg = 'Incorrect password.';
-                    else if (error.code === 'auth/invalid-email') msg = 'Invalid email format.';
-                }
+                if (currentLoginTab === 'admin') msg = (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') ? 'Incorrect admin password.' : 'Admin login failed. Make sure admin@company.com exists.';
+                else if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') msg = 'Invalid credentials.';
+                else if (error.code === 'auth/wrong-password') msg = 'Incorrect password.';
+                else if (error.code === 'auth/invalid-email') msg = 'Invalid email format.';
                 errDiv.textContent = msg; errDiv.classList.remove('hidden');
             } finally { btn.innerHTML = 'Sign In'; btn.disabled = false; }
         }
@@ -972,7 +1078,7 @@
             switchLoginTab('employee');
         }
 
-        // ===== SELF REGISTRATION =====
+        // ===== SELF REGISTRATION (race-fixed) =====
         function openCreateProfile() { document.getElementById('create-profile-modal').classList.add('show'); resetRegistration(); }
         function closeCreateProfile() { document.getElementById('create-profile-modal').classList.remove('show'); }
         function resetRegistration() {
@@ -988,7 +1094,7 @@
             try {
                 const q = window.fb.query(window.fb.collection(window.fb.db, 'employees'), window.fb.where('registered', '==', false));
                 const snapshot = await window.fb.getDocs(q);
-                const matches = snapshot.docs.map(d => ({ id: d.id, ...d.data() })).filter(e => e.name.toLowerCase().includes(query.toLowerCase()));
+                const matches = snapshot.docs.map(d => ({ id: d.id, ...d.data() })).filter(e => (e.name||'').toLowerCase().includes(query.toLowerCase()));
                 if (matches.length === 0) { resDiv.innerHTML = '<p class="text-red-600">❌ No matching unregistered employee found. Contact admin.</p>'; return; }
                 resDiv.innerHTML = '<p class="text-gray-600 mb-2">Select your name:</p>' + matches.map(e => `
                     <button onclick="selectRegEmployee('${e.id}')" class="w-full text-left p-2 mb-1 bg-gray-50 hover:bg-blue-50 border rounded">
@@ -1016,10 +1122,11 @@
             const pass = document.getElementById('reg-password').value;
             const pass2 = document.getElementById('reg-password2').value;
             const btn = document.getElementById('reg-submit-btn');
-            if (!email || !pass) { alert('Please fill all fields'); return; }
+            if (!email || !pass) { alert('Please fill email and password'); return; }
             if (pass.length < 6) { alert('Password must be 6+ characters'); return; }
             if (pass !== pass2) { alert('Passwords do not match'); return; }
             btn.disabled = true;
+            registering = true;   // suppress auth-listener redirect while we link the profile
             try {
                 const userCred = await window.fb.createUserWithEmailAndPassword(window.fb.auth, email, pass);
                 await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', regSearchEmpId), {
@@ -1034,7 +1141,11 @@
                 else if (error.code === 'auth/weak-password') msg = 'Password too weak.';
                 else if (error.code === 'permission-denied') msg = 'Permission denied. Publish the updated Firestore Rules first.';
                 alert(msg);
-            } finally { btn.disabled = false; }
+                try { await window.fb.signOut(window.fb.auth); } catch(e) {}
+            } finally {
+                btn.disabled = false;
+                setTimeout(() => { registering = false; }, 800);
+            }
         }
 
         // ===== FORGOT PASSWORD =====
@@ -1054,11 +1165,10 @@
         function showEmpSection(section) {
             ['checkin','checkout','mod','changeroom'].forEach(s => document.getElementById('emp-' + s).classList.add('hidden'));
             document.getElementById('emp-' + section).classList.remove('hidden');
-            if (section === 'checkin') { initAllSignaturePads(); renderAmenitiesTable(); }
+            if (section === 'checkin') { initAllSignaturePads(); renderAmenitiesTable(); renderRulesDisplays(); }
             if (section === 'checkout') { setTimeout(() => { initSignaturePad('co'); renderCheckoutChecklist(); }, 100); }
             if (section === 'mod') { setTimeout(() => { initSignaturePad('mod-ci'); initSignaturePad('mod-co'); loadMODAssignment(); }, 100); }
         }
-
         function prefillCheckInForm(emp) {
             const form = document.getElementById('checkin-form');
             form.name.value = emp.name || '';
@@ -1087,11 +1197,11 @@
             if (step > 1) document.getElementById('step-1-bar').style.width = '100%';
             if (step > 2) document.getElementById('step-2-bar').style.width = '100%';
             if (step === 2) { initSignaturePad(2); renderAmenitiesTable(); }
-            if (step === 3) initSignaturePad(3);
+            if (step === 3) { initSignaturePad(3); renderRulesDisplays(); }
         }
         function validateStep1() {
             const form = document.getElementById('checkin-form');
-            if (!form.name.value || !form.code.value || !form.checkin_date.value) { alert('Please fill required fields'); return false; }
+            if (!form.checkin_date.value) { alert('Please select check-in date'); return false; }
             const sig = document.getElementById('typed-signature-1').value;
             if (!sig && !hasSignature(1)) { alert('Please provide signature'); return false; }
             return true;
@@ -1139,50 +1249,34 @@
             return false;
         }
 
-        // ===== AMENITIES (CHECK-IN) with SHARED-ROOM LOGIC =====
+        // ===== AMENITIES (CHECK-IN) =====
         function getMyRoom() { return roomsData.find(r => r.number === (currentUser && currentUser.room)); }
-
         function renderAmenitiesTable() {
             const tbody = document.getElementById('amenities-table-body');
             const note = document.getElementById('shared-checklist-note');
             if (!tbody) return;
             const room = getMyRoom();
             let items = [], shared = false, sharedBy = '';
-
             if (room && room.currentChecklist && room.currentChecklist.items && room.currentChecklist.items.length) {
                 items = room.currentChecklist.items; shared = true; sharedBy = room.currentChecklist.by || 'previous occupant';
             } else if (room && room.inventory && room.inventory.length) {
                 items = room.inventory.map(it => ({ name: it.name, present: it.available !== false, remarks: '' }));
-            } else {
-                items = amenitiesList.map(n => ({ name: n, present: false, remarks: '' }));
-            }
+            } else items = amenitiesList.map(n => ({ name: n, present: false, remarks: '' }));
             checkinItems = items;
-
-            if (shared) {
-                note.classList.remove('hidden');
-                note.innerHTML = `🔗 Shared room: this checklist was signed by <strong>${sharedBy}</strong>. The same list applies to you — verify and sign below.`;
-            } else note.classList.add('hidden');
-
+            if (shared) { note.classList.remove('hidden'); note.innerHTML = `🔗 Shared room: checklist signed by <strong>${sharedBy}</strong>. Same list applies to you.`; }
+            else note.classList.add('hidden');
             tbody.innerHTML = items.map((it, i) => `
-                <tr>
-                    <td class="p-2 border text-center">${i+1}</td>
-                    <td class="p-2 border">${it.name}</td>
-                    <td class="p-2 border text-center"><input type="checkbox" class="amenity-check" data-idx="${i}" ${it.present ? 'checked' : ''} ${shared ? 'disabled' : ''}></td>
-                    <td class="p-2 border"><input type="text" class="w-full px-2 py-1 border rounded text-sm amenity-remark" data-idx="${i}" value="${(it.remarks||'').replace(/"/g,'&quot;')}" placeholder="Remarks" ${shared ? 'disabled' : ''}></td>
-                </tr>`).join('');
+                <tr><td class="p-2 border text-center">${i+1}</td><td class="p-2 border">${it.name}</td>
+                <td class="p-2 border text-center"><input type="checkbox" class="amenity-check" data-idx="${i}" ${it.present ? 'checked' : ''} ${shared ? 'disabled' : ''}></td>
+                <td class="p-2 border"><input type="text" class="w-full px-2 py-1 border rounded text-sm amenity-remark" data-idx="${i}" value="${(it.remarks||'').replace(/"/g,'&quot;')}" placeholder="Remarks" ${shared ? 'disabled' : ''}></td></tr>`).join('');
         }
-
         function readCheckinChecklist() {
             const room = getMyRoom();
             const shared = room && room.currentChecklist && room.currentChecklist.items && room.currentChecklist.items.length;
             if (shared) return checkinItems.map(it => ({ ...it }));
             const checks = document.querySelectorAll('.amenity-check');
             const remarks = document.querySelectorAll('.amenity-remark');
-            return checkinItems.map((it, i) => ({
-                name: it.name,
-                present: checks[i] ? checks[i].checked : false,
-                remarks: remarks[i] ? remarks[i].value : ''
-            }));
+            return checkinItems.map((it, i) => ({ name: it.name, present: checks[i] ? checks[i].checked : false, remarks: remarks[i] ? remarks[i].value : '' }));
         }
 
         // ===== CHECK-OUT CHECKLIST =====
@@ -1192,23 +1286,17 @@
             const note = document.getElementById('co-checklist-note');
             const room = getMyRoom();
             if (!room) { wrap.classList.add('hidden'); checkoutItems = []; return; }
-            let items = (room.currentChecklist && room.currentChecklist.items) ||
-                        (room.inventory || []).map(it => ({ name: it.name, present: it.available !== false, remarks: '' }));
+            let items = (room.currentChecklist && room.currentChecklist.items) || (room.inventory || []).map(it => ({ name: it.name, present: it.available !== false, remarks: '' }));
             if (!items.length) { wrap.classList.add('hidden'); checkoutItems = []; return; }
             checkoutItems = items;
             wrap.classList.remove('hidden');
             const lastOccupant = (room.occupants || []).length <= 1;
             checkoutEditable = lastOccupant;
-            note.innerHTML = lastOccupant
-                ? 'You are the <strong>last occupant</strong>. Update each item\'s condition — room inventory will be updated on submit.'
-                : 'Shared room: this verification is recorded for you only. The checklist <strong>remains unchanged</strong> for the remaining occupant.';
+            note.innerHTML = lastOccupant ? 'You are the <strong>last occupant</strong>. Update conditions — inventory updates on submit.' : 'Shared room: verification recorded for you only; checklist unchanged for remaining occupant.';
             tbody.innerHTML = items.map((it, i) => `
-                <tr>
-                    <td class="p-2 border">${it.name}</td>
-                    <td class="p-2 border text-center">${it.present ? '✓' : '✗'}</td>
-                    <td class="p-2 border"><select class="co-condition w-full px-2 py-1 border rounded text-sm" data-idx="${i}" ${lastOccupant ? '' : 'disabled'}><option>OK</option><option>Damaged</option><option>Missing</option></select></td>
-                    <td class="p-2 border"><input type="text" class="co-remark w-full px-2 py-1 border rounded text-sm" data-idx="${i}" ${lastOccupant ? '' : 'disabled'} placeholder="Remarks"></td>
-                </tr>`).join('');
+                <tr><td class="p-2 border">${it.name}</td><td class="p-2 border text-center">${it.present ? '✓' : '✗'}</td>
+                <td class="p-2 border"><select class="co-condition w-full px-2 py-1 border rounded text-sm" data-idx="${i}" ${lastOccupant ? '' : 'disabled'}><option>OK</option><option>Damaged</option><option>Missing</option></select></td>
+                <td class="p-2 border"><input type="text" class="co-remark w-full px-2 py-1 border rounded text-sm" data-idx="${i}" ${lastOccupant ? '' : 'disabled'} placeholder="Remarks"></td></tr>`).join('');
         }
 
         // ===== SUBMIT CHECK-IN =====
@@ -1220,7 +1308,6 @@
             const form = document.getElementById('checkin-form');
             const data = Object.fromEntries(new FormData(form).entries());
             const checklist = readCheckinChecklist();
-
             let signatureUrl = '';
             if (canvases[3]) {
                 try {
@@ -1230,17 +1317,13 @@
                     signatureUrl = await window.fb.getDownloadURL(sigRef);
                 } catch(e) {}
             }
-
             try {
                 await window.fb.addDoc(window.fb.collection(window.fb.db, 'checkins'), {
                     employeeId: currentUser.id, employeeName: currentUser.name,
-                    ...data, checklist, signatureUrl,
-                    typedSignature: sig || '[Drawn]',
+                    ...data, checklist, signatureUrl, typedSignature: sig || '[Drawn]',
                     timestamp: new Date().toISOString()
                 });
-
                 const room = getMyRoom();
-                const updates = { status: 'active', lastCheckIn: new Date().toISOString() };
                 if (room) {
                     const occ = [...(room.occupants || [])];
                     if (!occ.includes(currentUser.name) && occ.length < (room.capacity || 1)) occ.push(currentUser.name);
@@ -1250,10 +1333,9 @@
                     }
                     await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.number), roomUpdates);
                 }
-                await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', currentUser.id), updates);
+                await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', currentUser.id), { status: 'active', lastCheckIn: new Date().toISOString() });
                 alert('✓ Check-in submitted successfully!');
             } catch (error) {
-                console.error(error);
                 let msg = 'Error submitting check-in: ' + error.message;
                 if (error.code === 'permission-denied') msg = 'Permission denied. Publish the updated Firestore Rules first.';
                 alert(msg);
@@ -1266,48 +1348,31 @@
             if (!sig && !hasSignature('co')) { alert('Please provide signature'); return; }
             const conditions = document.querySelectorAll('.co-condition');
             const remarks = document.querySelectorAll('.co-remark');
-            const verification = checkoutItems.map((it, i) => ({
-                name: it.name, atCheckIn: !!it.present,
-                condition: conditions[i] ? conditions[i].value : 'OK',
-                remarks: remarks[i] ? remarks[i].value : ''
-            }));
-
+            const verification = checkoutItems.map((it, i) => ({ name: it.name, atCheckIn: !!it.present, condition: conditions[i] ? conditions[i].value : 'OK', remarks: remarks[i] ? remarks[i].value : '' }));
             if (!currentUser.isMOD) {
                 if (!confirm('Your login will be DISABLED after check-out. Continue?')) return;
                 try {
                     await window.fb.addDoc(window.fb.collection(window.fb.db, 'checkouts'), {
                         employeeId: currentUser.id, employeeName: currentUser.name,
-                        date: document.getElementById('co-date').value,
-                        reason: document.getElementById('co-reason').value,
+                        date: document.getElementById('co-date').value, reason: document.getElementById('co-reason').value,
                         verification, timestamp: new Date().toISOString()
                     });
-
                     const room = getMyRoom();
                     if (room) {
                         let occ = (room.occupants || []).filter(n => n !== currentUser.name);
                         const roomUpdates = { occupants: occ };
                         if (occ.length === 0) {
                             const newInv = (room.inventory && room.inventory.length ? room.inventory : checkoutItems.map(it => ({ name: it.name, qty: 1 })))
-                                .map(item => {
-                                    const v = verification.find(x => x.name === item.name);
-                                    return { ...item, available: v ? (v.condition !== 'Missing') : (item.available !== false) };
-                                });
-                            roomUpdates.inventory = newInv;
-                            roomUpdates.currentChecklist = null;
+                                .map(item => { const v = verification.find(x => x.name === item.name); return { ...item, available: v ? (v.condition !== 'Missing') : (item.available !== false) }; });
+                            roomUpdates.inventory = newInv; roomUpdates.currentChecklist = null;
                         }
                         await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.number), roomUpdates);
                     }
                     await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', currentUser.id), { loginEnabled: false, status: 'disabled' });
                     alert('✓ Check-out submitted. Login disabled.');
                     setTimeout(logout, 1500);
-                } catch (error) {
-                    let msg = 'Error: ' + error.message;
-                    if (error.code === 'permission-denied') msg = 'Permission denied. Publish the updated Firestore Rules first.';
-                    alert(msg);
-                }
-            } else {
-                alert('✓ MOD Check-out submitted. Login remains active.');
-            }
+                } catch (error) { alert('Error: ' + error.message); }
+            } else alert('✓ MOD Check-out submitted. Login remains active.');
         }
 
         // ===== MOD =====
@@ -1325,8 +1390,7 @@
             const sel = document.getElementById('mod-room');
             if (!sel) return;
             const vacant = roomsData.filter(r => (r.occupants?.length || 0) < (r.capacity || 0));
-            sel.innerHTML = '<option value="">-- Select or wait for admin --</option>' +
-                vacant.map(r => `<option value="${r.number}">${r.number} (Block ${r.block})</option>`).join('');
+            sel.innerHTML = '<option value="">-- Select or wait for admin --</option>' + vacant.map(r => `<option value="${r.number}">${r.number} (Block ${r.block})</option>`).join('');
         }
         function loadMODAssignment() {
             const assigned = modAssignments.find(a => a.empId === currentUser.id);
@@ -1344,8 +1408,7 @@
             if (!sig && !hasSignature('mod-ci')) { alert('Please provide signature'); return; }
             try {
                 await window.fb.addDoc(window.fb.collection(window.fb.db, 'modstays'), {
-                    employeeId: currentUser.id, employeeName: currentUser.name,
-                    room, checkIn: ci, checkOut: co, purpose,
+                    employeeId: currentUser.id, employeeName: currentUser.name, room, checkIn: ci, checkOut: co, purpose,
                     typedSignature: sig || '[Drawn]', status: 'active', timestamp: new Date().toISOString()
                 });
                 alert(`✓ MOD Check-In submitted for room ${room}`);
@@ -1359,8 +1422,108 @@
             alert('✓ MOD Check-Out submitted.');
         }
 
+        // ===== GUEST FLOW =====
+        function guestRooms() { return roomsData.filter(r => r.guestRoom && (r.occupants?.length || 0) < (r.capacity || 0)); }
+        function populateGuestEntryRooms() {
+            const sel = document.getElementById('guest-entry-room');
+            const gr = roomsData.filter(r => r.guestRoom);
+            sel.innerHTML = '<option value="">-- Select Guest Room --</option>' + gr.map(r => `<option value="${r.number}">${r.number} ${(r.occupants?.length||0) < (r.capacity||0) ? '' : '(Full)'}</option>`).join('');
+        }
+        function enterGuestPortal(roomPreselect) {
+            const room = roomPreselect || document.getElementById('guest-entry-room').value;
+            guestSession = JSON.parse(localStorage.getItem('ha_guest_session') || 'null');
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('guest-dashboard').classList.remove('hidden');
+            setTimeout(() => { initSignaturePad('guest-sig'); initSignaturePad('guest-co'); }, 100);
+            renderRulesDisplays();
+            if (guestSession) {
+                document.getElementById('guest-checkin-panel').classList.add('hidden');
+                document.getElementById('guest-checkout-panel').classList.remove('hidden');
+                document.getElementById('guest-session-info').textContent = `${guestSession.name} — Room ${guestSession.room}`;
+            } else {
+                document.getElementById('guest-checkout-panel').classList.add('hidden');
+                document.getElementById('guest-checkin-panel').classList.remove('hidden');
+                const sel = document.getElementById('guest-room');
+                sel.innerHTML = guestRooms().map(r => `<option value="${r.number}">${r.number}</option>`).join('') || '<option value="">No guest rooms available</option>';
+                if (room) sel.value = room;
+                renderGuestAmenities();
+            }
+        }
+        function exitGuest() {
+            document.getElementById('guest-dashboard').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+            switchLoginTab('employee');
+        }
+        function renderGuestAmenities() {
+            const roomNo = document.getElementById('guest-room').value;
+            const room = roomsData.find(r => r.number === roomNo);
+            const tbody = document.getElementById('guest-amenities-body');
+            const items = (room && room.inventory && room.inventory.length) ? room.inventory.map(it => ({ name: it.name, present: it.available !== false })) : amenitiesList.map(n => ({ name: n, present: false }));
+            window.guestAmenityItems = items;
+            tbody.innerHTML = items.map((it, i) => `
+                <tr><td class="p-2 border text-center">${i+1}</td><td class="p-2 border">${it.name}</td>
+                <td class="p-2 border text-center"><input type="checkbox" class="guest-amenity-check" data-idx="${i}" ${it.present ? 'checked' : ''}></td>
+                <td class="p-2 border"><input type="text" class="w-full px-2 py-1 border rounded text-sm guest-amenity-remark" data-idx="${i}" placeholder="Remarks"></td></tr>`).join('');
+        }
+        async function submitGuestCheckIn() {
+            const roomNo = document.getElementById('guest-room').value;
+            const name = document.getElementById('guest-name').value.trim();
+            const date = document.getElementById('guest-ci-date').value;
+            const sig = document.getElementById('typed-signature-guest-sig').value;
+            if (!roomNo) { alert('Select a room'); return; }
+            if (!date) { alert('Select check-in date'); return; }
+            if (!sig && !hasSignature('guest-sig')) { alert('Please provide signature'); return; }
+            if (!document.getElementById('guest-rules-agree').checked) { alert('Please agree to the rules'); return; }
+            const room = roomsData.find(r => r.number === roomNo);
+            const checks = document.querySelectorAll('.guest-amenity-check');
+            const remarks = document.querySelectorAll('.guest-amenity-remark');
+            const checklist = (window.guestAmenityItems || []).map((it, i) => ({ name: it.name, present: checks[i] ? checks[i].checked : false, remarks: remarks[i] ? remarks[i].value : '' }));
+            const sigData = canvases['guest-sig'] ? canvases['guest-sig'].toDataURL('image/png') : '';
+            try {
+                const docRef = await window.fb.addDoc(window.fb.collection(window.fb.db, 'guests'), {
+                    name, room: roomNo, checkIn: date,
+                    mobile: document.getElementById('guest-mobile').value,
+                    email: document.getElementById('guest-email').value,
+                    gender: document.getElementById('guest-gender').value,
+                    country: document.getElementById('guest-country').value,
+                    govtId: document.getElementById('guest-govt').value,
+                    emergName: document.getElementById('guest-emerg-name').value,
+                    emergNum: document.getElementById('guest-emerg-num').value,
+                    checklist, signatureData: sigData, typedSignature: sig || '[Drawn]',
+                    status: 'active', timestamp: new Date().toISOString()
+                });
+                const occ = [...(room.occupants || [])]; occ.push(name || 'Guest');
+                await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.number), { occupants: occ });
+                guestSession = { id: docRef.id, name: name || 'Guest', room: roomNo };
+                localStorage.setItem('ha_guest_session', JSON.stringify(guestSession));
+                alert('✓ Guest check-in submitted!');
+                enterGuestPortal();
+            } catch (error) { alert('Error: ' + error.message); }
+        }
+        async function submitGuestCheckOut() {
+            if (!guestSession) return;
+            const date = document.getElementById('guest-co-date').value;
+            const sig = document.getElementById('typed-signature-guest-co').value;
+            if (!date) { alert('Select check-out date'); return; }
+            if (!sig && !hasSignature('guest-co')) { alert('Please provide signature'); return; }
+            try {
+                await window.fb.updateDoc(window.fb.doc(window.fb.db, 'guests', guestSession.id), {
+                    status: 'completed', checkOut: date, remarks: document.getElementById('guest-co-remarks').value,
+                    outSignature: document.getElementById('typed-signature-guest-co').value || '[Drawn]'
+                });
+                const room = roomsData.find(r => r.number === guestSession.room);
+                if (room) {
+                    const occ = (room.occupants || []).filter(n => n !== guestSession.name);
+                    await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.number), { occupants: occ });
+                }
+                localStorage.removeItem('ha_guest_session');
+                guestSession = null;
+                alert('✓ Guest check-out completed. Thank you!');
+                exitGuest();
+            } catch (error) { alert('Error: ' + error.message); }
+        }
+
         // ===== ADMIN UPLOAD =====
-        // FIXED: unique room ID = Block-Cabin-Room so repeated room letters never overwrite each other
         async function uploadRoomStructure(event) {
             const file = event.target.files[0]; if (!file) return;
             const reader = new FileReader();
@@ -1384,13 +1547,11 @@
                             count++;
                         } else skipped++;
                     }
-                    statusDiv.innerHTML = `<span class="text-green-600">✓ ${count} rooms uploaded!</span>` +
-                        (skipped ? ` <span class="text-red-600">(${skipped} rows skipped – need 5 columns)</span>` : '');
+                    statusDiv.innerHTML = `<span class="text-green-600">✓ ${count} rooms uploaded!</span>` + (skipped ? ` <span class="text-red-600">(${skipped} rows skipped)</span>` : '');
                 } catch (error) { statusDiv.innerHTML = `<span class="text-red-600">Error: ${error.message}</span>`; }
             };
             reader.readAsText(file);
         }
-
         async function uploadEmployeeList(event) {
             const file = event.target.files[0]; if (!file) return;
             const reader = new FileReader();
@@ -1409,9 +1570,9 @@
                             const room = roomsData.find(r => r.number === roomNo);
                             await window.fb.addDoc(window.fb.collection(window.fb.db, 'employees'), {
                                 name, code: 'EMP' + String(Date.now()).slice(-6) + i, dept, designation, room: roomNo,
-                                block: room ? room.block : '',
-                                gender: 'Male', email: '', uid: '', status: 'pending', isMOD: false,
-                                loginEnabled: false, registered: false, createdAt: new Date().toISOString()
+                                block: room ? room.block : '', gender: 'Male', email: '', uid: '',
+                                status: 'pending', isMOD: false, loginEnabled: false, registered: false,
+                                createdAt: new Date().toISOString()
                             });
                             count++;
                         }
@@ -1422,7 +1583,7 @@
             reader.readAsText(file);
         }
 
-        // ===== INVENTORY MANAGEMENT =====
+        // ===== INVENTORY =====
         function populateInventoryDropdowns() {
             const bSel = document.getElementById('inv-block');
             if (!bSel) return;
@@ -1433,19 +1594,16 @@
         }
         function onInvBlockChange() {
             const b = document.getElementById('inv-block').value;
-            const cSel = document.getElementById('inv-cabin');
             const cabins = [...new Set(roomsData.filter(r => r.block === b).map(r => r.cabin))].filter(Boolean).sort();
-            cSel.innerHTML = '<option value="">-- Cabin --</option>' + cabins.map(c => `<option value="${c}">${c}</option>`).join('');
+            document.getElementById('inv-cabin').innerHTML = '<option value="">-- Cabin --</option>' + cabins.map(c => `<option value="${c}">${c}</option>`).join('');
             document.getElementById('inv-room').innerHTML = '<option value="">-- Room --</option>';
             document.getElementById('inv-list-wrap').classList.add('hidden');
             document.getElementById('inv-empty').classList.remove('hidden');
         }
         function onInvCabinChange() {
-            const b = document.getElementById('inv-block').value;
-            const c = document.getElementById('inv-cabin').value;
-            const rSel = document.getElementById('inv-room');
+            const b = document.getElementById('inv-block').value, c = document.getElementById('inv-cabin').value;
             const rooms = roomsData.filter(r => r.block === b && r.cabin === c);
-            rSel.innerHTML = '<option value="">-- Room --</option>' + rooms.map(r => `<option value="${r.number}">${r.number} (${r.type})</option>`).join('');
+            document.getElementById('inv-room').innerHTML = '<option value="">-- Room --</option>' + rooms.map(r => `<option value="${r.number}">${r.number} (${r.type})</option>`).join('');
             document.getElementById('inv-list-wrap').classList.add('hidden');
             document.getElementById('inv-empty').classList.remove('hidden');
         }
@@ -1462,36 +1620,24 @@
         }
         function renderInvTable() {
             const tbody = document.getElementById('inv-table-body');
-            if (!invEditList.length) { tbody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-gray-500 italic">No items yet. Add manually or upload CSV.</td></tr>'; return; }
+            if (!invEditList.length) { tbody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-gray-500 italic">No items yet.</td></tr>'; return; }
             tbody.innerHTML = invEditList.map((it, i) => `
-                <tr>
-                    <td class="p-2 border text-center">${i+1}</td>
-                    <td class="p-2 border">${it.name}</td>
-                    <td class="p-2 border text-center">${it.qty || 1}</td>
-                    <td class="p-2 border text-center"><input type="checkbox" class="w-4 h-4" ${it.available !== false ? 'checked' : ''} onchange="invEditList[${i}].available=this.checked"></td>
-                    <td class="p-2 border text-center"><button onclick="invEditList.splice(${i},1);renderInvTable();" class="text-red-500 text-sm">✕</button></td>
-                </tr>`).join('');
+                <tr><td class="p-2 border text-center">${i+1}</td><td class="p-2 border">${it.name}</td><td class="p-2 border text-center">${it.qty || 1}</td>
+                <td class="p-2 border text-center"><input type="checkbox" class="w-4 h-4" ${it.available !== false ? 'checked' : ''} onchange="invEditList[${i}].available=this.checked"></td>
+                <td class="p-2 border text-center"><button onclick="invEditList.splice(${i},1);renderInvTable();" class="text-red-500 text-sm">✕</button></td></tr>`).join('');
         }
         function addInventoryItem() {
             if (!invSelectedRoom) { alert('Select a room first'); return; }
             const name = document.getElementById('inv-item-name').value.trim();
             if (!name) { alert('Enter item name'); return; }
-            invEditList.push({
-                name,
-                qty: parseInt(document.getElementById('inv-item-qty').value) || 1,
-                available: document.getElementById('inv-item-avail').checked
-            });
-            document.getElementById('inv-item-name').value = '';
-            document.getElementById('inv-item-qty').value = 1;
-            document.getElementById('inv-item-avail').checked = true;
+            invEditList.push({ name, qty: parseInt(document.getElementById('inv-item-qty').value) || 1, available: document.getElementById('inv-item-avail').checked });
+            document.getElementById('inv-item-name').value = ''; document.getElementById('inv-item-qty').value = 1; document.getElementById('inv-item-avail').checked = true;
             renderInvTable();
         }
         async function saveRoomInventory() {
             if (!invSelectedRoom) return;
-            try {
-                await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', invSelectedRoom), { inventory: invEditList });
-                alert('✓ Inventory saved!');
-            } catch (e) { alert('Error: ' + e.message); }
+            try { await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', invSelectedRoom), { inventory: invEditList }); alert('✓ Inventory saved!'); }
+            catch (e) { alert('Error: ' + e.message); }
         }
         async function uploadInventoryCSV(event) {
             const file = event.target.files[0]; if (!file) return;
@@ -1514,8 +1660,7 @@
                     for (const roomNo in byRoom) {
                         const room = roomsData.find(r => r.number === roomNo);
                         if (!room) continue;
-                        const existing = (room.inventory) || [];
-                        await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', roomNo), { inventory: [...existing, ...byRoom[roomNo]] });
+                        await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', roomNo), { inventory: [...(room.inventory || []), ...byRoom[roomNo]] });
                         count += byRoom[roomNo].length;
                     }
                     alert(`✓ ${count} inventory items uploaded!`);
@@ -1537,9 +1682,10 @@
             document.getElementById('tab-' + section).classList.remove('text-gray-500');
             if (section === 'inventory') populateInventoryDropdowns();
             if (section === 'branding') loadBrandingIntoForm();
+            if (section === 'modguest') renderGuestControls();
         }
         function showMODGuestTab(tab) {
-            ['mod','assign'].forEach(t => {
+            ['mod','assign','guests'].forEach(t => {
                 document.getElementById('mg-' + t).classList.add('hidden');
                 document.getElementById('mg-tab-' + t).classList.remove('tab-active');
                 document.getElementById('mg-tab-' + t).classList.add('text-gray-500');
@@ -1548,33 +1694,123 @@
             document.getElementById('mg-tab-' + tab).classList.add('tab-active');
             document.getElementById('mg-tab-' + tab).classList.remove('text-gray-500');
             if (tab === 'assign') populateMODAssignDropdowns();
+            if (tab === 'guests') renderGuestControls();
         }
 
-        // ===== ADMIN CREATE PROFILE =====
+        // ===== GUEST ADMIN =====
+        function renderGuestControls() {
+            const sel = document.getElementById('guest-room-select');
+            if (sel) sel.innerHTML = '<option value="">-- Select Room --</option>' + roomsData.map(r => `<option value="${r.number}">${r.number}</option>`).join('');
+            const chips = document.getElementById('guest-rooms-chips');
+            if (chips) chips.innerHTML = roomsData.filter(r => r.guestRoom).map(r => `<span class="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs font-semibold">${r.number}</span>`).join('') || '<span class="text-xs text-gray-500 italic">No guest rooms marked yet</span>';
+            const tbody = document.getElementById('guest-stays-body');
+            if (tbody) tbody.innerHTML = guestsData.length ? guestsData.map(g => `
+                <tr class="border-b"><td class="p-2">${g.name || 'Guest'}</td><td class="p-2">${g.room}</td><td class="p-2">${g.checkIn || '-'}</td><td class="p-2">${g.checkOut || '-'}</td>
+                <td class="p-2"><span class="text-xs px-2 py-1 rounded ${g.status === 'active' ? 'bg-teal-100 text-teal-700' : 'bg-gray-200 text-gray-600'}">${g.status}</span></td>
+                <td class="p-2">${g.status === 'active' ? `<button onclick="forceGuestCheckout('${g.id}')" class="text-red-500 text-xs">Check-Out</button>` : ''}</td></tr>`).join('')
+                : '<tr><td colspan="6" class="p-3 text-center text-gray-500 italic">No guest stays yet</td></tr>';
+        }
+        async function markGuestRoom(flag) {
+            const roomNo = document.getElementById('guest-room-select').value;
+            if (!roomNo) { alert('Select a room'); return; }
+            try { await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', roomNo), { guestRoom: flag }); renderGuestControls(); }
+            catch (e) { alert('Error: ' + e.message); }
+        }
+        async function forceGuestCheckout(guestId) {
+            const g = guestsData.find(x => x.id === guestId);
+            if (!g) return;
+            if (!confirm(`Check out guest ${g.name} from room ${g.room}?`)) return;
+            try {
+                await window.fb.updateDoc(window.fb.doc(window.fb.db, 'guests', guestId), { status: 'completed', checkOut: new Date().toISOString().slice(0,10) });
+                const room = roomsData.find(r => r.number === g.room);
+                if (room) await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.number), { occupants: (room.occupants || []).filter(n => n !== g.name) });
+            } catch (e) { alert('Error: ' + e.message); }
+        }
+
+        // ===== ADMIN CREATE PROFILE (no mandatory fields) =====
         function openAdminCreateProfile() {
             document.getElementById('admin-create-profile-modal').classList.add('show');
-            document.getElementById('admin-room-select').innerHTML = '<option value="">-- Select Room --</option>' +
-                roomsData.map(r => `<option value="${r.number}">${r.number} (${r.block}, ${r.type}, ${r.capacity} beds)</option>`).join('');
+            document.getElementById('admin-room-select').innerHTML = '<option value="">-- Select Room --</option>' + roomsData.map(r => `<option value="${r.number}">${r.number} (${r.block}, ${r.type}, ${r.capacity} beds)</option>`).join('');
         }
         function closeAdminCreateProfile() { document.getElementById('admin-create-profile-modal').classList.remove('show'); document.getElementById('admin-create-form').reset(); }
         async function saveAdminProfile() {
             const form = document.getElementById('admin-create-form');
             const data = Object.fromEntries(new FormData(form).entries());
-            if (!data.name || !data.code || !data.dept) { alert('Please fill required fields'); return; }
             const roomNo = resolveRoomNo(data.room || '');
             const room = roomsData.find(r => r.number === roomNo);
             try {
                 await window.fb.addDoc(window.fb.collection(window.fb.db, 'employees'), {
-                    name: data.name, code: data.code, dept: data.dept,
+                    name: data.name || '', code: data.code || '', dept: data.dept || '',
                     designation: data.designation || '', gender: data.gender || 'Male',
-                    email: '', uid: '', room: roomNo,
-                    block: room ? room.block : '',
+                    email: '', uid: '', room: roomNo, block: room ? room.block : '',
                     status: 'pending', isMOD: document.getElementById('admin-is-mod').checked,
                     loginEnabled: true, registered: false, createdAt: new Date().toISOString()
                 });
                 closeAdminCreateProfile();
                 alert('✓ Profile created! Employee can now register on login page.');
             } catch (error) { alert('Error: ' + error.message); }
+        }
+
+        // ===== ALLOCATE FROM LAYOUT =====
+        function openAllocateModal(roomNumber) {
+            allocateTargetRoom = roomNumber;
+            document.getElementById('allocate-room-label').textContent = roomNumber;
+            document.getElementById('allocate-modal').classList.add('show');
+            switchAllocateType('existing');
+            renderAllocSearch('');
+        }
+        function closeAllocateModal() { document.getElementById('allocate-modal').classList.remove('show'); allocateTargetRoom = null; }
+        function switchAllocateType(type) {
+            document.getElementById('alloc-tab-existing').classList.toggle('tab-active', type === 'existing');
+            document.getElementById('alloc-tab-existing').classList.toggle('text-gray-500', type !== 'existing');
+            document.getElementById('alloc-tab-new').classList.toggle('tab-active', type === 'new');
+            document.getElementById('alloc-tab-new').classList.toggle('text-gray-500', type !== 'new');
+            document.getElementById('alloc-existing').classList.toggle('hidden', type !== 'existing');
+            document.getElementById('alloc-new').classList.toggle('hidden', type !== 'new');
+        }
+        function renderAllocSearch(q) {
+            const div = document.getElementById('alloc-search-results');
+            const list = employeesData.filter(e => !e.room || e.room === '').concat(employeesData.filter(e => e.room));
+            const filtered = q ? list.filter(e => (e.name||'').toLowerCase().includes(q.toLowerCase()) || (e.code||'').toLowerCase().includes(q.toLowerCase())) : list.slice(0, 15);
+            div.innerHTML = filtered.map(e => `
+                <button onclick="allocateExisting('${e.id}')" class="w-full text-left p-2 bg-gray-50 hover:bg-blue-50 border rounded text-sm">
+                    <strong>${e.name || '(no name)'}</strong> ${e.code ? `<span class="text-xs text-gray-500">(${e.code})</span>` : ''} — ${e.dept || '-'} ${e.room ? `<span class="text-xs text-orange-600">currently ${e.room}</span>` : '<span class="text-xs text-green-600">no room</span>'}
+                </button>`).join('') || '<p class="text-sm text-gray-500 italic">No employees found. Upload employee list first.</p>';
+        }
+        async function allocateToRoom(roomNumber, empName, empId) {
+            const room = roomsData.find(r => r.number === roomNumber);
+            if (!room) return;
+            const occ = [...(room.occupants || [])];
+            if (occ.length >= (room.capacity || 1)) { alert('Room is full.'); return; }
+            occ.push(empName || 'Unnamed');
+            await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.number), { occupants: occ });
+            if (empId) await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', empId), { room: roomNumber, block: room.block, status: 'active' });
+        }
+        async function allocateExisting(empId) {
+            const emp = employeesData.find(e => e.id === empId);
+            if (!emp || !allocateTargetRoom) return;
+            try {
+                await allocateToRoom(allocateTargetRoom, emp.name, empId);
+                closeAllocateModal(); closeModal();
+                alert(`✓ ${emp.name} allocated to ${allocateTargetRoom}`);
+            } catch (e) { alert('Error: ' + e.message); }
+        }
+        async function allocateNewEmployee() {
+            const form = document.getElementById('alloc-new-form');
+            const data = Object.fromEntries(new FormData(form).entries());
+            const name = data.name || 'Unnamed';
+            try {
+                const docRef = await window.fb.addDoc(window.fb.collection(window.fb.db, 'employees'), {
+                    name, code: data.code || '', dept: data.dept || '', designation: data.designation || '',
+                    gender: data.gender || 'Male', email: '', uid: '', room: allocateTargetRoom,
+                    block: allocateTargetRoom ? allocateTargetRoom.split('-')[0] : '',
+                    status: 'active', isMOD: document.getElementById('alloc-is-mod').checked,
+                    loginEnabled: true, registered: false, createdAt: new Date().toISOString()
+                });
+                await allocateToRoom(allocateTargetRoom, name, docRef.id);
+                closeAllocateModal(); closeModal();
+                alert(`✓ New employee created & allocated to ${allocateTargetRoom}. They can register on the login page.`);
+            } catch (e) { alert('Error: ' + e.message); }
         }
 
         async function toggleLogin(empId) {
@@ -1584,7 +1820,7 @@
             catch (error) { alert('Error: ' + error.message); }
         }
 
-        // ===== BLOCK / ROOMS RENDER =====
+        // ===== RENDER =====
         function filterBlock(block) {
             currentBlock = block;
             document.querySelectorAll('.block-tab').forEach(t => t.classList.remove('active'));
@@ -1595,8 +1831,7 @@
             const blocks = [...new Set(roomsData.map(r => r.block))].filter(b => b).sort();
             const container = document.getElementById('block-tabs-container');
             if (!blocks.length) { container.innerHTML = '<p class="text-sm text-gray-500 italic">No rooms uploaded yet.</p>'; return; }
-            container.innerHTML = `<button onclick="filterBlock('ALL')" class="block-tab ${currentBlock==='ALL'?'active':''}" id="block-ALL">All</button>` +
-                blocks.map(b => `<button onclick="filterBlock('${b}')" class="block-tab ${currentBlock===b?'active':''}" id="block-${b}">${b}</button>`).join('');
+            container.innerHTML = `<button onclick="filterBlock('ALL')" class="block-tab ${currentBlock==='ALL'?'active':''}" id="block-ALL">All</button>` + blocks.map(b => `<button onclick="filterBlock('${b}')" class="block-tab ${currentBlock===b?'active':''}" id="block-${b}">${b}</button>`).join('');
         }
         function renderBlockSummary() {
             const blocks = [...new Set(roomsData.map(r => r.block))].filter(b => b).sort();
@@ -1626,11 +1861,10 @@
                     bedDisplay = `<div class="mt-2 text-xs ${o?'text-red-700':'text-green-700'}">${o||'Vacant'}</div>`;
                 }
                 return `<div onclick="openRoomModal('${room.number}')" class="room-card p-3 rounded-lg border-2 ${cls} cursor-pointer">
-                    <div class="flex justify-between items-center mb-1"><span class="font-bold text-sm">${room.number}</span><span class="text-xs px-1.5 py-0.5 bg-white rounded border">${room.type}</span></div>
+                    <div class="flex justify-between items-center mb-1"><span class="font-bold text-sm">${room.number}</span><span class="text-xs px-1.5 py-0.5 bg-white rounded border">${room.type}${room.guestRoom ? ' 🧳' : ''}</span></div>
                     <p class="text-xs text-gray-600">Block ${room.block} • Cabin ${room.cabin||''} • ${occ}/${cap}</p>${bedDisplay}</div>`;
             }).join('');
         }
-
         function renderEmpTable() {
             const tbody = document.getElementById('emp-table-body');
             if (!employeesData.length) { tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-gray-500 italic">No employees uploaded yet.</td></tr>'; return; }
@@ -1657,8 +1891,6 @@
                     <td class="p-3"><label class="toggle-switch"><input type="checkbox" ${emp.loginEnabled?'checked':''} onchange="toggleLogin('${emp.id}')"><span class="slider"></span></label></td>
                 </tr>`).join('');
         }
-
-        // ===== MOD ASSIGN =====
         function populateMODAssignDropdowns() {
             const modEmps = employeesData.filter(e => e.isMOD && e.registered);
             document.getElementById('assign-emp').innerHTML = '<option value="">-- Select MOD Employee --</option>' + modEmps.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
@@ -1669,23 +1901,22 @@
             const empId = document.getElementById('assign-emp').value;
             const room = document.getElementById('assign-room').value;
             if (!empId || !room) { alert('Please select both'); return; }
-            try {
-                await window.fb.addDoc(window.fb.collection(window.fb.db, 'modAssignments'), { empId, room, assignedAt: new Date().toISOString() });
-                alert('✓ Room assigned to MOD employee.');
-            } catch (error) { alert('Error: ' + error.message); }
+            try { await window.fb.addDoc(window.fb.collection(window.fb.db, 'modAssignments'), { empId, room, assignedAt: new Date().toISOString() }); alert('✓ Room assigned to MOD employee.'); }
+            catch (error) { alert('Error: ' + error.message); }
         }
 
-        // ===== ROOM MODAL + DELETE =====
+        // ===== ROOM MODAL =====
         function openRoomModal(roomNum) {
             const room = roomsData.find(r => r.number === roomNum);
             if (!room) return;
             currentModalRoom = room.number;
             document.getElementById('modal-room-title').textContent = `Room ${room.number} (Block ${room.block}, Cabin ${room.cabin||''})`;
+            document.getElementById('guest-room-badge').classList.toggle('hidden', !room.guestRoom);
             const cap = room.capacity || 0;
             let html = `<div class="mb-4"><p class="text-sm"><strong>Type:</strong> ${room.type} | <strong>Beds:</strong> ${cap}</p></div><h4 class="font-semibold mb-2">Occupants</h4><div class="space-y-2">`;
             for (let i=0;i<cap;i++){
                 const o = room.occupants?.[i];
-                html += `<div class="p-3 border rounded flex justify-between items-center"><span><strong>Bed ${i+1}:</strong> ${o||'<span class="text-green-600">Vacant</span>'}</span>${o?'<button class="text-red-500 text-sm">Check-Out</button>':'<button class="text-blue-500 text-sm">Allocate</button>'}</div>`;
+                html += `<div class="p-3 border rounded flex justify-between items-center"><span><strong>Bed ${i+1}:</strong> ${o||'<span class="text-green-600">Vacant</span>'}</span>${o?'':`<button onclick="openAllocateModal('${room.number}')" class="text-blue-500 text-sm font-semibold">Allocate</button>`}</div>`;
             }
             html += `</div>`;
             if (room.inventory && room.inventory.length) {
@@ -1695,15 +1926,11 @@
             document.getElementById('room-modal').classList.add('show');
         }
         function closeModal() { document.getElementById('room-modal').classList.remove('show'); currentModalRoom = null; }
-
         async function deleteCurrentRoom() {
             if (!currentModalRoom) return;
-            if (!confirm(`Delete room ${currentModalRoom} and all its data (inventory, checklist)? This cannot be undone.`)) return;
-            try {
-                await window.fb.deleteDoc(window.fb.doc(window.fb.db, 'rooms', currentModalRoom));
-                closeModal();
-                alert('✓ Room deleted.');
-            } catch (e) { alert('Error: ' + e.message); }
+            if (!confirm(`Delete room ${currentModalRoom} and all its data?`)) return;
+            try { await window.fb.deleteDoc(window.fb.doc(window.fb.db, 'rooms', currentModalRoom)); closeModal(); alert('✓ Room deleted.'); }
+            catch (e) { alert('Error: ' + e.message); }
         }
 
         // ===== STATS / PREVIEW =====
@@ -1729,7 +1956,7 @@
             window.fb.onSnapshot(window.fb.collection(window.fb.db, 'rooms'), (snapshot) => {
                 roomsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                 if (currentUser?.role === 'admin') {
-                    renderBlockTabs(); renderBlockSummary(); renderRooms(); renderUploadPreview(); updateStats(); populateInventoryDropdowns();
+                    renderBlockTabs(); renderBlockSummary(); renderRooms(); renderUploadPreview(); updateStats(); populateInventoryDropdowns(); renderGuestControls();
                 } else if (currentUser?.role === 'employee') {
                     loadMODRoomDropdown();
                     if (!document.getElementById('emp-checkin').classList.contains('hidden')) renderAmenitiesTable();
@@ -1742,6 +1969,11 @@
                     employeesData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                     renderEmpTable(); renderUploadPreview(); updateStats();
                 }, (err) => console.warn('employees listener:', err.message));
+
+                window.fb.onSnapshot(window.fb.collection(window.fb.db, 'guests'), (snapshot) => {
+                    guestsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    renderGuestControls();
+                }, (err) => console.warn('guests listener:', err.message));
             }
 
             window.fb.onSnapshot(window.fb.collection(window.fb.db, 'modAssignments'), (snapshot) => {
