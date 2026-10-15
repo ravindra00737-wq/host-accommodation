@@ -12,7 +12,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, 
-                 signOut, onAuthStateChanged, sendPasswordResetEmail } 
+                 signOut, onAuthStateChanged, sendPasswordResetEmail,
+                 setPersistence, browserSessionPersistence } 
                  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDoc, getDocs, 
                  query, where, updateDoc, deleteDoc, onSnapshot, addDoc, orderBy } 
@@ -34,6 +35,9 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         const storage = getStorage(app);
+
+        // FIX: session-only login (closing the tab signs out; link no longer auto-opens admin)
+        setPersistence(auth, browserSessionPersistence).catch(err => console.warn('persistence:', err));
 
         window.fb = { auth, db, storage, 
             signInWithEmailAndPassword, createUserWithEmailAndPassword, 
@@ -121,7 +125,6 @@
                 </div>
             </form>
 
-            <!-- Guest entry panel -->
             <div id="guest-entry" class="hidden space-y-4">
                 <p class="text-sm text-gray-600">No password needed. Select your assigned guest room to continue.</p>
                 <select id="guest-entry-room" class="w-full px-4 py-2 border rounded-lg">
@@ -145,7 +148,6 @@
             </div>
         </nav>
         <main class="max-w-3xl mx-auto p-4 sm:p-6 space-y-6">
-            <!-- Guest Check-In -->
             <div id="guest-checkin-panel" class="bg-white p-6 rounded-xl shadow-sm border fade-in">
                 <div class="flex items-center gap-3 mb-4 pb-3 border-b">
                     <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
@@ -189,7 +191,6 @@
                 <button onclick="submitGuestCheckIn()" class="mt-4 px-6 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 font-semibold">✓ Submit Guest Check-In</button>
             </div>
 
-            <!-- Guest Check-Out -->
             <div id="guest-checkout-panel" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
                 <div class="flex items-center gap-3 mb-4 pb-3 border-b">
                     <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
@@ -301,7 +302,6 @@
                 </button>
             </div>
 
-            <!-- Multi-Step Check-In Form -->
             <div id="emp-checkin" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
                 <div class="flex items-center gap-3 mb-4 pb-3 border-b">
                     <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
@@ -328,7 +328,6 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div><label class="block text-sm font-medium mb-1">Full Name</label><input type="text" name="name" class="w-full px-3 py-2 border rounded bg-gray-50" readonly></div>
                             <div><label class="block text-sm font-medium mb-1">Employee Code</label><input type="text" name="code" class="w-full px-3 py-2 border rounded bg-gray-50" readonly></div>
-                            <!-- DEPARTMENT DROPDOWN (employee selectable) -->
                             <div><label class="block text-sm font-medium mb-1">Department</label><select name="dept" id="checkin-dept" class="w-full px-3 py-2 border rounded"></select></div>
                             <div><label class="block text-sm font-medium mb-1">Designation</label><input type="text" name="designation" class="w-full px-3 py-2 border rounded bg-gray-50"></div>
                             <div><label class="block text-sm font-medium mb-1">Date of Joining</label><input type="date" name="doj" class="w-full px-3 py-2 border rounded"></div>
@@ -626,13 +625,19 @@
                             <h3 class="text-lg font-bold">Employee Profiles</h3>
                             <button onclick="openAdminCreateProfile()" class="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">+ Create Profile</button>
                         </div>
+                        <!-- Status tabs -->
+                        <div class="flex gap-2 mb-3 flex-wrap">
+                            <button onclick="setEmpStatusTab('all')" id="emptab-all" class="block-tab active">All</button>
+                            <button onclick="setEmpStatusTab('active')" id="emptab-active" class="block-tab">Active</button>
+                            <button onclick="setEmpStatusTab('resigned')" id="emptab-resigned" class="block-tab">Resigned</button>
+                        </div>
                         <div class="flex gap-2 mb-4 flex-wrap">
-                            <select onchange="filterEmployees('gender', this.value)" class="px-3 py-2 border rounded text-sm"><option value="">All Genders</option><option>Male</option><option>Female</option></select>
-                            <select onchange="filterEmployees('reg', this.value)" class="px-3 py-2 border rounded text-sm"><option value="">All Status</option><option value="registered">Registered</option><option value="pending">Pending Registration</option></select>
-                            <select onchange="filterEmployees('type', this.value)" class="px-3 py-2 border rounded text-sm"><option value="">All Types</option><option value="Onroll">Onroll</option><option value="Casual">Casual</option></select>
+                            <select id="filter-gender" onchange="renderEmpTable()" class="px-3 py-2 border rounded text-sm"><option value="">All Genders</option><option>Male</option><option>Female</option></select>
+                            <select id="filter-reg" onchange="renderEmpTable()" class="px-3 py-2 border rounded text-sm"><option value="">All Registration</option><option value="registered">Registered</option><option value="pending">Pending Registration</option></select>
+                            <select id="filter-type" onchange="renderEmpTable()" class="px-3 py-2 border rounded text-sm"><option value="">All Types</option><option value="Onroll">Onroll</option><option value="Casual">Casual</option></select>
                         </div>
                         <div class="overflow-x-auto"><table class="w-full text-sm text-left">
-                            <thead class="bg-gray-50 text-gray-600 uppercase text-xs"><tr><th class="p-3">Name</th><th class="p-3">Username</th><th class="p-3">Department</th><th class="p-3">Designation</th><th class="p-3">Room</th><th class="p-3">Type</th><th class="p-3">Status</th><th class="p-3">Login</th></tr></thead>
+                            <thead class="bg-gray-50 text-gray-600 uppercase text-xs"><tr><th class="p-3">Name</th><th class="p-3">Username</th><th class="p-3">Department</th><th class="p-3">Designation</th><th class="p-3">Room</th><th class="p-3">Type</th><th class="p-3">Emp Status</th><th class="p-3">Registration</th><th class="p-3">Login</th><th class="p-3"></th></tr></thead>
                             <tbody id="emp-table-body"></tbody></table></div>
                     </div>
 
@@ -679,8 +684,21 @@
                             <div><label class="block text-sm font-medium mb-1">Accommodation Name</label><input type="text" id="brand-title-input" class="w-full px-3 py-2 border rounded" value="Host Accommodation"></div>
                             <div><label class="block text-sm font-medium mb-1">Brand Primary Color</label><input type="color" id="brand-color-input" class="w-full h-10 border rounded" value="#2563eb"></div>
                             <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Description / Tagline (under name)</label><textarea id="brand-desc-input" rows="2" class="w-full px-3 py-2 border rounded" placeholder="e.g., Comfortable & secure stay for our employees"></textarea></div>
-                            <div><label class="block text-sm font-medium mb-1">Company Logo (shows above title & on forms)</label><input type="file" id="brand-logo-input" accept="image/*" class="w-full text-sm" onchange="uploadBrandingImage('logo', event)"><img id="brand-logo-preview" class="hidden mt-2 h-12 object-contain" alt="logo preview"></div>
-                            <div><label class="block text-sm font-medium mb-1">Homepage Background Picture</label><input type="file" id="brand-bg-input" accept="image/*" class="w-full text-sm" onchange="uploadBrandingImage('bg', event)"><img id="brand-bg-preview" class="hidden mt-2 h-12 object-cover rounded" alt="bg preview"></div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Company Logo (above title & on forms)</label>
+                                <input type="file" id="brand-logo-input" accept="image/*" class="w-full text-sm" onchange="uploadBrandingImage('logo', event)">
+                                <img id="brand-logo-preview" class="hidden mt-2 h-12 object-contain" alt="logo preview">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Homepage Background Picture</label>
+                                <input type="file" id="brand-bg-input" accept="image/*" class="w-full text-sm" onchange="uploadBrandingImage('bg', event)">
+                                <img id="brand-bg-preview" class="hidden mt-2 h-12 object-cover rounded" alt="bg preview">
+                            </div>
+                            <div class="md:col-span-2 flex gap-6 items-start text-xs text-gray-600 bg-gray-50 p-3 rounded border">
+                                <div>Currently saved logo:<br><img id="brand-logo-current" class="mt-1 h-10 object-contain hidden" alt=""></div>
+                                <div>Currently saved background:<br><img id="brand-bg-current" class="mt-1 h-10 object-cover rounded hidden" alt=""></div>
+                                <div id="brand-upload-status" class="text-xs text-gray-700"></div>
+                            </div>
                             <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Accommodation Rules PDF (text extracted & shown in check-in)</label><input type="file" id="rules-pdf-input" accept="application/pdf" class="w-full text-sm" onchange="uploadRulesPdf(event)"><div id="rules-pdf-status" class="text-xs mt-1 text-gray-600"></div></div>
                         </div>
                         <div class="mt-6 flex gap-3">
@@ -708,7 +726,7 @@
                     <div><label class="block text-sm font-medium mb-1">Designation</label><input type="text" name="designation" class="w-full px-3 py-2 border rounded"></div>
                     <div><label class="block text-sm font-medium mb-1">Assigned Room</label><select name="room" class="w-full px-3 py-2 border rounded" id="admin-room-select"></select></div>
                     <div><label class="block text-sm font-medium mb-1">Gender</label><select name="gender" class="w-full px-3 py-2 border rounded"><option>Male</option><option>Female</option><option>Other</option></select></div>
-                    <div><label class="block text-sm font-medium mb-1">Employment Type <span class="text-xs text-gray-500">(admin reference only)</span></label><select name="employmentType" class="w-full px-3 py-2 border rounded"><option value="">--</option><option>Onroll</option><option>Casual</option></select></div>
+                    <div><label class="block text-sm font-medium mb-1">Employment Type <span class="text-xs text-gray-500">(admin only)</span></label><select name="employmentType" class="w-full px-3 py-2 border rounded"><option value="">--</option><option>Onroll</option><option>Casual</option></select></div>
                     <div class="flex items-end gap-2 pb-2">
                         <input type="checkbox" id="admin-is-mod" class="w-4 h-4"><label for="admin-is-mod" class="text-sm">Mark as MOD employee</label>
                     </div>
@@ -716,6 +734,34 @@
                 <div class="flex justify-end gap-3 mt-6">
                     <button onclick="closeAdminCreateProfile()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Cancel</button>
                     <button onclick="saveAdminProfile()" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold">Create Profile</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= EDIT EMPLOYEE MODAL ================= -->
+    <div id="edit-emp-modal" class="modal">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b flex justify-between items-center sticky top-0 bg-white">
+                <h3 class="text-xl font-bold">Edit Employee — <span id="edit-emp-name-label" class="text-blue-700"></span></h3>
+                <button onclick="closeEditEmpModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <div class="p-6">
+                <form id="edit-emp-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label class="block text-sm font-medium mb-1">Full Name</label><input type="text" name="name" id="edit-name" class="w-full px-3 py-2 border rounded"></div>
+                    <div><label class="block text-sm font-medium mb-1">Employee Code</label><input type="text" name="code" id="edit-code" class="w-full px-3 py-2 border rounded"></div>
+                    <div><label class="block text-sm font-medium mb-1">Department</label><select name="dept" id="edit-dept" class="w-full px-3 py-2 border rounded"></select></div>
+                    <div><label class="block text-sm font-medium mb-1">Designation</label><input type="text" name="designation" id="edit-designation" class="w-full px-3 py-2 border rounded"></div>
+                    <div><label class="block text-sm font-medium mb-1">Room</label><select name="room" id="edit-room" class="w-full px-3 py-2 border rounded"></select></div>
+                    <div><label class="block text-sm font-medium mb-1">Gender</label><select name="gender" id="edit-gender" class="w-full px-3 py-2 border rounded"><option>Male</option><option>Female</option><option>Other</option></select></div>
+                    <div><label class="block text-sm font-medium mb-1">Employment Type</label><select name="employmentType" id="edit-type" class="w-full px-3 py-2 border rounded"><option value="">--</option><option>Onroll</option><option>Casual</option></select></div>
+                    <div><label class="block text-sm font-medium mb-1">Employee Status</label><select name="empStatus" id="edit-status" class="w-full px-3 py-2 border rounded"><option value="active">Active</option><option value="resigned">Resigned</option></select></div>
+                    <div class="flex items-center gap-2"><input type="checkbox" id="edit-is-mod" class="w-4 h-4"><label for="edit-is-mod" class="text-sm">MOD employee</label></div>
+                    <div class="flex items-center gap-2"><input type="checkbox" id="edit-login-enabled" class="w-4 h-4"><label for="edit-login-enabled" class="text-sm">Login enabled</label></div>
+                </form>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button onclick="closeEditEmpModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Cancel</button>
+                    <button onclick="saveEditEmp()" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold">Save Changes</button>
                 </div>
             </div>
         </div>
@@ -793,22 +839,16 @@
         let allocateTargetRoom = null;
         let registering = false;
         let guestSession = null;
+        let empStatusTab = 'all';
+        let editingEmpId = null;
         const amenitiesList = ["Single Bed", "Mattress", "Pillow", "Blanket", "Wardrobe", "Study Table", "Chair", "AC", "Fan", "Light", "Mirror", "Curtains"];
-
-        // ===== PRE-LOADED DEPARTMENT LIST =====
-        const departmentList = [
-            "IT", "Front Office", "Kitchen", "F&B Service", "Spa", "Stewarding",
-            "Finance", "Engineering", "Landscaping", "Security", "Sales and Marketing",
-            "Human Resources", "Housekeeping & Laundry", "Executive Office", "Reservations",
-            "Purchasing", "Sustainability", "Pest Control"
-        ];
+        const departmentList = ["IT","Front Office","Kitchen","F&B Service","Spa","Stewarding","Finance","Engineering","Landscaping","Security","Sales and Marketing","Human Resources","Housekeeping & Laundry","Executive Office","Reservations","Purchasing","Sustainability","Pest Control"];
 
         function fillDeptSelect(sel, selected) {
             if (!sel) return;
             const opts = [...departmentList];
             if (selected && !opts.includes(selected)) opts.unshift(selected);
-            sel.innerHTML = '<option value="">-- Select Department --</option>' +
-                opts.map(d => `<option value="${d}" ${d === selected ? 'selected' : ''}>${d}</option>`).join('');
+            sel.innerHTML = '<option value="">-- Select Department --</option>' + opts.map(d => `<option value="${d}" ${d === selected ? 'selected' : ''}>${d}</option>`).join('');
         }
 
         const defaultRulesHtml = `<ol class="list-decimal pl-5 space-y-2">
@@ -826,7 +866,7 @@
 
         if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        // ===== COLOR HELPERS =====
+        // ===== COLOR / BRANDING =====
         function shadeColor(hex, percent) {
             let h = String(hex).replace('#','');
             if (h.length === 3) h = h.split('').map(c=>c+c).join('');
@@ -873,12 +913,15 @@
             if (s.logoUrl) {
                 document.querySelectorAll('[data-brand-logo]').forEach(img => { img.src = s.logoUrl; img.classList.remove('hidden'); });
                 const wrap=document.getElementById('logo-wrap'); if(wrap) wrap.classList.add('hidden');
+            } else {
+                document.querySelectorAll('[data-brand-logo]').forEach(img => img.classList.add('hidden'));
+                const wrap=document.getElementById('logo-wrap'); if(wrap) wrap.classList.remove('hidden');
             }
             const ls=document.getElementById('login-screen');
             if (s.bgUrl && ls) {
                 ls.style.background = `linear-gradient(rgba(15,23,42,0.55),rgba(15,23,42,0.55)), url('${s.bgUrl}') center/cover no-repeat`;
                 ls.dataset.bgset = '1';
-            }
+            } else if (ls) { delete ls.dataset.bgset; }
             renderRulesDisplays();
         }
         function renderRulesDisplays() {
@@ -898,25 +941,57 @@
             const c=document.getElementById('brand-color-input'); if(c) c.value = brandSettings.color || '#2563eb';
             const rs=document.getElementById('rules-pdf-status');
             if(rs) rs.textContent = brandSettings.rulesFileName ? ('Current rules: ' + brandSettings.rulesFileName) : '';
+            const cl=document.getElementById('brand-logo-current');
+            if(cl){ if(brandSettings.logoUrl){cl.src=brandSettings.logoUrl;cl.classList.remove('hidden');} else cl.classList.add('hidden'); }
+            const cb=document.getElementById('brand-bg-current');
+            if(cb){ if(brandSettings.bgUrl){cb.src=brandSettings.bgUrl;cb.classList.remove('hidden');} else cb.classList.add('hidden'); }
+            const st=document.getElementById('brand-upload-status');
+            if(st) st.textContent = '';
+        }
+
+        // Compress image then upload; fall back to embedded dataURL if Storage blocks
+        function fileToCompressedDataUrl(file, maxW) {
+            return new Promise((res, rej) => {
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+                img.onload = () => {
+                    const scale = Math.min(1, maxW / img.width);
+                    const c = document.createElement('canvas');
+                    c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+                    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                    URL.revokeObjectURL(url);
+                    res(c.toDataURL('image/jpeg', 0.82));
+                };
+                img.onerror = rej;
+                img.src = url;
+            });
         }
         async function uploadBrandingImage(type, event) {
             const file = event.target.files[0];
             if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async (e) => {
+            const status = document.getElementById('brand-upload-status');
+            status.textContent = 'Processing image...';
+            try {
+                const dataUrl = await fileToCompressedDataUrl(file, 1200);
+                let url = '';
                 try {
-                    const path = `branding/${type}-${Date.now()}.png`;
+                    const path = `branding/${type}-${Date.now()}.jpg`;
                     const r = window.fb.ref(window.fb.storage, path);
-                    await window.fb.uploadString(r, e.target.result, 'data_url');
-                    const url = await window.fb.getDownloadURL(r);
-                    if (type === 'logo') { pendingLogoUrl = url; const p=document.getElementById('brand-logo-preview'); p.src=url; p.classList.remove('hidden'); }
-                    else { pendingBgUrl = url; const p=document.getElementById('brand-bg-preview'); p.src=url; p.classList.remove('hidden'); }
-                } catch (err) {
-                    console.error(err);
-                    alert('Image upload failed: ' + err.message + '\nMake sure Firebase Storage rules allow writes to /branding/.');
+                    await window.fb.uploadString(r, dataUrl, 'data_url');
+                    url = await window.fb.getDownloadURL(r);
+                } catch (storageErr) {
+                    console.warn('Storage upload failed, embedding image directly:', storageErr.message);
+                    if (dataUrl.length < 900000) url = dataUrl;
+                    else { alert('Image too large and Storage upload failed. Try a smaller image.'); status.textContent = ''; return; }
                 }
-            };
-            reader.readAsDataURL(file);
+                if (type === 'logo') { pendingLogoUrl = url; const p=document.getElementById('brand-logo-preview'); p.src=url; p.classList.remove('hidden'); }
+                else { pendingBgUrl = url; const p=document.getElementById('brand-bg-preview'); p.src=url; p.classList.remove('hidden'); }
+                status.textContent = `✓ ${type === 'logo' ? 'Logo' : 'Background'} ready — click "Preview & Apply" to save.`;
+            } catch (err) {
+                console.error(err);
+                alert('Image processing failed: ' + err.message);
+                status.textContent = '';
+            }
         }
         async function uploadRulesPdf(event) {
             const file = event.target.files[0];
@@ -932,7 +1007,7 @@
                     const tc = await page.getTextContent();
                     text += tc.items.map(it => it.str).join(' ') + '\n\n';
                 }
-                if (!text.trim()) { alert('No extractable text found in PDF (scanned image?). Rules not updated.'); status.textContent = ''; return; }
+                if (!text.trim()) { alert('No extractable text found in PDF (scanned image?).'); status.textContent = ''; return; }
                 pendingRulesText = text.trim();
                 status.textContent = `✓ Extracted ${text.trim().length} characters from "${file.name}". Click "Preview & Apply" to save.`;
             } catch (err) {
@@ -956,7 +1031,8 @@
                 await window.fb.setDoc(window.fb.doc(window.fb.db, 'settings', 'branding'), data, { merge: true });
                 pendingLogoUrl = null; pendingBgUrl = null; pendingRulesText = null;
                 applyBrandSettings(data);
-                alert('✓ Branding applied!');
+                loadBrandingIntoForm();
+                alert('✓ Branding applied! Logo & background now show on the home page.');
             } catch (e) {
                 console.error(e);
                 let msg = 'Error: ' + e.message;
@@ -1017,7 +1093,6 @@
             const empLinks = document.getElementById('employee-links');
             const guestEntry = document.getElementById('guest-entry');
             const form = document.getElementById('login-form');
-
             if (type === 'guest') {
                 form.classList.add('hidden'); guestEntry.classList.remove('hidden');
                 populateGuestEntryRooms();
@@ -1189,7 +1264,6 @@
             if (section === 'checkout') { setTimeout(() => { initSignaturePad('co'); renderCheckoutChecklist(); }, 100); }
             if (section === 'mod') { setTimeout(() => { initSignaturePad('mod-ci'); initSignaturePad('mod-co'); loadMODAssignment(); }, 100); }
         }
-
         function prefillCheckInForm(emp) {
             const form = document.getElementById('checkin-form');
             form.name.value = emp.name || '';
@@ -1270,7 +1344,7 @@
             return false;
         }
 
-        // ===== AMENITIES (CHECK-IN) =====
+        // ===== AMENITIES =====
         function getMyRoom() { return roomsData.find(r => r.number === (currentUser && currentUser.room)); }
         function renderAmenitiesTable() {
             const tbody = document.getElementById('amenities-table-body');
@@ -1320,7 +1394,7 @@
                 <td class="p-2 border"><input type="text" class="co-remark w-full px-2 py-1 border rounded text-sm" data-idx="${i}" ${lastOccupant ? '' : 'disabled'} placeholder="Remarks"></td></tr>`).join('');
         }
 
-        // ===== SUBMIT CHECK-IN =====
+        // ===== SUBMIT CHECK-IN / CHECK-OUT =====
         async function submitCheckIn() {
             if (!currentUser) return;
             if (!document.getElementById('rules-agree').checked) { alert('Please agree to rules'); return; }
@@ -1363,7 +1437,6 @@
             }
         }
 
-        // ===== SUBMIT CHECK-OUT =====
         async function submitCheckOut() {
             const sig = document.getElementById('typed-signature-co').value;
             if (!sig && !hasSignature('co')) { alert('Please provide signature'); return; }
@@ -1592,7 +1665,7 @@
                             await window.fb.addDoc(window.fb.collection(window.fb.db, 'employees'), {
                                 name, code: 'EMP' + String(Date.now()).slice(-6) + i, dept, designation, room: roomNo,
                                 block: room ? room.block : '', gender: 'Male', email: '', uid: '',
-                                employmentType: (empType || '').trim(),
+                                employmentType: (empType || '').trim(), empStatus: 'active',
                                 status: 'pending', isMOD: false, loginEnabled: false, registered: false,
                                 createdAt: new Date().toISOString()
                             });
@@ -1749,7 +1822,7 @@
             } catch (e) { alert('Error: ' + e.message); }
         }
 
-        // ===== ADMIN CREATE PROFILE =====
+        // ===== ADMIN CREATE / EDIT PROFILE =====
         function openAdminCreateProfile() {
             document.getElementById('admin-create-profile-modal').classList.add('show');
             document.getElementById('admin-room-select').innerHTML = '<option value="">-- Select Room --</option>' + roomsData.map(r => `<option value="${r.number}">${r.number} (${r.block}, ${r.type}, ${r.capacity} beds)</option>`).join('');
@@ -1765,7 +1838,7 @@
                 await window.fb.addDoc(window.fb.collection(window.fb.db, 'employees'), {
                     name: data.name || '', code: data.code || '', dept: data.dept || '',
                     designation: data.designation || '', gender: data.gender || 'Male',
-                    employmentType: data.employmentType || '',
+                    employmentType: data.employmentType || '', empStatus: 'active',
                     email: '', uid: '', room: roomNo, block: room ? room.block : '',
                     status: 'pending', isMOD: document.getElementById('admin-is-mod').checked,
                     loginEnabled: true, registered: false, createdAt: new Date().toISOString()
@@ -1773,6 +1846,62 @@
                 closeAdminCreateProfile();
                 alert('✓ Profile created! Employee can now register on login page.');
             } catch (error) { alert('Error: ' + error.message); }
+        }
+
+        function openEditEmpModal(empId) {
+            const emp = employeesData.find(e => e.id === empId);
+            if (!emp) return;
+            editingEmpId = empId;
+            document.getElementById('edit-emp-name-label').textContent = emp.name || '(unnamed)';
+            document.getElementById('edit-name').value = emp.name || '';
+            document.getElementById('edit-code').value = emp.code || '';
+            fillDeptSelect(document.getElementById('edit-dept'), emp.dept || '');
+            document.getElementById('edit-designation').value = emp.designation || '';
+            document.getElementById('edit-room').innerHTML = '<option value="">-- No Room --</option>' + roomsData.map(r => `<option value="${r.number}" ${r.number === emp.room ? 'selected' : ''}>${r.number}</option>`).join('');
+            document.getElementById('edit-gender').value = emp.gender || 'Male';
+            document.getElementById('edit-type').value = emp.employmentType || '';
+            document.getElementById('edit-status').value = emp.empStatus || 'active';
+            document.getElementById('edit-is-mod').checked = !!emp.isMOD;
+            document.getElementById('edit-login-enabled').checked = emp.loginEnabled !== false;
+            document.getElementById('edit-emp-modal').classList.add('show');
+        }
+        function closeEditEmpModal() { document.getElementById('edit-emp-modal').classList.remove('show'); editingEmpId = null; }
+        async function saveEditEmp() {
+            if (!editingEmpId) return;
+            const old = employeesData.find(e => e.id === editingEmpId);
+            const roomNo = resolveRoomNo(document.getElementById('edit-room').value || '');
+            const room = roomsData.find(r => r.number === roomNo);
+            const updates = {
+                name: document.getElementById('edit-name').value.trim(),
+                code: document.getElementById('edit-code').value.trim(),
+                dept: document.getElementById('edit-dept').value,
+                designation: document.getElementById('edit-designation').value.trim(),
+                room: roomNo,
+                block: room ? room.block : '',
+                gender: document.getElementById('edit-gender').value,
+                employmentType: document.getElementById('edit-type').value,
+                empStatus: document.getElementById('edit-status').value,
+                isMOD: document.getElementById('edit-is-mod').checked,
+                loginEnabled: document.getElementById('edit-login-enabled').checked
+            };
+            try {
+                // keep room occupancy in sync if room changed
+                if (old && old.room && old.room !== roomNo) {
+                    const oldRoom = roomsData.find(r => r.number === old.room);
+                    if (oldRoom) await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', oldRoom.id || oldRoom.number), { occupants: (oldRoom.occupants || []).filter(n => n !== old.name) });
+                }
+                if (roomNo && (!old || old.room !== roomNo)) {
+                    const occ = [...(room.occupants || [])];
+                    if (!occ.includes(updates.name) && occ.length < (room.capacity || 1)) occ.push(updates.name);
+                    await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.number), { occupants: occ });
+                } else if (roomNo && old && old.name !== updates.name) {
+                    const occ = (room.occupants || []).map(n => n === old.name ? updates.name : n);
+                    await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.number), { occupants: occ });
+                }
+                await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', editingEmpId), updates);
+                closeEditEmpModal();
+                alert('✓ Employee updated.');
+            } catch (e) { alert('Error: ' + e.message); }
         }
 
         // ===== ALLOCATE FROM LAYOUT =====
@@ -1808,7 +1937,7 @@
             if (occ.length >= (room.capacity || 1)) { alert('Room is full.'); return; }
             occ.push(empName || 'Unnamed');
             await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.number), { occupants: occ });
-            if (empId) await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', empId), { room: roomNumber, block: room.block, status: 'active' });
+            if (empId) await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', empId), { room: roomNumber, block: room.block, status: 'active', empStatus: 'active' });
         }
         async function allocateExisting(empId) {
             const emp = employeesData.find(e => e.id === empId);
@@ -1826,7 +1955,7 @@
             try {
                 const docRef = await window.fb.addDoc(window.fb.collection(window.fb.db, 'employees'), {
                     name, code: data.code || '', dept: data.dept || '', designation: data.designation || '',
-                    gender: data.gender || 'Male', employmentType: data.employmentType || '',
+                    gender: data.gender || 'Male', employmentType: data.employmentType || '', empStatus: 'active',
                     email: '', uid: '', room: allocateTargetRoom,
                     block: allocateTargetRoom ? allocateTargetRoom.split('-')[0] : '',
                     status: 'active', isMOD: document.getElementById('alloc-is-mod').checked,
@@ -1838,20 +1967,74 @@
             } catch (e) { alert('Error: ' + e.message); }
         }
 
-        // ===== EMPLOYMENT TYPE (admin-only) =====
+        // ===== EMP TABLE: type / status / login =====
         async function setEmpType(empId, val) {
             try { await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', empId), { employmentType: val }); }
             catch (e) { alert('Error: ' + e.message); }
         }
-
+        async function setEmpStatus(empId, val) {
+            try { await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', empId), { empStatus: val }); }
+            catch (e) { alert('Error: ' + e.message); }
+        }
         async function toggleLogin(empId) {
             const emp = employeesData.find(e => e.id === empId);
             if (!emp) return;
             try { await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', empId), { loginEnabled: !emp.loginEnabled }); }
             catch (error) { alert('Error: ' + error.message); }
         }
+        function setEmpStatusTab(tab) {
+            empStatusTab = tab;
+            ['all','active','resigned'].forEach(t => {
+                const b = document.getElementById('emptab-' + t);
+                b.classList.toggle('active', t === tab);
+            });
+            renderEmpTable();
+        }
+        function empTypeSelect(emp) {
+            return `<select onchange="setEmpType('${emp.id}', this.value)" class="px-2 py-1 border rounded text-xs">
+                <option value="" ${!emp.employmentType ? 'selected' : ''}>--</option>
+                <option value="Onroll" ${emp.employmentType === 'Onroll' ? 'selected' : ''}>Onroll</option>
+                <option value="Casual" ${emp.employmentType === 'Casual' ? 'selected' : ''}>Casual</option>
+            </select>`;
+        }
+        function empStatusSelect(emp) {
+            const v = emp.empStatus || 'active';
+            return `<select onchange="setEmpStatus('${emp.id}', this.value)" class="px-2 py-1 border rounded text-xs ${v === 'resigned' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}">
+                <option value="active" ${v === 'active' ? 'selected' : ''}>Active</option>
+                <option value="resigned" ${v === 'resigned' ? 'selected' : ''}>Resigned</option>
+            </select>`;
+        }
+        function currentFilteredEmployees() {
+            let f = employeesData;
+            if (empStatusTab === 'active') f = f.filter(e => (e.empStatus || 'active') === 'active');
+            if (empStatusTab === 'resigned') f = f.filter(e => e.empStatus === 'resigned');
+            const g = document.getElementById('filter-gender')?.value;
+            const r = document.getElementById('filter-reg')?.value;
+            const t = document.getElementById('filter-type')?.value;
+            if (g) f = f.filter(e => e.gender === g);
+            if (r === 'registered') f = f.filter(e => e.registered);
+            if (r === 'pending') f = f.filter(e => !e.registered);
+            if (t) f = f.filter(e => e.employmentType === t);
+            return f;
+        }
+        function renderEmpTable() {
+            const tbody = document.getElementById('emp-table-body');
+            const list = currentFilteredEmployees();
+            if (!list.length) { tbody.innerHTML = '<tr><td colspan="10" class="p-4 text-center text-gray-500 italic">No employees match the current filters.</td></tr>'; return; }
+            tbody.innerHTML = list.map(emp => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="p-3 font-medium">${emp.name} ${emp.isMOD?'<span class="text-xs bg-orange-100 text-orange-700 px-1 rounded ml-1">MOD</span>':''}</td>
+                    <td class="p-3 text-xs"><code>${emp.username||emp.email||'-'}</code></td>
+                    <td class="p-3">${emp.dept}</td><td class="p-3">${emp.designation||'-'}</td><td class="p-3">${emp.room||'-'}</td>
+                    <td class="p-3">${empTypeSelect(emp)}</td>
+                    <td class="p-3">${empStatusSelect(emp)}</td>
+                    <td class="p-3"><span class="text-xs px-2 py-1 rounded ${emp.registered?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${emp.registered?'Registered':'Pending'}</span></td>
+                    <td class="p-3"><label class="toggle-switch"><input type="checkbox" ${emp.loginEnabled?'checked':''} onchange="toggleLogin('${emp.id}')"><span class="slider"></span></label></td>
+                    <td class="p-3"><button onclick="openEditEmpModal('${emp.id}')" class="text-blue-600 text-xs font-semibold hover:underline">✏️ Edit</button></td>
+                </tr>`).join('');
+        }
 
-        // ===== RENDER =====
+        // ===== ROOMS RENDER =====
         function filterBlock(block) {
             currentBlock = block;
             document.querySelectorAll('.block-tab').forEach(t => t.classList.remove('active'));
@@ -1895,44 +2078,6 @@
                     <div class="flex justify-between items-center mb-1"><span class="font-bold text-sm">${room.number}</span><span class="text-xs px-1.5 py-0.5 bg-white rounded border">${room.type}${room.guestRoom ? ' 🧳' : ''}</span></div>
                     <p class="text-xs text-gray-600">Block ${room.block} • Cabin ${room.cabin||''} • ${occ}/${cap}</p>${bedDisplay}</div>`;
             }).join('');
-        }
-
-        function empTypeSelect(emp) {
-            return `<select onchange="setEmpType('${emp.id}', this.value)" class="px-2 py-1 border rounded text-xs">
-                <option value="" ${!emp.employmentType ? 'selected' : ''}>--</option>
-                <option value="Onroll" ${emp.employmentType === 'Onroll' ? 'selected' : ''}>Onroll</option>
-                <option value="Casual" ${emp.employmentType === 'Casual' ? 'selected' : ''}>Casual</option>
-            </select>`;
-        }
-
-        function renderEmpTable() {
-            const tbody = document.getElementById('emp-table-body');
-            if (!employeesData.length) { tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-gray-500 italic">No employees uploaded yet.</td></tr>'; return; }
-            tbody.innerHTML = employeesData.map(emp => `
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="p-3 font-medium">${emp.name} ${emp.isMOD?'<span class="text-xs bg-orange-100 text-orange-700 px-1 rounded ml-1">MOD</span>':''}</td>
-                    <td class="p-3 text-xs"><code>${emp.username||emp.email||'-'}</code></td>
-                    <td class="p-3">${emp.dept}</td><td class="p-3">${emp.designation||'-'}</td><td class="p-3">${emp.room||'-'}</td>
-                    <td class="p-3">${empTypeSelect(emp)}</td>
-                    <td class="p-3"><span class="text-xs px-2 py-1 rounded ${emp.registered?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${emp.registered?'Registered':'Pending'}</span></td>
-                    <td class="p-3"><label class="toggle-switch"><input type="checkbox" ${emp.loginEnabled?'checked':''} onchange="toggleLogin('${emp.id}')"><span class="slider"></span></label></td>
-                </tr>`).join('');
-        }
-        function filterEmployees(type, value) {
-            let f = employeesData;
-            if (type==='gender' && value) f = f.filter(e=>e.gender===value);
-            if (type==='reg' && value==='registered') f = f.filter(e=>e.registered);
-            if (type==='reg' && value==='pending') f = f.filter(e=>!e.registered);
-            if (type==='type' && value) f = f.filter(e=>e.employmentType===value);
-            const tbody = document.getElementById('emp-table-body');
-            tbody.innerHTML = f.map(emp => `
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="p-3">${emp.name}</td><td class="p-3 text-xs"><code>${emp.username||emp.email||'-'}</code></td>
-                    <td class="p-3">${emp.dept}</td><td class="p-3">${emp.designation||'-'}</td><td class="p-3">${emp.room||'-'}</td>
-                    <td class="p-3">${empTypeSelect(emp)}</td>
-                    <td class="p-3"><span class="text-xs px-2 py-1 rounded ${emp.registered?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${emp.registered?'Registered':'Pending'}</span></td>
-                    <td class="p-3"><label class="toggle-switch"><input type="checkbox" ${emp.loginEnabled?'checked':''} onchange="toggleLogin('${emp.id}')"><span class="slider"></span></label></td>
-                </tr>`).join('');
         }
         function populateMODAssignDropdowns() {
             const modEmps = employeesData.filter(e => e.isMOD && e.registered);
