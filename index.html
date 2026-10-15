@@ -11,12 +11,13 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, 
-                 signOut, onAuthStateChanged, sendPasswordResetEmail, sendEmailVerification } 
+                 signOut, onAuthStateChanged, sendPasswordResetEmail } 
                  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDoc, getDocs, 
-                 query, where, updateDoc, deleteDoc, onSnapshot, addDoc, orderBy, runTransaction, serverTimestamp, limit } 
+                 query, where, updateDoc, deleteDoc, onSnapshot, addDoc, orderBy } 
                  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
+        import { getStorage, ref, uploadString, getDownloadURL } 
+                 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDpFzaPnqHHfXY24X1WbAmKx-3_gzTLGSk",
@@ -31,13 +32,14 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const storage = getStorage(app);
 
-
-        window.fb = { auth, db, 
+        window.fb = { auth, db, storage, 
             signInWithEmailAndPassword, createUserWithEmailAndPassword, 
-            signOut, onAuthStateChanged, sendPasswordResetEmail, sendEmailVerification,
+            signOut, onAuthStateChanged, sendPasswordResetEmail,
             collection, doc, setDoc, getDoc, getDocs, query, where, 
-            updateDoc, deleteDoc, onSnapshot, addDoc, orderBy, runTransaction, serverTimestamp, limit,
+            updateDoc, deleteDoc, onSnapshot, addDoc, orderBy,
+            ref, uploadString, getDownloadURL
         };
     </script>
 
@@ -99,18 +101,19 @@
             </div>
             
             <form id="login-form" class="space-y-4" onsubmit="handleLogin(event)">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Employee email</label>
-                    <input type="text" id="login-email" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="your.email@company.com" required>
+                <!-- Email field (hidden on Admin tab) -->
+                <div id="login-email-wrap">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="text" id="login-email" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="your.email@company.com">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" id="login-password-label">Password</label>
                     <input type="password" id="login-password" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••" required>
                 </div>
                 <div id="login-error" class="hidden text-sm text-red-600 bg-red-50 p-2 rounded"></div>
                 <button type="submit" id="login-btn" class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition">Sign In</button>
                 
-                <div class="flex justify-between text-xs pt-2">
+                <div id="employee-links" class="flex justify-between text-xs pt-2">
                     <button type="button" onclick="openForgotPassword()" class="text-blue-600 hover:underline">Forgot Password?</button>
                     <button type="button" onclick="openCreateProfile()" class="text-green-600 font-semibold hover:underline">New Employee? Create Profile →</button>
                 </div>
@@ -118,15 +121,6 @@
         </div>
     </div>
 
-    <section id="activation-panel" class="hidden max-w-lg mx-auto my-8 bg-white p-6 rounded-xl shadow border">
-      <h2 class="text-xl font-bold mb-3">Finish employee Create Profile</h2>
-      <p id="activation-email" class="text-sm mb-3"></p><p id="activation-message" class="text-sm mb-4" role="status"></p>
-      <label for="activation-code" class="block text-sm mb-1">Private one-time activation code</label>
-      <input id="activation-code" type="password" autocomplete="off" spellcheck="false" class="w-full px-3 py-2 border rounded mb-4">
-      <div class="flex flex-wrap gap-3"><button id="activate-account" type="button" onclick="finishActivation()" class="bg-blue-600 text-white px-4 py-2 rounded">Verify and activate</button><button type="button" onclick="resendActivationEmail()" class="px-4 py-2 border rounded">Resend verification email</button><button type="button" onclick="logout()" class="px-4 py-2 border rounded">Sign out</button></div>
-      <p class="text-xs text-gray-500 mt-4">The code is required once. Do not share it or another employee's code. Future logins use your email and password only.</p>
-    </section>
-    <div id="activation-admin-modal" class="modal"><div class="bg-white p-6 rounded-xl max-w-lg m-4"><h2 class="text-xl font-bold">Private employee signup code</h2><p class="my-3">Give this only to the employee after checking their identity. It works once, expires in 7 days, and is not an account password.</p><pre id="issued-activation-code" class="p-3 bg-gray-100 whitespace-pre-wrap break-all"></pre><p class="mt-3">Expires: <span id="issued-activation-expiry"></span></p><p class="text-sm mt-3">This code is shown only now. Generating a new code revokes the previous unused code. Keep it out of shared messages and public files.</p><button type="button" onclick="closeActivationCode()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded">Done, clear code</button></div></div>
     <!-- ================= CREATE PROFILE MODAL ================= -->
     <div id="create-profile-modal" class="modal">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
@@ -137,8 +131,8 @@
             <div class="p-6">
                 <div class="bg-blue-50 p-3 rounded-lg mb-4 text-sm text-blue-800">
                     <strong>Step 1:</strong> Search your name (as uploaded by admin).<br>
-                    <strong>Step 2:</strong> Select your name.<br>
-                    <strong>Step 3:</strong> Create email/password, verify email and enter your private one-time code.
+                    <strong>Step 2:</strong> Verify your department.<br>
+                    <strong>Step 3:</strong> Set email & password to activate your account.
                 </div>
                 <div id="reg-step-1">
                     <label class="block text-sm font-medium mb-1">Your Full Name *</label>
@@ -148,14 +142,17 @@
                 <div id="reg-step-2" class="hidden">
                     <div class="bg-green-50 p-3 rounded-lg mb-4 border border-green-200">
                         <p class="text-sm"><strong>✓ Found:</strong> <span id="reg-found-name"></span></p>
+                        <p class="text-sm mt-1"><strong>Department:</strong> <span id="reg-found-dept" class="font-semibold"></span></p>
+                        <p class="text-sm mt-1"><strong>Designation:</strong> <span id="reg-found-desg"></span></p>
+                        <p class="text-sm mt-1"><strong>Assigned Room:</strong> <span id="reg-found-room" class="font-semibold text-blue-700"></span></p>
                     </div>
                     <label class="block text-sm font-medium mb-1">Email ID *</label>
                     <input type="email" id="reg-email" class="w-full px-3 py-2 border rounded mb-3" placeholder="your.email@company.com" required>
                     <label class="block text-sm font-medium mb-1">Create Password *</label>
-                    <input type="password" id="reg-password" class="w-full px-3 py-2 border rounded mb-3" placeholder="Min 12 characters" required>
+                    <input type="password" id="reg-password" class="w-full px-3 py-2 border rounded mb-3" placeholder="Min 6 characters" required>
                     <label class="block text-sm font-medium mb-1">Confirm Password *</label>
                     <input type="password" id="reg-password2" class="w-full px-3 py-2 border rounded mb-3" placeholder="Re-enter password" required>
-                    <button onclick="completeRegistration()" id="reg-submit-btn" class="w-full bg-green-600 text-white py-2.5 rounded-lg font-semibold hover:bg-green-700">Create / Continue Account</button>
+                    <button onclick="completeRegistration()" id="reg-submit-btn" class="w-full bg-green-600 text-white py-2.5 rounded-lg font-semibold hover:bg-green-700">Create Profile & Activate</button>
                     <button onclick="resetRegistration()" class="w-full mt-2 text-sm text-gray-500 hover:underline">← Search different name</button>
                 </div>
             </div>
@@ -199,19 +196,19 @@
         <main class="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <button onclick="showEmpSection('checkin')" class="bg-white p-6 rounded-xl shadow-sm border hover:border-blue-500 text-left transition">
-                    <h3 class="font-bold text-lg text-gray-800">Check-In</h3>
+                    <h3 class="font-bold text-lg text-gray-800">📝 Check-In</h3>
                     <p class="text-sm text-gray-500 mt-1">Full check-in form.</p>
                 </button>
                 <button onclick="showEmpSection('checkout')" class="bg-white p-6 rounded-xl shadow-sm border hover:border-blue-500 text-left transition">
-                    <h3 class="font-bold text-lg text-gray-800">Check-Out</h3>
+                    <h3 class="font-bold text-lg text-gray-800">🚪 Check-Out</h3>
                     <p class="text-sm text-gray-500 mt-1">Request room release.</p>
                 </button>
                 <button onclick="showEmpSection('mod')" class="bg-white p-6 rounded-xl shadow-sm border hover:border-orange-500 text-left transition">
-                    <h3 class="font-bold text-lg text-gray-800">MOD Quick Stay</h3>
+                    <h3 class="font-bold text-lg text-gray-800">⭐ MOD Quick Stay</h3>
                     <p class="text-sm text-gray-500 mt-1">Fast check-in/out for MOD.</p>
                 </button>
                 <button onclick="showEmpSection('changeroom')" class="bg-white p-6 rounded-xl shadow-sm border hover:border-blue-500 text-left transition">
-                    <h3 class="font-bold text-lg text-gray-800">Change Room</h3>
+                    <h3 class="font-bold text-lg text-gray-800">🔄 Change Room</h3>
                     <p class="text-sm text-gray-500 mt-1">Promotion/room change.</p>
                 </button>
             </div>
@@ -220,7 +217,7 @@
             <div id="emp-checkin" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
                 <h3 class="text-xl font-bold mb-4">Employee Check-In Form</h3>
                 <div id="missing-data-alert" class="hidden bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4 text-sm text-yellow-800">
-                    <strong>Missing Information:</strong> Please complete the highlighted fields below.
+                    <strong>⚠ Missing Information:</strong> Please complete the highlighted fields below.
                 </div>
                 
                 <div class="flex items-center justify-between mb-6">
@@ -255,7 +252,7 @@
                         </div>
                         <div class="mt-4">
                             <label class="block text-sm font-medium mb-2">Signature (Draw or type) *</label>
-                            <canvas id="signature-canvas-1" class="signature-pad w-full h-32 rounded bg-gray-50"></canvas><label class="block text-xs text-gray-500 mt-2">Or upload a signature (PNG/JPG/WebP, below 5 MB, resized to 480px; saved PNG below 60 KB)<input id="signature-upload-1" type="file" accept="image/png,image/jpeg,image/webp" onchange="uploadAccommodationSignature('1',this)" class="block mt-1 text-xs"></label>
+                            <canvas id="signature-canvas-1" class="signature-pad w-full h-32 rounded bg-gray-50"></canvas>
                             <div class="flex gap-2 mt-2">
                                 <button type="button" onclick="clearSignature(1)" class="text-sm text-red-500 hover:underline">Clear</button>
                                 <input type="text" id="typed-signature-1" class="flex-1 px-3 py-1 border rounded text-sm" placeholder="Or type full name">
@@ -279,7 +276,7 @@
                         </div>
                         <div class="mt-4">
                             <label class="block text-sm font-medium mb-2">Signature *</label>
-                            <canvas id="signature-canvas-2" class="signature-pad w-full h-32 rounded bg-gray-50"></canvas><label class="block text-xs text-gray-500 mt-2">Or upload a signature (PNG/JPG/WebP, below 5 MB, resized to 480px; saved PNG below 60 KB)<input id="signature-upload-2" type="file" accept="image/png,image/jpeg,image/webp" onchange="uploadAccommodationSignature('2',this)" class="block mt-1 text-xs"></label>
+                            <canvas id="signature-canvas-2" class="signature-pad w-full h-32 rounded bg-gray-50"></canvas>
                             <div class="flex gap-2 mt-2">
                                 <button type="button" onclick="clearSignature(2)" class="text-sm text-red-500 hover:underline">Clear</button>
                                 <input type="text" id="typed-signature-2" class="flex-1 px-3 py-1 border rounded text-sm" placeholder="Or type full name">
@@ -314,7 +311,7 @@
                         </label>
                         <div class="mt-4">
                             <label class="block text-sm font-medium mb-2">Signature *</label>
-                            <canvas id="signature-canvas-3" class="signature-pad w-full h-32 rounded bg-gray-50"></canvas><label class="block text-xs text-gray-500 mt-2">Or upload a signature (PNG/JPG/WebP, below 5 MB, resized to 480px; saved PNG below 60 KB)<input id="signature-upload-3" type="file" accept="image/png,image/jpeg,image/webp" onchange="uploadAccommodationSignature('3',this)" class="block mt-1 text-xs"></label>
+                            <canvas id="signature-canvas-3" class="signature-pad w-full h-32 rounded bg-gray-50"></canvas>
                             <div class="flex gap-2 mt-2">
                                 <button type="button" onclick="clearSignature(3)" class="text-sm text-red-500 hover:underline">Clear</button>
                                 <input type="text" id="typed-signature-3" class="flex-1 px-3 py-1 border rounded text-sm" placeholder="Or type full name">
@@ -338,7 +335,6 @@
                     <div><label class="block text-sm font-medium mb-1">Reason</label><select id="co-reason" class="w-full px-3 py-2 border rounded"><option>End of Assignment</option><option>Transfer</option><option>Resignation</option><option>Other</option></select></div>
                 </div>
 
-                <!-- Check-out amenities verification -->
                 <div id="co-checklist-wrap" class="hidden mt-4">
                     <h4 class="font-semibold mb-2">Amenities Verification (vs Check-In)</h4>
                     <div id="co-checklist-note" class="text-sm text-gray-600 mb-2"></div>
@@ -354,7 +350,7 @@
 
                 <div class="mt-4">
                     <label class="block text-sm font-medium mb-2">Signature *</label>
-                    <canvas id="signature-canvas-co" class="signature-pad w-full h-32 rounded bg-gray-50"></canvas><label class="block text-xs text-gray-500 mt-2">Or upload a signature (PNG/JPG/WebP, below 5 MB, resized to 480px; saved PNG below 60 KB)<input id="signature-upload-co" type="file" accept="image/png,image/jpeg,image/webp" onchange="uploadAccommodationSignature('co',this)" class="block mt-1 text-xs"></label>
+                    <canvas id="signature-canvas-co" class="signature-pad w-full h-32 rounded bg-gray-50"></canvas>
                     <div class="flex gap-2 mt-2">
                         <button type="button" onclick="clearSignature('co')" class="text-sm text-red-500 hover:underline">Clear</button>
                         <input type="text" id="typed-signature-co" class="flex-1 px-3 py-1 border rounded text-sm" placeholder="Or type full name">
@@ -364,7 +360,7 @@
             </div>
 
             <div id="emp-mod" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
-                <h3 class="text-xl font-bold mb-4">MOD Quick Stay</h3>
+                <h3 class="text-xl font-bold mb-4">⭐ MOD Quick Stay</h3>
                 <div class="flex border-b mb-4">
                     <button onclick="showMODTab('checkin')" id="mod-tab-checkin" class="px-4 py-2 text-sm font-medium tab-active">MOD Check-In</button>
                     <button onclick="showMODTab('checkout')" id="mod-tab-checkout" class="px-4 py-2 text-sm font-medium text-gray-500">MOD Check-Out</button>
@@ -385,7 +381,7 @@
                     </div>
                     <div class="mt-4">
                         <label class="block text-sm font-medium mb-2">Signature *</label>
-                        <canvas id="signature-canvas-mod-ci" class="signature-pad w-full h-32 rounded bg-gray-50"></canvas><label class="block text-xs text-gray-500 mt-2">Or upload a signature (PNG/JPG/WebP, below 5 MB, resized to 480px; saved PNG below 60 KB)<input id="signature-upload-mod-ci" type="file" accept="image/png,image/jpeg,image/webp" onchange="uploadAccommodationSignature('mod-ci',this)" class="block mt-1 text-xs"></label>
+                        <canvas id="signature-canvas-mod-ci" class="signature-pad w-full h-32 rounded bg-gray-50"></canvas>
                         <div class="flex gap-2 mt-2">
                             <button type="button" onclick="clearSignature('mod-ci')" class="text-sm text-red-500 hover:underline">Clear</button>
                             <input type="text" id="typed-signature-mod-ci" class="flex-1 px-3 py-1 border rounded text-sm" placeholder="Or type full name">
@@ -400,7 +396,7 @@
                     </div>
                     <div class="mt-4">
                         <label class="block text-sm font-medium mb-2">Signature *</label>
-                        <canvas id="signature-canvas-mod-co" class="signature-pad w-full h-32 rounded bg-gray-50"></canvas><label class="block text-xs text-gray-500 mt-2">Or upload a signature (PNG/JPG/WebP, below 5 MB, resized to 480px; saved PNG below 60 KB)<input id="signature-upload-mod-co" type="file" accept="image/png,image/jpeg,image/webp" onchange="uploadAccommodationSignature('mod-co',this)" class="block mt-1 text-xs"></label>
+                        <canvas id="signature-canvas-mod-co" class="signature-pad w-full h-32 rounded bg-gray-50"></canvas>
                         <div class="flex gap-2 mt-2">
                             <button type="button" onclick="clearSignature('mod-co')" class="text-sm text-red-500 hover:underline">Clear</button>
                             <input type="text" id="typed-signature-mod-co" class="flex-1 px-3 py-1 border rounded text-sm" placeholder="Or type full name">
@@ -421,7 +417,7 @@
             <div id="emp-changeroom" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
                 <h3 class="text-xl font-bold mb-4">Change Room</h3>
                 <p class="text-sm text-gray-600 mb-3">Current Room: <strong id="current-room-display">Not assigned</strong></p>
-                <label class="block text-sm">Preferred vacant room<select id="employee-move-room" class="w-full border rounded p-2 mt-1"></select></label><label class="block text-sm mt-3">Reason<textarea id="employee-move-reason" class="w-full border rounded p-2 mt-1" maxlength="1000"></textarea></label><button type="button" onclick="requestAccommodationMove()" class="mt-3 px-4 py-2 bg-orange-500 text-white rounded">Request room change</button><p class="text-xs text-gray-500 mt-2">Your current room stays unchanged until admin approves. Vacancy is checked again at approval.</p><p id="own-room-move-status" class="text-sm mt-2"></p>
+                <button onclick="alert('Room change process would start here. Admin must approve.')" class="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600">Start Room Change</button>
             </div>
         </main>
     </div>
@@ -450,27 +446,26 @@
 
             <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
                 <div class="flex border-b overflow-x-auto">
-                    <button onclick="showAdminSection('upload')" class="px-4 py-3 text-sm font-medium whitespace-nowrap tab-active" id="tab-upload">Upload Data</button>
-                    <button onclick="showAdminSection('layout')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-layout">Layout</button>
-                    <button onclick="showAdminSection('inventory')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-inventory">Inventory</button>
-                    <button onclick="showAdminSection('employees')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-employees">Employees</button>
-                    <button onclick="showAdminSection('modguest')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-modguest">MOD & Guests</button>
-                    <button onclick="showAdminSection('branding')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-branding">Branding</button>
+                    <button onclick="showAdminSection('upload')" class="px-4 py-3 text-sm font-medium whitespace-nowrap tab-active" id="tab-upload">📤 Upload Data</button>
+                    <button onclick="showAdminSection('layout')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-layout">🏠 Layout</button>
+                    <button onclick="showAdminSection('inventory')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-inventory">📦 Inventory</button>
+                    <button onclick="showAdminSection('employees')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-employees">👥 Employees</button>
+                    <button onclick="showAdminSection('modguest')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-modguest">⭐ MOD & Guests</button>
+                    <button onclick="showAdminSection('branding')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-branding">🎨 Branding</button>
                 </div>
 
                 <div class="p-6">
-                    <section id="room-change-admin" class="mb-4 border rounded p-3"><h3 class="font-bold">Room-change requests</h3><div id="room-change-admin-list" class="mt-2 text-sm">No pending requests.</div></section>
                     <!-- UPLOAD SECTION -->
                     <div id="admin-upload" class="fade-in">
-                        <h3 class="text-lg font-bold mb-4">Initial Data Upload</h3>
+                        <h3 class="text-lg font-bold mb-4">📤 Initial Data Upload</h3>
                         
                         <div class="bg-blue-50 p-5 rounded-lg border border-blue-200 mb-6">
                             <h4 class="font-bold text-blue-900 mb-2">Step 1: Upload Room Structure</h4>
                             <p class="text-sm text-blue-800 mb-3">CSV: <code class="bg-white px-2 py-0.5 rounded">BlockNo, CabinNo, RoomNo, RoomType, Beds</code></p>
                             <input type="file" id="room-struct-csv" accept=".csv" class="hidden" onchange="uploadRoomStructure(event)">
                             <div class="flex gap-2 flex-wrap">
-                                <button onclick="document.getElementById('room-struct-csv').click()" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Upload Room CSV</button>
-                                <button onclick="downloadSampleCSV('rooms')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">Download Sample</button>
+                                <button onclick="document.getElementById('room-struct-csv').click()" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">📤 Upload Room CSV</button>
+                                <button onclick="downloadSampleCSV('rooms')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">⬇ Download Sample</button>
                             </div>
                             <div id="room-upload-status" class="mt-3 text-sm"></div>
                         </div>
@@ -480,14 +475,14 @@
                             <p class="text-sm text-green-800 mb-3">CSV: <code class="bg-white px-2 py-0.5 rounded">Name, Designation, Department, RoomNo</code></p>
                             <input type="file" id="emp-list-csv" accept=".csv" class="hidden" onchange="uploadEmployeeList(event)">
                             <div class="flex gap-2 flex-wrap">
-                                <button onclick="document.getElementById('emp-list-csv').click()" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">Upload Employee CSV</button>
-                                <button onclick="downloadSampleCSV('employees')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">Download Sample</button>
+                                <button onclick="document.getElementById('emp-list-csv').click()" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">📤 Upload Employee CSV</button>
+                                <button onclick="downloadSampleCSV('employees')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">⬇ Download Sample</button>
                             </div>
                             <div id="emp-upload-status" class="mt-3 text-sm"></div>
                         </div>
 
                         <div class="bg-gray-50 p-5 rounded-lg border">
-                            <h4 class="font-bold mb-3">Uploaded Data Preview</h4>
+                            <h4 class="font-bold mb-3">📋 Uploaded Data Preview</h4>
                             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                 <div>
                                     <h5 class="text-sm font-semibold mb-2">Rooms (<span id="room-count">0</span>)</h5>
@@ -527,7 +522,7 @@
 
                     <!-- INVENTORY SECTION -->
                     <div id="admin-inventory" class="hidden fade-in">
-                        <h3 class="text-lg font-bold mb-4">Room Amenities / Inventory Management</h3>
+                        <h3 class="text-lg font-bold mb-4">📦 Room Amenities / Inventory Management</h3>
                         <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
                             <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
                                 <select id="inv-block" onchange="onInvBlockChange()" class="px-3 py-2 border rounded text-sm"><option value="">-- Block --</option></select>
@@ -535,8 +530,8 @@
                                 <select id="inv-room" onchange="loadRoomInventory()" class="px-3 py-2 border rounded text-sm"><option value="">-- Room --</option></select>
                                 <div class="flex gap-2">
                                     <input type="file" id="inv-csv" accept=".csv" class="hidden" onchange="uploadInventoryCSV(event)">
-                                    <button onclick="document.getElementById('inv-csv').click()" class="px-3 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700">CSV</button>
-                                    <button onclick="downloadSampleCSV('inventory')" class="px-3 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">Sample</button>
+                                    <button onclick="document.getElementById('inv-csv').click()" class="px-3 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700">📤 CSV</button>
+                                    <button onclick="downloadSampleCSV('inventory')" class="px-3 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">⬇ Sample</button>
                                 </div>
                             </div>
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -554,7 +549,7 @@
                                     <tbody id="inv-table-body"></tbody>
                                 </table>
                             </div>
-                            <button onclick="saveRoomInventory()" class="mt-3 px-5 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Save Inventory</button>
+                            <button onclick="saveRoomInventory()" class="mt-3 px-5 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">💾 Save Inventory</button>
                         </div>
                         <p id="inv-empty" class="text-sm text-gray-500 italic">Select a block, cabin and room to manage its inventory. One list per room (shared rooms use a single list).</p>
                     </div>
@@ -579,7 +574,7 @@
                     </div>
 
                     <div id="admin-modguest" class="hidden fade-in">
-                        <h3 class="text-lg font-bold mb-4">MOD & Guest Management</h3>
+                        <h3 class="text-lg font-bold mb-4">⭐ MOD & Guest Management</h3>
                         <div class="flex border-b mb-4">
                             <button onclick="showMODGuestTab('mod')" id="mg-tab-mod" class="px-4 py-2 text-sm font-medium tab-active">MOD Stays</button>
                             <button onclick="showMODGuestTab('assign')" id="mg-tab-assign" class="px-4 py-2 text-sm font-medium text-gray-500">Assign MOD Room</button>
@@ -601,7 +596,7 @@
 
                     <!-- BRANDING -->
                     <div id="admin-branding" class="hidden fade-in">
-                        <h3 class="text-lg font-bold mb-4">Customize Portal (Branding)</h3>
+                        <h3 class="text-lg font-bold mb-4">🎨 Customize Portal (Branding)</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-sm font-medium mb-1">Accommodation Name</label>
@@ -616,7 +611,7 @@
                                 <textarea id="brand-desc-input" rows="2" class="w-full px-3 py-2 border rounded" placeholder="e.g., Comfortable & secure stay for our employees"></textarea>
                             </div>
                             <div>
-                                <p class="text-xs text-gray-500 mb-2">PNG/JPG/WebP, input below 5 MB. Images resize to 400px logo / 1200px background; saved limits 180 KB / 400 KB encoded. Stored in Firestore, not Firebase Storage.</p><label class="block text-sm font-medium mb-1">Company Logo</label>
+                                <label class="block text-sm font-medium mb-1">Company Logo</label>
                                 <input type="file" id="brand-logo-input" accept="image/*" class="w-full text-sm" onchange="uploadBrandingImage('logo', event)">
                                 <img id="brand-logo-preview" class="hidden mt-2 h-12 object-contain" alt="logo preview">
                             </div>
@@ -627,7 +622,7 @@
                             </div>
                         </div>
                         <div class="mt-6 flex gap-3">
-                            <button onclick="saveBranding()" class="px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700">Preview & Apply</button>
+                            <button onclick="saveBranding()" class="px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700">💾 Preview & Apply</button>
                             <button onclick="loadBrandingIntoForm()" class="px-5 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Reset Form</button>
                         </div>
                     </div>
@@ -678,187 +673,6 @@
     </div>
 
     <script>
-        // Activation codes grant first-use profile linking only. No password is stored here.
-        const ACCOMMODATION_ADMIN_UID = 'I1PkXTLLflY6zKOrBqKGNXk0u3W2';
-        const ACCOMMODATION_ADMIN_EMAIL = 'ravindra00737@gmail.com';
-        let signupDirectory = [];
-        const activationEscape = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-        async function activationHash(value) {
-            const code = value.replace(/[-\s]/g, '').toUpperCase();
-            if (!/^[A-F0-9]{32}$/.test(code)) throw Error('Enter the complete private activation code.');
-            return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code))), b => b.toString(16).padStart(2,'0')).join('');
-        }
-        function activationRef(collection, id) { return window.fb.doc(window.fb.db, collection, id); }
-        let employeeOnboardingActive = false;
-        function showActivationPanel(message = '') {
-            if (!employeeOnboardingActive || !window.fb.auth.currentUser || window.fb.auth.currentUser.uid === ACCOMMODATION_ADMIN_UID) return;
-            document.getElementById('loading-screen').classList.add('hidden');
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('admin-dashboard').classList.add('hidden');
-            document.getElementById('employee-dashboard').classList.add('hidden');
-            closeCreateProfile();
-            const panel = document.getElementById('activation-panel');
-            panel.classList.remove('hidden');
-            document.getElementById('activation-message').textContent = message || 'Verify your email, then enter the private code given to you by accommodation admin.';
-            document.getElementById('activation-email').textContent = window.fb.auth.currentUser?.email || '';
-        }
-        async function resendActivationEmail() {
-            try { const user = window.fb.auth.currentUser; if (!user) throw Error('Sign in first.'); await window.fb.sendEmailVerification(user); document.getElementById('activation-message').textContent = 'Verification email requested. Check your inbox, then activate below.'; } catch(e) { alert(e.message); }
-        }
-        async function finishActivation() {
-            const button = document.getElementById('activate-account'); button.disabled = true;
-            try {
-                if (!employeeOnboardingActive) throw Error('Start with employee Create Profile.');
-                const user = window.fb.auth.currentUser; if (!user || user.uid === ACCOMMODATION_ADMIN_UID) throw Error('Start with employee Create Profile.');
-                await user.reload(); await user.getIdToken(true);
-                if (!user.emailVerified) throw Error('Verify your email before activating.');
-                const hash = await activationHash(document.getElementById('activation-code').value);
-                await window.fb.runTransaction(window.fb.db, async tx => {
-                    const codeRef = activationRef('activationCodes', hash), bindingRef = activationRef('accountLinks', user.uid);
-                    const codeSnapshot = await tx.get(codeRef), bindingSnapshot = await tx.get(bindingRef);
-                    if (!codeSnapshot.exists()) throw Error('Code not available. Ask admin for a current code.');
-                    const code = codeSnapshot.data();
-                    if(regSearchEmpId && code.employeeId!==regSearchEmpId)throw Error('That code is for a different employee. Select your correct name or ask admin.');
-                    if (code.revoked || code.consumedBy || code.expiresAt <= Date.now()) throw Error('Code expired, replaced or already used.');
-                    if (bindingSnapshot.exists()) throw Error('This account is already linked. Contact admin.');
-                    // No private employee read is needed or allowed before the link succeeds.
-                    tx.set(bindingRef, {employeeId:code.employeeId, activationHash:hash, email:user.email, createdAt:window.fb.serverTimestamp()});
-                    tx.update(codeRef, {consumedBy:user.uid, consumedAt:window.fb.serverTimestamp()});
-                    tx.update(activationRef('employees',code.employeeId), {uid:user.uid,email:user.email,registered:true,loginEnabled:true,status:'pending'});
-                });
-                document.getElementById('activation-code').value = '';
-                document.getElementById('activation-panel').classList.add('hidden');
-                regSearchEmpId = null;
-                employeeOnboardingActive = false;
-                await loadUserProfile(user);
-            } catch(e) { document.getElementById('activation-message').textContent = e.code==='permission-denied'?'Activation refused. Check the code, verified email and account status.':e.message; }
-            finally { button.disabled = false; }
-        }
-        async function issueActivationCode(employeeId) {
-            try {
-                if (window.fb.auth.currentUser?.uid !== ACCOMMODATION_ADMIN_UID) throw Error('Admin access required.');
-                if (!confirm('Create a private one-time code for this employee? An earlier unused code will stop working.')) return;
-                const bytes = crypto.getRandomValues(new Uint8Array(16));
-                const raw = Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('').toUpperCase();
-                const hash = await activationHash(raw), expiresAt = Date.now() + 7*24*60*60*1000;
-                await window.fb.runTransaction(window.fb.db,async tx=>{
-                    const empRef = activationRef('employees',employeeId), pointerRef = activationRef('activationIndex',employeeId);
-                    const empSnapshot = await tx.get(empRef), previous = await tx.get(pointerRef);
-                    if (!empSnapshot.exists()) throw Error('Employee profile not found.');
-                    const employee = empSnapshot.data();
-                    if (employee.uid || employee.registered) throw Error('Employee already linked. Codes cannot replace an existing account.');
-                    if (previous.exists()) tx.update(activationRef('activationCodes',previous.data().hash),{revoked:true});
-                    tx.set(activationRef('activationCodes',hash),{employeeId,expiresAt,revoked:false,consumedBy:'',createdAt:window.fb.serverTimestamp()});
-                    tx.set(pointerRef,{hash});
-                    tx.set(activationRef('signupDirectory',employeeId),{name:employee.name,searchName:employee.name.trim().toLowerCase()});
-                });
-                const dialog = document.getElementById('activation-admin-modal');
-                document.getElementById('issued-activation-code').textContent = raw.match(/.{4}/g).join('-');
-                document.getElementById('issued-activation-expiry').textContent = new Date(expiresAt).toLocaleString();
-                dialog.classList.add('show');
-            } catch(e) { alert(e.message); }
-        }
-        async function revokeActivationCode(employeeId){try{if(window.fb.auth.currentUser?.uid!==ACCOMMODATION_ADMIN_UID)throw Error('Admin only.');if(!confirm('Revoke the unused signup code for this employee?'))return;const pointer=await window.fb.getDoc(activationRef('activationIndex',employeeId));if(pointer.exists())await window.fb.updateDoc(activationRef('activationCodes',pointer.data().hash),{revoked:true});alert('Unused signup code revoked.');}catch(e){alert(e.message);}}
-        function closeActivationCode() { document.getElementById('issued-activation-code').textContent='';document.getElementById('activation-admin-modal').classList.remove('show'); }
-
-        async function smallAccommodationImage(file, maxBytes, maxWidth, maxHeight) {
-            if(!file || !['image/png','image/jpeg','image/webp'].includes(file.type)) throw Error('Use a PNG, JPG or WebP image.');
-            if(file.size>5*1024*1024) throw Error('Choose an image below 5 MB. It will be resized before saving.');
-            const url=URL.createObjectURL(file);
-            try {
-                const image=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(Error('Image could not be read.'));i.src=url;});
-                if(image.width*image.height>16000000)throw Error('Image exceeds 16 million pixels.');
-                const canvas=document.createElement('canvas'),scale=Math.min(1,maxWidth/image.width,maxHeight/image.height);
-                canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));
-                canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
-                let output=canvas.toDataURL('image/webp',.8);
-                if(output.length>maxBytes) output=canvas.toDataURL('image/webp',.55);
-                if(output.length>maxBytes)throw Error('Image is still too large after resizing. Choose a simpler or smaller image.');
-                return output;
-            } finally {URL.revokeObjectURL(url);}
-        }
-        const uploadedAccommodationSignatures={};
-        async function uploadAccommodationSignature(index,input){try{const file=input.files[0];if(!file)return;const image=await smallAccommodationImage(file,60000,480,160);const loaded=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=reject;i.src=image;});const canvas=document.createElement('canvas');canvas.width=loaded.width;canvas.height=loaded.height;canvas.getContext('2d').drawImage(loaded,0,0);const png=canvas.toDataURL('image/png');if(png.length>60000)throw Error('Signature is too large. Use a simpler image or draw/type it.');uploadedAccommodationSignatures[index]=png;alert('Signature image ready for this form.');}catch(e){input.value='';alert(e.message);}}
-        function savedSignature(index) {
-            if(uploadedAccommodationSignatures[index])return uploadedAccommodationSignatures[index];
-            if(!hasSignature(index))return '';
-            const canvas=canvases[index],copy=document.createElement('canvas');copy.width=480;copy.height=160;
-            copy.getContext('2d').drawImage(canvas,0,0,copy.width,copy.height);
-            const image=copy.toDataURL('image/png');if(image.length>60000)throw Error('Signature is too large. Clear it and sign again or type your name.');return image;
-        }
-
-        async function requestAccommodationMove() {
-            try {
-                const user=window.fb.auth.currentUser;if(!user||!currentUser)throw Error('Sign in first.');
-                const destination=document.getElementById('employee-move-room').value,reason=document.getElementById('employee-move-reason').value.trim();
-                if(!destination||destination===currentUser.room)throw Error('Choose a different room.');
-                const requestRef=activationRef('roomChangeRequests',user.uid);
-                await window.fb.runTransaction(window.fb.db,async tx=>{
-                    const request=await tx.get(requestRef),employee=await tx.get(activationRef('employees',currentUser.id));
-                    if(request.exists()&&request.data().status==='pending')throw Error('A room-change request is already waiting for admin.');
-                    tx.set(requestRef,{uid:user.uid,employeeId:currentUser.id,fromRoom:employee.data().room,toRoom:destination,reason,status:'pending',requestedAt:window.fb.serverTimestamp()});
-                });
-                alert('Room-change request saved. Your current room stays unchanged until admin approves.');
-            }catch(e){alert(e.message);}
-        }
-        function renderAccommodationMoves(snapshot) {
-            const container=document.getElementById('room-change-admin-list');container.replaceChildren();
-            for(const record of snapshot.docs){const request=record.data();if(request.status!=='pending')continue;const card=document.createElement('div');card.className='border rounded p-3 mb-2 text-sm';const text=document.createElement('p');text.textContent=`Employee ${request.employeeId}: ${request.fromRoom||'Unassigned'} to ${request.toRoom}. ${request.reason}`;card.appendChild(text);for(const [label,action]of[['Approve move',true],['Reject',false]]){const button=document.createElement('button');button.type='button';button.className='px-3 py-2 border rounded mr-2 mt-2';button.textContent=label;button.onclick=()=>handleAccommodationMove(record.id,action);card.appendChild(button);}container.appendChild(card);}
-            if(!container.children.length)container.textContent='No pending room-change requests.';
-        }
-        async function handleAccommodationMove(uid,approve) {
-            try {
-                if(window.fb.auth.currentUser?.uid!==ACCOMMODATION_ADMIN_UID)throw Error('Admin access required.');
-                if(!confirm(approve?'Approve this room change now? Occupancy moves immediately if active.':'Reject this request?'))return;
-                if(!approve){await window.fb.updateDoc(activationRef('roomChangeRequests',uid),{status:'rejected',handledAt:window.fb.serverTimestamp()});return;}
-                await moveAccommodationEmployee(null,null,uid);alert('Room change approved and saved.');
-            }catch(e){alert('Room change not completed: '+e.message);}
-        }
-        async function moveAccommodationEmployee(employeeId,destination,requestUid=null) {
-            const user=window.fb.auth.currentUser;if(user?.uid!==ACCOMMODATION_ADMIN_UID)throw Error('Admin access required.');
-            await window.fb.runTransaction(window.fb.db,async tx=>{
-                let request=null;
-                if(requestUid){const snapshot=await tx.get(activationRef('roomChangeRequests',requestUid));if(!snapshot.exists()||snapshot.data().status!=='pending')throw Error('Request already handled.');request=snapshot.data();employeeId=request.employeeId;destination=request.toRoom;}
-                const employeeRef=activationRef('employees',employeeId),employeeSnapshot=await tx.get(employeeRef);if(!employeeSnapshot.exists())throw Error('Employee not found.');const employee=employeeSnapshot.data();
-                if(!destination||destination===employee.room)throw Error('Choose a different destination.');if(request&&request.fromRoom!==employee.room)throw Error('Employee room changed since request. Reject and request again.');
-                const destinationRef=activationRef('rooms',destination),destinationSnapshot=await tx.get(destinationRef);if(!destinationSnapshot.exists())throw Error('Destination room missing.');const next=destinationSnapshot.data();
-                const oldRef=employee.room?activationRef('rooms',employee.room):null,oldSnapshot=oldRef?await tx.get(oldRef):null,old=oldSnapshot?.exists()?oldSnapshot.data():null;
-                if((next.occupantUids||[]).length!==(next.occupants||[]).length)throw Error('Destination needs occupancy reconciliation.');
-                if((next.occupants||[]).length>=next.capacity)throw Error('Destination room filled before approval.');
-                if(employee.status==='active'){
-                    if(!employee.uid||!old||!(old.occupantUids||[]).includes(employee.uid))throw Error('Current occupancy does not match employee.');
-                    const index=old.occupantUids.indexOf(employee.uid),oldNames=[...old.occupants];oldNames.splice(index,1);const oldUids=old.occupantUids.filter(id=>id!==employee.uid),names={...(old.occupantNames||{})};delete names[employee.uid];
-                    tx.update(oldRef,{occupants:oldNames,occupantUids:oldUids,occupantNames:names,...(!oldUids.length?{currentChecklist:null}:{})});
-                    tx.update(destinationRef,{occupants:[...(next.occupants||[]),employee.name],occupantUids:[...(next.occupantUids||[]),employee.uid],occupantNames:{...(next.occupantNames||{}),[employee.uid]:employee.name}});
-                    tx.set(activationRef('roomAvailability',employee.room),{number:old.number,block:old.block||'',cabin:old.cabin||'',capacity:old.capacity,free:old.capacity-oldUids.length});
-                    tx.set(activationRef('roomAvailability',destination),{number:next.number,block:next.block||'',cabin:next.cabin||'',capacity:next.capacity,free:next.capacity-(next.occupants||[]).length-1});
-                }
-                tx.update(employeeRef,{room:destination,block:next.block||''});
-                tx.set(window.fb.doc(window.fb.collection(window.fb.db,'roomTransfers')),{employeeId,uid:employee.uid||'',fromRoom:employee.room||'',toRoom:destination,by:user.uid,at:window.fb.serverTimestamp(),requestUid});
-                if(requestUid)tx.update(activationRef('roomChangeRequests',requestUid),{status:'approved',handledAt:window.fb.serverTimestamp()});
-            });
-        }
-        async function allocateFromRoom(roomNumber) {
-            try {
-                const employeeId=prompt('Enter the employee code to assign to this room.');if(!employeeId)return;const matches=employeesData.filter(e=>e.code===employeeId.trim());if(matches.length!==1)throw Error('Employee code is missing or not unique.');
-                if(!confirm('Assign '+matches[0].name+' to '+roomNumber+'? Active occupancy moves immediately.'))return;
-                await moveAccommodationEmployee(matches[0].id,roomNumber);closeModal();alert('Room assignment saved.');
-            }catch(e){alert(e.message);}
-        }
-        async function adminRoomCheckout(roomNumber,uid) {
-            try {
-                if(window.fb.auth.currentUser?.uid!==ACCOMMODATION_ADMIN_UID)throw Error('Admin only.');
-                if(!confirm('Staff checkout this employee? This will release their bed and disable ordinary employee access as configured.'))return;
-                const matches=employeesData.filter(e=>e.uid===uid);if(matches.length!==1)throw Error('Employee UID needs reconciliation.');
-                await window.fb.runTransaction(window.fb.db,async tx=>{
-                    const employeeRef=activationRef('employees',matches[0].id),roomRef=activationRef('rooms',roomNumber),employee=(await tx.get(employeeRef)).data(),room=(await tx.get(roomRef)).data();
-                    const index=(room.occupantUids||[]).indexOf(uid);if(index<0||employee.room!==roomNumber)throw Error('Occupancy changed. Refresh.');
-                    const occupants=[...room.occupants];occupants.splice(index,1);const uids=room.occupantUids.filter(x=>x!==uid),names={...room.occupantNames};delete names[uid];
-                    tx.update(roomRef,{occupants,occupantUids:uids,occupantNames:names,...(!uids.length?{currentChecklist:null}:{})});tx.update(employeeRef,{status:'disabled',loginEnabled:false});tx.set(activationRef('roomAvailability',roomNumber),{number:room.number,block:room.block||'',cabin:room.cabin||'',capacity:room.capacity,free:room.capacity-uids.length});tx.set(window.fb.doc(window.fb.collection(window.fb.db,'checkouts')),{employeeId:matches[0].id,uid,employeeName:employee.name,room:roomNumber,date:new Date().toISOString().slice(0,10),staffCheckout:true,by:window.fb.auth.currentUser.uid,timestamp:new Date().toISOString()});
-                });closeModal();alert('Staff checkout saved. No employee signature was created.');
-            }catch(e){alert(e.message);}
-        }
-
         // ===== GLOBAL STATE =====
         let roomsData = [];
         let employeesData = [];
@@ -866,8 +680,6 @@
         let currentUser = null;
         let regSearchEmpId = null;
         let modAssignments = [];
-        let modAvailableRooms = [];
-        let ownMODStays = [];
         let brandSettings = {};
         let invEditList = [];
         let invSelectedRoom = null;
@@ -876,9 +688,9 @@
         let checkoutEditable = false;
         let pendingLogoUrl = null;
         let pendingBgUrl = null;
+        let currentLoginTab = 'employee';  // NEW: track which tab is active
         const amenitiesList = ["Single Bed", "Mattress", "Pillow", "Blanket", "Wardrobe", "Study Table", "Chair", "AC", "Fan", "Light", "Mirror", "Curtains"];
 
-        document.addEventListener('click',event=>{const button=event.target.closest('[data-activation-employee]');if(button)issueActivationCode(button.dataset.activationEmployee);const allocate=event.target.closest('[data-room-allocate]');if(allocate)allocateFromRoom(allocate.dataset.roomAllocate);const checkout=event.target.closest('[data-room-checkout]');if(checkout)adminRoomCheckout(checkout.dataset.roomCheckout,checkout.dataset.occupantUid);const revoke=event.target.closest('[data-revoke-activation]');if(revoke)revokeActivationCode(revoke.dataset.revokeActivation);});
         // ===== COLOR HELPERS =====
         function shadeColor(hex, percent) {
             let h = String(hex).replace('#','');
@@ -960,17 +772,27 @@
             document.getElementById('brand-bg-preview').classList.add('hidden');
         }
 
-        async function uploadBrandingImage(type,event) {
-            const file=event.target.files[0];if(!file)return;
-            try {
-                const image=await smallAccommodationImage(file,type==='logo'?180000:400000,type==='logo'?400:1200,type==='logo'?400:700);
-                if(type==='logo'){pendingLogoUrl=image;const preview=document.getElementById('brand-logo-preview');preview.src=image;preview.classList.remove('hidden');}
-                else{pendingBgUrl=image;const preview=document.getElementById('brand-bg-preview');preview.src=image;preview.classList.remove('hidden');}
-            }catch(e){event.target.value='';alert(e.message);}
+        async function uploadBrandingImage(type, event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const path = `branding/${type}-${Date.now()}.png`;
+                    const r = window.fb.ref(window.fb.storage, path);
+                    await window.fb.uploadString(r, e.target.result, 'data_url');
+                    const url = await window.fb.getDownloadURL(r);
+                    if (type === 'logo') { pendingLogoUrl = url; const p=document.getElementById('brand-logo-preview'); p.src=url; p.classList.remove('hidden'); }
+                    else { pendingBgUrl = url; const p=document.getElementById('brand-bg-preview'); p.src=url; p.classList.remove('hidden'); }
+                } catch (err) {
+                    console.error(err);
+                    alert('Image upload failed: ' + err.message + '\nMake sure Firebase Storage rules allow writes to /branding/.');
+                }
+            };
+            reader.readAsDataURL(file);
         }
 
         async function saveBranding() {
-            if(document.getElementById('brand-title-input').value.trim().length>100||document.getElementById('brand-desc-input').value.trim().length>500){alert('Title limit: 100 characters. Description limit: 500 characters.');return;}
             const data = {
                 title: document.getElementById('brand-title-input').value.trim(),
                 description: document.getElementById('brand-desc-input').value.trim(),
@@ -983,7 +805,14 @@
                 await window.fb.setDoc(window.fb.doc(window.fb.db, 'settings', 'branding'), data, { merge: true });
                 applyBrandSettings(data);
                 alert('✓ Branding applied!');
-            } catch (e) { alert('Error: ' + e.message); }
+            } catch (e) {
+                console.error(e);
+                let msg = 'Error: ' + e.message;
+                if (e.code === 'permission-denied') {
+                    msg = 'Permission denied.\n\nPlease publish the updated Firestore Security Rules (Firebase Console → Firestore Database → Rules) that include the "settings" collection, then try again.';
+                }
+                alert(msg);
+            }
         }
 
         // ===== SAMPLE CSV DOWNLOAD =====
@@ -1006,66 +835,58 @@
             URL.revokeObjectURL(url);
         }
 
-        // Page opens at Login, never at a restored dashboard or signup gate.
-        let resolveAccommodationAuthReady;
-        const accommodationAuthReady = new Promise(resolve => { resolveAccommodationAuthReady = resolve; });
-        function showAccommodationLogin() {
-            stopAccommodationListeners();
-            employeeOnboardingActive = false;
-            currentUser = null;
-            document.getElementById('loading-screen').classList.add('hidden');
-            for (const id of ['activation-panel','admin-dashboard','employee-dashboard']) document.getElementById(id).classList.add('hidden');
-            document.getElementById('activation-code').value = '';
-            document.getElementById('activation-email').textContent = '';
-            document.getElementById('activation-message').textContent = '';
-            closeCreateProfile();
-            document.getElementById('login-screen').classList.remove('hidden');
-        }
+        // ===== INITIALIZATION =====
         window.addEventListener('DOMContentLoaded', () => {
             const checkFirebase = setInterval(() => {
                 if (window.fb && window.fb.onAuthStateChanged) {
                     clearInterval(checkFirebase);
                     loadBrandingOnce();
-                    let initialAuthEvent = true;
                     window.fb.onAuthStateChanged(window.fb.auth, async (user) => {
-                        if (initialAuthEvent) {
-                            initialAuthEvent = false;
-                            // Clear any old account, including legacy admin sessions, before a new login.
-                            let ready = true;
-                            try { if (user) await window.fb.signOut(window.fb.auth); }
-                            catch (error) { ready = false; }
-                            showAccommodationLogin();
-                            if (!ready) {
-                                const error = document.getElementById('login-error');
-                                error.textContent = 'Could not clear the previous session. Reload before signing in.';
-                                error.classList.remove('hidden');
-                                document.getElementById('login-btn').disabled = true;
-                            }
-                            resolveAccommodationAuthReady(ready);
-                        } else if (!user) {
-                            showAccommodationLogin();
-                        }
-                        // Sign In and Create Profile own their navigation. Auth restoration does not.
+                        document.getElementById('loading-screen').classList.add('hidden');
+                        if (user) { await loadUserProfile(user); }
+                        else { document.getElementById('login-screen').classList.remove('hidden'); }
                     });
                 }
             }, 100);
         });
 
         // ===== LOGIN =====
-        let accommodationLoginMode='employee';
+        // UPDATED: toggle form fields based on active tab
         function switchLoginTab(type) {
-            accommodationLoginMode=type==='admin'?'admin':'employee';
-            const email=document.getElementById('login-email');email.closest('div').classList.toggle('hidden',accommodationLoginMode==='admin');email.disabled=accommodationLoginMode==='admin';email.required=accommodationLoginMode!=='admin';
-            document.getElementById('login-password').value='';document.getElementById('login-error').classList.add('hidden');
-            document.getElementById('login-tab-employee').classList.toggle('tab-active', type === 'employee');
-            document.getElementById('login-tab-admin').classList.toggle('tab-active', type === 'admin');
-            document.getElementById('login-tab-employee').classList.toggle('text-gray-500', type !== 'employee');
-            document.getElementById('login-tab-admin').classList.toggle('text-gray-500', type !== 'admin');
+            currentLoginTab = type;
+            const empTab = document.getElementById('login-tab-employee');
+            const adminTab = document.getElementById('login-tab-admin');
+            const emailWrap = document.getElementById('login-email-wrap');
+            const emailInput = document.getElementById('login-email');
+            const passInput = document.getElementById('login-password');
+            const passLabel = document.getElementById('login-password-label');
+            const empLinks = document.getElementById('employee-links');
+            
+            if (type === 'employee') {
+                empTab.classList.add('tab-active'); empTab.classList.remove('text-gray-500');
+                adminTab.classList.remove('tab-active'); adminTab.classList.add('text-gray-500');
+                emailWrap.classList.remove('hidden');
+                emailInput.required = true;
+                emailInput.placeholder = 'your.email@company.com';
+                passLabel.textContent = 'Password';
+                passInput.placeholder = '••••••••';
+                empLinks.classList.remove('hidden');
+            } else {
+                adminTab.classList.add('tab-active'); adminTab.classList.remove('text-gray-500');
+                empTab.classList.remove('tab-active'); empTab.classList.add('text-gray-500');
+                emailWrap.classList.add('hidden');
+                emailInput.required = false;
+                emailInput.value = '';
+                passLabel.textContent = 'Admin Password';
+                passInput.placeholder = 'Enter admin password';
+                empLinks.classList.add('hidden');
+            }
+            document.getElementById('login-error').classList.add('hidden');
         }
 
         async function handleLogin(e) {
             e.preventDefault();
-            let emailInput = document.getElementById('login-email').value.trim();
+            const emailInput = document.getElementById('login-email').value.trim();
             const password = document.getElementById('login-password').value;
             const errDiv = document.getElementById('login-error');
             const btn = document.getElementById('login-btn');
@@ -1073,43 +894,49 @@
             btn.innerHTML = '<span class="loading"></span>';
             btn.disabled = true;
             try {
-                if (!await accommodationAuthReady) throw Error('Reload to clear the previous session.');
-                employeeOnboardingActive = false;
-                const mode = accommodationLoginMode;
-                const loginEmail=mode==='admin'?ACCOMMODATION_ADMIN_EMAIL:emailInput;
-                const result = await window.fb.signInWithEmailAndPassword(window.fb.auth, loginEmail, password);
-                if (mode === 'admin' && result.user.uid !== ACCOMMODATION_ADMIN_UID) throw Error('This account is not the accommodation admin.');
-                await loadUserProfile(result.user);
+                let loginEmail;
+                if (currentLoginTab === 'admin') {
+                    // Admin tab: no email needed, use hardcoded admin email
+                    loginEmail = 'admin@company.com';
+                } else {
+                    // Employee tab: normal flow
+                    loginEmail = emailInput;
+                    if (!emailInput.includes('@')) loginEmail = `${emailInput}@company.com`;
+                }
+                await window.fb.signInWithEmailAndPassword(window.fb.auth, loginEmail, password);
             } catch (error) {
-                await logout();
-                let msg = error.code ? 'Login failed.' : error.message;
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') msg = 'Invalid credentials.';
-                else if (error.code === 'auth/wrong-password') msg = 'Incorrect password.';
-                else if (error.code === 'auth/invalid-email') msg = 'Invalid email format.';
-                else if (error.code === 'permission-denied') msg = 'No active employee profile is available. If signup is unfinished, choose Create Profile and use the same email and password. Otherwise contact admin.';
+                let msg = 'Login failed.';
+                if (currentLoginTab === 'admin') {
+                    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                        msg = 'Incorrect admin password.';
+                    } else {
+                        msg = 'Admin login failed. Make sure admin@company.com exists in Firebase Console.';
+                    }
+                } else {
+                    if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') msg = 'Invalid credentials.';
+                    else if (error.code === 'auth/wrong-password') msg = 'Incorrect password.';
+                    else if (error.code === 'auth/invalid-email') msg = 'Invalid email format.';
+                }
                 errDiv.textContent = msg; errDiv.classList.remove('hidden');
-            } finally { document.getElementById('login-password').value='';btn.innerHTML = 'Sign In'; btn.disabled = false; }
+            } finally { btn.innerHTML = 'Sign In'; btn.disabled = false; }
         }
 
         async function loadUserProfile(user) {
             try {
-                if (user.uid === ACCOMMODATION_ADMIN_UID) {
+                if (user.email === 'admin@company.com') {
                     currentUser = { role: 'admin', uid: user.uid, email: user.email };
                     document.getElementById('login-screen').classList.add('hidden');
                     document.getElementById('admin-dashboard').classList.remove('hidden');
                     startRealtimeListeners();
                     return;
                 }
-                if (!user.emailVerified) throw Error('Verify your employee email. To finish signup, choose Create Profile and use the same email and password.');
-                const q = window.fb.query(window.fb.collection(window.fb.db, 'employees'), window.fb.where('uid', '==', user.uid), window.fb.where('email', '==', user.email), window.fb.where('loginEnabled', '==', true));
+                const q = window.fb.query(window.fb.collection(window.fb.db, 'employees'), window.fb.where('uid', '==', user.uid));
                 const snapshot = await window.fb.getDocs(q);
-                if (snapshot.empty) throw Error('No active employee profile. To finish signup, choose Create Profile and use the same email and password, or contact admin.');
-                if (snapshot.size !== 1) throw Error('Account has conflicting employee links. Contact admin.');
+                if (snapshot.empty) { alert('Employee profile not found. Contact admin.'); await logout(); return; }
                 const empDoc = snapshot.docs[0];
                 const empData = empDoc.data();
                 if (!empData.loginEnabled) { alert('Your login is disabled. Contact admin.'); await logout(); return; }
-                document.getElementById('activation-panel').classList.add('hidden');
-                currentUser = { ...empData, role: 'employee', uid: user.uid, id: empDoc.id };
+                currentUser = { role: 'employee', uid: user.uid, ...empData, id: empDoc.id };
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('employee-dashboard').classList.remove('hidden');
                 document.getElementById('emp-name-display').textContent = empData.name;
@@ -1119,24 +946,18 @@
                 prefillCheckInForm(empData);
                 loadMODRoomDropdown();
                 startRealtimeListeners();
-            } catch (error) { console.error(error); throw error; }
+            } catch (error) { console.error(error); alert('Error loading profile.'); }
         }
 
         async function logout() {
-            employeeOnboardingActive = false;
-            regSearchEmpId = null;
-            stopAccommodationListeners();
-            Object.keys(uploadedAccommodationSignatures).forEach(k=>delete uploadedAccommodationSignatures[k]);
-            closeActivationCode();document.getElementById("activation-code").value="";document.getElementById("activation-panel").classList.add("hidden");
             try { await window.fb.signOut(window.fb.auth); } catch(e) {}
             currentUser = null;
             document.getElementById('employee-dashboard').classList.add('hidden');
             document.getElementById('admin-dashboard').classList.add('hidden');
             document.getElementById('login-screen').classList.remove('hidden');
             document.getElementById('login-form').reset();
-            document.getElementById('reg-password').value='';document.getElementById('reg-password2').value='';
-            document.getElementById('activation-email').textContent='';document.getElementById('activation-message').textContent='';
-            closeCreateProfile();
+            // Reset to employee tab on logout
+            switchLoginTab('employee');
         }
 
         // ===== SELF REGISTRATION =====
@@ -1150,62 +971,61 @@
             regSearchEmpId = null;
         }
         async function searchRegName(query) {
-            const container = document.getElementById('reg-search-results');
-            const value = query.trim().toLowerCase();
-            if (value.length < 2) { container.textContent = ''; return; }
+            const resDiv = document.getElementById('reg-search-results');
+            if (!query || query.length < 2) { resDiv.innerHTML = ''; return; }
             try {
-                // Public names only. Private employee documents are never searched.
-                const snapshot = await window.fb.getDocs(window.fb.query(window.fb.collection(window.fb.db,'signupDirectory'),window.fb.where('searchName','>=',value),window.fb.where('searchName','<=',value+'\uf8ff'),window.fb.limit(10)));
-                signupDirectory = snapshot.docs.map(d=>({id:d.id,...d.data()}));
-                container.replaceChildren();
-                if (!signupDirectory.length) { container.textContent='No matching name. Ask admin to prepare your activation code.'; return; }
-                for (const employee of signupDirectory) {
-                    const button = document.createElement('button');button.type='button';button.className='w-full text-left p-2 mb-1 bg-gray-50 hover:bg-blue-50 border rounded';button.textContent=employee.name;
-                    button.onclick=()=>selectRegEmployee(employee.id);container.appendChild(button);
-                }
-            } catch(e) { container.textContent='Name search is unavailable. Contact admin.'; }
+                const q = window.fb.query(window.fb.collection(window.fb.db, 'employees'), window.fb.where('registered', '==', false));
+                const snapshot = await window.fb.getDocs(q);
+                const matches = snapshot.docs.map(d => ({ id: d.id, ...d.data() })).filter(e => e.name.toLowerCase().includes(query.toLowerCase()));
+                if (matches.length === 0) { resDiv.innerHTML = '<p class="text-red-600">❌ No matching unregistered employee found. Contact admin.</p>'; return; }
+                resDiv.innerHTML = '<p class="text-gray-600 mb-2">Select your name:</p>' + matches.map(e => `
+                    <button onclick="selectRegEmployee('${e.id}')" class="w-full text-left p-2 mb-1 bg-gray-50 hover:bg-blue-50 border rounded">
+                        <strong>${e.name}</strong> <span class="text-xs text-gray-500">(${e.code || 'N/A'})</span><br>
+                        <span class="text-xs text-blue-700">${e.dept} • ${e.designation || 'N/A'}</span>
+                    </button>`).join('');
+            } catch (error) { resDiv.innerHTML = '<p class="text-red-600">Error searching.</p>'; }
         }
         async function selectRegEmployee(id) {
-            const employee = signupDirectory.find(e=>e.id===id);if(!employee)return;
-            regSearchEmpId=id;document.getElementById('reg-found-name').textContent=employee.name;
-            document.getElementById('reg-step-1').classList.add('hidden');document.getElementById('reg-step-2').classList.remove('hidden');
+            try {
+                const docSnap = await window.fb.getDoc(window.fb.doc(window.fb.db, 'employees', id));
+                if (!docSnap.exists()) return;
+                const emp = docSnap.data();
+                regSearchEmpId = id;
+                document.getElementById('reg-found-name').textContent = emp.name;
+                document.getElementById('reg-found-dept').textContent = emp.dept;
+                document.getElementById('reg-found-desg').textContent = emp.designation || 'N/A';
+                document.getElementById('reg-found-room').textContent = emp.room || 'Not assigned';
+                document.getElementById('reg-step-1').classList.add('hidden');
+                document.getElementById('reg-step-2').classList.remove('hidden');
+            } catch (error) {}
         }
         async function completeRegistration() {
-            const email=document.getElementById('reg-email').value.trim(),password=document.getElementById('reg-password').value,confirmPassword=document.getElementById('reg-password2').value,button=document.getElementById('reg-submit-btn');
-            if(!regSearchEmpId){alert('Select your name first.');return;}
-            if(!email){alert('Enter your email.');return;}
-            if(password.length<12||password!==confirmPassword){alert('Use at least 12 characters and matching passwords.');return;}
-            button.disabled=true;
+            const email = document.getElementById('reg-email').value.trim();
+            const pass = document.getElementById('reg-password').value;
+            const pass2 = document.getElementById('reg-password2').value;
+            const btn = document.getElementById('reg-submit-btn');
+            if (!email || !pass) { alert('Please fill all fields'); return; }
+            if (pass.length < 6) { alert('Password must be 6+ characters'); return; }
+            if (pass !== pass2) { alert('Passwords do not match'); return; }
+            btn.disabled = true;
             try {
-                if (!await accommodationAuthReady) throw Error('Reload to clear the previous session.');
-                let result, existingAccount = false;
-                try { result = await window.fb.createUserWithEmailAndPassword(window.fb.auth,email,password); }
-                catch (error) {
-                    if (error.code !== 'auth/email-already-in-use') throw error;
-                    // Continue an interrupted signup only after authenticating that same account.
-                    result = await window.fb.signInWithEmailAndPassword(window.fb.auth,email,password);
-                    existingAccount = true;
-                }
-                if (result.user.uid === ACCOMMODATION_ADMIN_UID) {
-                    await logout();
-                    throw Error('Use Admin Login for the admin account.');
-                }
-                employeeOnboardingActive = true;
-                let message = existingAccount ? 'Signup resumed. Verify your email, then enter your private code.' : 'Account created. Verify your email, then enter the private code supplied by admin. No employee record is unlocked yet.';
-                if (!result.user.emailVerified) {
-                    try { await window.fb.sendEmailVerification(result.user); }
-                    catch (error) { message += ' Verification email could not be sent. Use Resend verification email below.'; }
-                } else { message = 'Email verified. Enter your private activation code to finish Create Profile.'; }
-                showActivationPanel(message);
-            } catch(error) {
-                employeeOnboardingActive = false;
-                alert(error.code==='auth/invalid-credential'||error.code==='auth/wrong-password'?'This email already has an account. Use its existing password to resume signup, or reset it from Login.':error.message);
-            } finally {
-                document.getElementById('reg-password').value='';document.getElementById('reg-password2').value='';
-                button.disabled=false;
-            }
+                const userCred = await window.fb.createUserWithEmailAndPassword(window.fb.auth, email, pass);
+                await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', regSearchEmpId), {
+                    uid: userCred.user.uid, email, registered: true, loginEnabled: true, status: 'pending'
+                });
+                await window.fb.signOut(window.fb.auth);
+                closeCreateProfile();
+                alert('✓ Profile created! Please login with your new email and password.');
+            } catch (error) {
+                let msg = 'Registration failed.';
+                if (error.code === 'auth/email-already-in-use') msg = 'Email already registered.';
+                else if (error.code === 'auth/weak-password') msg = 'Password too weak.';
+                else if (error.code === 'permission-denied') msg = 'Permission denied. Publish the updated Firestore Rules first.';
+                alert(msg);
+            } finally { btn.disabled = false; }
         }
 
+        // ===== FORGOT PASSWORD =====
         function openForgotPassword() { document.getElementById('forgot-password-modal').classList.add('show'); document.getElementById('fp-success').classList.add('hidden'); document.getElementById('fp-input').value=''; }
         function closeForgotPassword() { document.getElementById('forgot-password-modal').classList.remove('show'); }
         async function submitForgotPassword() {
@@ -1220,7 +1040,6 @@
 
         // ===== EMPLOYEE NAV =====
         function showEmpSection(section) {
-            setTimeout(()=>{if(section==='checkout')initSignaturePad('co');if(section==='checkin')initSignaturePad(1);if(section==='mod')initSignaturePad('mod-ci');},0);
             ['checkin','checkout','mod','changeroom'].forEach(s => document.getElementById('emp-' + s).classList.add('hidden'));
             document.getElementById('emp-' + section).classList.remove('hidden');
             if (section === 'checkin') { initAllSignaturePads(); renderAmenitiesTable(); }
@@ -1236,7 +1055,6 @@
             form.designation.value = emp.designation || '';
             form.email.value = emp.email || '';
             form.gender.value = emp.gender || 'Male';
-            form.name.readOnly=true;form.code.readOnly=true;
             const missing = !emp.mobile || !emp.dob || !emp.govt_id;
             document.getElementById('missing-data-alert').classList.toggle('hidden', !missing);
         }
@@ -1256,8 +1074,8 @@
             document.getElementById('step-' + step).classList.remove('hidden');
             if (step > 1) document.getElementById('step-1-bar').style.width = '100%';
             if (step > 2) document.getElementById('step-2-bar').style.width = '100%';
-            if (step === 2) { renderAmenitiesTable();requestAnimationFrame(()=>initSignaturePad(2)); }
-            if (step === 3)requestAnimationFrame(()=>initSignaturePad(3));
+            if (step === 2) { initSignaturePad(2); renderAmenitiesTable(); }
+            if (step === 3) initSignaturePad(3);
         }
         function validateStep1() {
             const form = document.getElementById('checkin-form');
@@ -1274,12 +1092,10 @@
 
         // ===== SIGNATURE =====
         let canvases = {}, contexts = {};
-        function initAllSignaturePads() { [1,2,3,'co','mod-ci','mod-co'].forEach(i => initSignaturePad(i)); }
+        function initAllSignaturePads() { [1,2,3].forEach(i => initSignaturePad(i)); }
         function initSignaturePad(i) {
             const canvas = document.getElementById('signature-canvas-' + i);
             if (!canvas) return;
-            if(!canvas.offsetWidth||!canvas.offsetHeight)return;
-            if(canvas.dataset.initialized==='true')return;canvas.dataset.initialized='true';
             const ctx = canvas.getContext('2d');
             canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
             ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#1e3a8a';
@@ -1300,13 +1116,11 @@
             canvas.ontouchend = () => drawing = false;
         }
         function clearSignature(i) {
-            delete uploadedAccommodationSignatures[i];const file=document.getElementById('signature-upload-'+i);if(file)file.value='';
             if (contexts[i]) contexts[i].clearRect(0, 0, canvases[i].width, canvases[i].height);
             const t = document.getElementById('typed-signature-' + i);
             if (t) t.value = '';
         }
         function hasSignature(i) {
-            if(uploadedAccommodationSignatures[i])return true;
             const canvas = canvases[i]; if (!canvas) return false;
             const data = contexts[i].getImageData(0, 0, canvas.width, canvas.height).data;
             for (let j = 3; j < data.length; j += 4) { if (data[j] !== 0) return true; }
@@ -1314,7 +1128,6 @@
         }
 
         // ===== AMENITIES (CHECK-IN) with SHARED-ROOM LOGIC =====
-        function displayRoomInventory(room){if(!room)return room;return {...room,inventory:(room.inventory||[]).map((item,i)=>({...item,available:room.inventoryAvailability?.[String(i)]??item.available}))};}
         function getMyRoom() { return roomsData.find(r => r.number === (currentUser && currentUser.room)); }
 
         function renderAmenitiesTable() {
@@ -1335,15 +1148,15 @@
 
             if (shared) {
                 note.classList.remove('hidden');
-                note.innerHTML = `Shared room: this checklist was signed by <strong>${activationEscape(sharedBy)}</strong>. The same list applies to you - verify and sign below.`;
+                note.innerHTML = `🔗 Shared room: this checklist was signed by <strong>${sharedBy}</strong>. The same list applies to you — verify and sign below.`;
             } else note.classList.add('hidden');
 
             tbody.innerHTML = items.map((it, i) => `
                 <tr>
                     <td class="p-2 border text-center">${i+1}</td>
-                    <td class="p-2 border">${activationEscape(it.name)}</td>
+                    <td class="p-2 border">${it.name}</td>
                     <td class="p-2 border text-center"><input type="checkbox" class="amenity-check" data-idx="${i}" ${it.present ? 'checked' : ''} ${shared ? 'disabled' : ''}></td>
-                    <td class="p-2 border"><input type="text" class="w-full px-2 py-1 border rounded text-sm amenity-remark" data-idx="${i}" value="${activationEscape(it.remarks||'')}" placeholder="Remarks" ${shared ? 'disabled' : ''}></td>
+                    <td class="p-2 border"><input type="text" class="w-full px-2 py-1 border rounded text-sm amenity-remark" data-idx="${i}" value="${(it.remarks||'').replace(/"/g,'&quot;')}" placeholder="Remarks" ${shared ? 'disabled' : ''}></td>
                 </tr>`).join('');
         }
 
@@ -1375,11 +1188,11 @@
             const lastOccupant = (room.occupants || []).length <= 1;
             checkoutEditable = lastOccupant;
             note.innerHTML = lastOccupant
-                ? 'You are the <strong>last occupant</strong>. Update each item\'s condition - room inventory will be updated on submit.'
+                ? 'You are the <strong>last occupant</strong>. Update each item\'s condition — room inventory will be updated on submit.'
                 : 'Shared room: this verification is recorded for you only. The checklist <strong>remains unchanged</strong> for the remaining occupant.';
             tbody.innerHTML = items.map((it, i) => `
                 <tr>
-                    <td class="p-2 border">${activationEscape(it.name)}</td>
+                    <td class="p-2 border">${it.name}</td>
                     <td class="p-2 border text-center">${it.present ? '✓' : '✗'}</td>
                     <td class="p-2 border"><select class="co-condition w-full px-2 py-1 border rounded text-sm" data-idx="${i}" ${lastOccupant ? '' : 'disabled'}><option>OK</option><option>Damaged</option><option>Missing</option></select></td>
                     <td class="p-2 border"><input type="text" class="co-remark w-full px-2 py-1 border rounded text-sm" data-idx="${i}" ${lastOccupant ? '' : 'disabled'} placeholder="Remarks"></td>
@@ -1388,60 +1201,105 @@
 
         // ===== SUBMIT CHECK-IN =====
         async function submitCheckIn() {
-            if(!currentUser)return;
-            if(!document.getElementById('rules-agree').checked){alert('Please agree to rules');return;}
-            if(!validateStep1()||!validateStep2())return;
-            const sig=document.getElementById('typed-signature-3').value;
-            if(!sig&&!hasSignature(3)){alert('Please provide signature on rules page');return;}
-            try {
-                const data=Object.fromEntries(new FormData(document.getElementById('checkin-form')).entries()),checklist=readCheckinChecklist();
-                const record=window.fb.doc(window.fb.collection(window.fb.db,'checkins'));
-                await window.fb.runTransaction(window.fb.db,async tx=>{
-                    const employeeRef=activationRef('employees',currentUser.id),employeeSnapshot=await tx.get(employeeRef),employee=employeeSnapshot.data();
-                    if(!employee.room)throw Error('Admin must assign your room first.');
-                    const roomRef=activationRef('rooms',employee.room),roomSnapshot=await tx.get(roomRef);if(!roomSnapshot.exists())throw Error('Assigned room not found.');
-                    const room=roomSnapshot.data(),uids=room.occupantUids||[],occupants=room.occupants||[];
-                    if(employee.status==='active'||uids.includes(currentUser.uid))throw Error('You already have an active check-in.');
-                    if(uids.length!==occupants.length)throw Error('Room records need admin reconciliation before check-in.');
-                    if(occupants.length>=room.capacity)throw Error('Your assigned room is full. Contact admin.');
-                    const signatureImages={personal:savedSignature(1),amenities:savedSignature(2),rules:savedSignature(3)};
-                    tx.set(record,{...data,personalAcknowledgement:document.getElementById('typed-signature-1').value,amenitiesAcknowledgement:document.getElementById('typed-signature-2').value,rulesAccepted:true,rulesText:document.querySelector('#step-3 ul').textContent.trim(),uid:currentUser.uid,employeeId:currentUser.id,employeeName:employee.name,room:employee.room,checklist,signatureUrl:signatureImages.rules,signatureImages,typedSignature:sig||'[Drawn]',timestamp:new Date().toISOString()});
-                    tx.update(roomRef,{occupants:[...occupants,employee.name],occupantUids:[...uids,currentUser.uid],occupantNames:{...(room.occupantNames||{}),[currentUser.uid]:employee.name},lastCheckInId:record.id,...(!room.currentChecklist?.items?.length?{currentChecklist:{items:checklist,by:employee.name,date:new Date().toISOString()}}:{})});
-                    tx.set(activationRef('roomAvailability',employee.room),{number:room.number,block:room.block||'',cabin:room.cabin||'',capacity:room.capacity,free:room.capacity-occupants.length-1});
-                    tx.update(employeeRef,{status:'active',lastCheckIn:new Date().toISOString(),lastCheckInId:record.id});
-                });
-                [1,2,3].forEach(clearSignature);document.getElementById('rules-agree').checked=false;alert('Check-in saved.');
-            }catch(e){alert('Check-in not completed: '+e.message);}
-        }
-        async function submitCheckOut() {
-            if(!currentUser)return;
-            const sig=document.getElementById('typed-signature-co').value;
-            if(!sig&&!hasSignature('co')){alert('Please provide signature');return;}
-            if(currentUser.isMOD){alert('Use the MOD Check-Out tab for your duty stay.');return;}
-            if(!confirm('Your login will be disabled after checkout, as this page is configured. Continue?'))return;
-            try {
-                const conditions=document.querySelectorAll('.co-condition'),remarks=document.querySelectorAll('.co-remark');
-                const verification=checkoutItems.map((it,i)=>({name:it.name,atCheckIn:!!it.present,condition:conditions[i]?.value||'OK',remarks:remarks[i]?.value||''}));
-                const record=window.fb.doc(window.fb.collection(window.fb.db,'checkouts'));
-                await window.fb.runTransaction(window.fb.db,async tx=>{
-                    const employeeRef=activationRef('employees',currentUser.id),employee=(await tx.get(employeeRef)).data();
-                    const roomRef=activationRef('rooms',employee.room),roomSnapshot=await tx.get(roomRef);if(!roomSnapshot.exists())throw Error('Assigned room not found.');
-                    const room=roomSnapshot.data(),uids=room.occupantUids||[],index=uids.indexOf(currentUser.uid);
-                    if(index<0||employee.status!=='active')throw Error('No matching active room occupancy. Contact admin.');
-                    const occupants=[...(room.occupants||[])];occupants.splice(index,1);const remaining=uids.filter(uid=>uid!==currentUser.uid);
-                    const names={...(room.occupantNames||{})};delete names[currentUser.uid];const update={occupants,occupantUids:remaining,occupantNames:names,lastCheckOutId:record.id};
-                    if(!remaining.length){update.currentChecklist=null;update.inventoryAvailability=Object.fromEntries((room.inventory||[]).map((item,i)=>{const checked=verification.find(x=>x.name===item.name);return [String(i),checked?checked.condition!=='Missing':(room.inventoryAvailability?.[String(i)]??item.available)!==false];}));}
+            if (!currentUser) return;
+            if (!document.getElementById('rules-agree').checked) { alert('Please agree to rules'); return; }
+            const sig = document.getElementById('typed-signature-3').value;
+            if (!sig && !hasSignature(3)) { alert('Please provide signature on rules page'); return; }
+            const form = document.getElementById('checkin-form');
+            const data = Object.fromEntries(new FormData(form).entries());
+            const checklist = readCheckinChecklist();
 
-                    tx.set(record,{uid:currentUser.uid,employeeId:currentUser.id,employeeName:employee.name,room:employee.room,date:document.getElementById('co-date').value,reason:document.getElementById('co-reason').value,verification,typedSignature:sig||'[Drawn]',signatureImage:savedSignature('co'),timestamp:new Date().toISOString()});
-                    tx.update(roomRef,update);tx.set(activationRef('roomAvailability',employee.room),{number:room.number,block:room.block||'',cabin:room.cabin||'',capacity:room.capacity,free:room.capacity-remaining.length});tx.update(employeeRef,{loginEnabled:false,status:'disabled',lastCheckOutId:record.id});
+            let signatureUrl = '';
+            if (canvases[3]) {
+                try {
+                    const sigData = canvases[3].toDataURL('image/png');
+                    const sigRef = window.fb.ref(window.fb.storage, `signatures/${currentUser.id}/${Date.now()}.png`);
+                    await window.fb.uploadString(sigRef, sigData, 'data_url');
+                    signatureUrl = await window.fb.getDownloadURL(sigRef);
+                } catch(e) {}
+            }
+
+            try {
+                await window.fb.addDoc(window.fb.collection(window.fb.db, 'checkins'), {
+                    employeeId: currentUser.id, employeeName: currentUser.name,
+                    ...data, checklist, signatureUrl,
+                    typedSignature: sig || '[Drawn]',
+                    timestamp: new Date().toISOString()
                 });
-                alert('Checkout saved. Login disabled as configured.');await logout();
-            }catch(e){alert('Checkout not completed: '+e.message);}
+
+                const room = getMyRoom();
+                const updates = { status: 'active', lastCheckIn: new Date().toISOString() };
+                if (room) {
+                    const occ = [...(room.occupants || [])];
+                    if (!occ.includes(currentUser.name) && occ.length < (room.capacity || 1)) occ.push(currentUser.name);
+                    const roomUpdates = { occupants: occ };
+                    if (!room.currentChecklist || !(room.currentChecklist.items && room.currentChecklist.items.length)) {
+                        roomUpdates.currentChecklist = { items: checklist, by: currentUser.name, date: new Date().toISOString() };
+                    }
+                    await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.number), roomUpdates);
+                }
+                await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', currentUser.id), updates);
+                alert('✓ Check-in submitted successfully!');
+            } catch (error) {
+                console.error(error);
+                let msg = 'Error submitting check-in: ' + error.message;
+                if (error.code === 'permission-denied') msg = 'Permission denied. Publish the updated Firestore Rules first.';
+                alert(msg);
+            }
+        }
+
+        // ===== SUBMIT CHECK-OUT =====
+        async function submitCheckOut() {
+            const sig = document.getElementById('typed-signature-co').value;
+            if (!sig && !hasSignature('co')) { alert('Please provide signature'); return; }
+            const conditions = document.querySelectorAll('.co-condition');
+            const remarks = document.querySelectorAll('.co-remark');
+            const verification = checkoutItems.map((it, i) => ({
+                name: it.name, atCheckIn: !!it.present,
+                condition: conditions[i] ? conditions[i].value : 'OK',
+                remarks: remarks[i] ? remarks[i].value : ''
+            }));
+
+            if (!currentUser.isMOD) {
+                if (!confirm('Your login will be DISABLED after check-out. Continue?')) return;
+                try {
+                    await window.fb.addDoc(window.fb.collection(window.fb.db, 'checkouts'), {
+                        employeeId: currentUser.id, employeeName: currentUser.name,
+                        date: document.getElementById('co-date').value,
+                        reason: document.getElementById('co-reason').value,
+                        verification, timestamp: new Date().toISOString()
+                    });
+
+                    const room = getMyRoom();
+                    if (room) {
+                        let occ = (room.occupants || []).filter(n => n !== currentUser.name);
+                        const roomUpdates = { occupants: occ };
+                        if (occ.length === 0) {
+                            const newInv = (room.inventory && room.inventory.length ? room.inventory : checkoutItems.map(it => ({ name: it.name, qty: 1 })))
+                                .map(item => {
+                                    const v = verification.find(x => x.name === item.name);
+                                    return { ...item, available: v ? (v.condition !== 'Missing') : (item.available !== false) };
+                                });
+                            roomUpdates.inventory = newInv;
+                            roomUpdates.currentChecklist = null;
+                        }
+                        await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.number), roomUpdates);
+                    }
+                    await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', currentUser.id), { loginEnabled: false, status: 'disabled' });
+                    alert('✓ Check-out submitted. Login disabled.');
+                    setTimeout(logout, 1500);
+                } catch (error) {
+                    let msg = 'Error: ' + error.message;
+                    if (error.code === 'permission-denied') msg = 'Permission denied. Publish the updated Firestore Rules first.';
+                    alert(msg);
+                }
+            } else {
+                alert('✓ MOD Check-out submitted. Login remains active.');
+            }
         }
 
         // ===== MOD =====
         function showMODTab(tab) {
-            setTimeout(()=>{if(tab==='checkin')initSignaturePad('mod-ci');if(tab==='checkout')initSignaturePad('mod-co');},0);
             ['checkin','checkout','history'].forEach(t => {
                 document.getElementById('mod-' + t).classList.add('hidden');
                 document.getElementById('mod-tab-' + t).classList.remove('tab-active');
@@ -1453,7 +1311,8 @@
         }
         function loadMODRoomDropdown() {
             const sel = document.getElementById('mod-room');
-            const vacant = modAvailableRooms.filter(r => r.free > 0);
+            if (!sel) return;
+            const vacant = roomsData.filter(r => (r.occupants?.length || 0) < (r.capacity || 0));
             sel.innerHTML = '<option value="">-- Select or wait for admin --</option>' +
                 vacant.map(r => `<option value="${r.number}">${r.number} (Block ${r.block})</option>`).join('');
         }
@@ -1469,24 +1328,23 @@
             const co = document.getElementById('mod-co-date').value;
             const purpose = document.getElementById('mod-purpose').value;
             const sig = document.getElementById('typed-signature-mod-ci').value;
-            if (!room || !ci || !co || co<ci) { alert('Please select a room and valid date order'); return; }
+            if (!room || !ci || !co) { alert('Please fill all fields'); return; }
             if (!sig && !hasSignature('mod-ci')) { alert('Please provide signature'); return; }
             try {
-                if(ownMODStays.some(stay=>stay.status==='active'))throw Error('Close your active MOD stay first.');
                 await window.fb.addDoc(window.fb.collection(window.fb.db, 'modstays'), {
-                    uid:currentUser.uid, employeeId: currentUser.id, employeeName: currentUser.name,
+                    employeeId: currentUser.id, employeeName: currentUser.name,
                     room, checkIn: ci, checkOut: co, purpose,
-                    typedSignature: sig || '[Drawn]', signatureImage:savedSignature('mod-ci'), status: 'active', timestamp: new Date().toISOString()
+                    typedSignature: sig || '[Drawn]', status: 'active', timestamp: new Date().toISOString()
                 });
-                clearSignature('mod-ci');alert(`MOD check-in saved for room ${room}. Confirm actual allocation with admin; this duty record is not a bed reservation.`);
+                alert(`✓ MOD Check-In submitted for room ${room}`);
             } catch (error) { alert('Error: ' + error.message); }
         }
         async function submitMODCheckOut() {
-            const date=document.getElementById('mod-co-date-out').value,sig=document.getElementById('typed-signature-mod-co').value;
-            if(!date||(!sig&&!hasSignature('mod-co'))){alert('Select a date and sign.');return;}
-            const active=ownMODStays.filter(s=>s.status==='active');
-            if(active.length!==1){alert('Select the correct active stay with admin before checkout. There must be exactly one active duty stay.');return;}
-            try {const stay=active[0];if(date<stay.checkIn)throw Error('Checkout cannot be before check-in.');await window.fb.updateDoc(activationRef('modstays',stay.id),{status:'closed',actualCheckOut:date,checkoutRemarks:document.getElementById('mod-co-remarks').value,checkoutSignature:sig||'[Drawn]',checkoutSignatureImage:savedSignature('mod-co')});alert('MOD checkout saved. Your login stays active.');clearSignature('mod-co');}catch(e){alert(e.message);}
+            const date = document.getElementById('mod-co-date-out').value;
+            const sig = document.getElementById('typed-signature-mod-co').value;
+            if (!date) { alert('Please select date'); return; }
+            if (!sig && !hasSignature('mod-co')) { alert('Please provide signature'); return; }
+            alert('✓ MOD Check-Out submitted.');
         }
 
         // ===== ADMIN UPLOAD =====
@@ -1504,8 +1362,11 @@
                         const p = lines[i].split(',').map(s => s.trim());
                         if (p.length >= 5) {
                             const [block, cabin, roomNo, roomType, beds] = p;
-                            const capacity=Number(beds);if(!block||!roomNo||!Number.isInteger(capacity)||capacity<1||capacity>20)throw Error('Invalid room row. Capacity must be 1 to 20.');
-                            await window.fb.runTransaction(window.fb.db,async tx=>{const r=activationRef('rooms',roomNo),old=await tx.get(r);if(old.exists())throw Error('Room already exists: '+roomNo+'. Existing occupancy/inventory was not replaced.');tx.set(r,{number:roomNo,block,cabin,type:roomType,capacity,occupants:[],occupantUids:[],inventory:[],inventoryAvailability:{},currentChecklist:null,occupantNames:{},createdAt:new Date().toISOString()});tx.set(activationRef('roomAvailability',roomNo),{number:roomNo,block,cabin,capacity,free:capacity});});
+                            await window.fb.setDoc(window.fb.doc(window.fb.db, 'rooms', roomNo), {
+                                number: roomNo, block, cabin, type: roomType,
+                                capacity: parseInt(beds) || 1, occupants: [], inventory: [],
+                                createdAt: new Date().toISOString()
+                            }, { merge: true });
                             count++;
                         }
                     }
@@ -1550,7 +1411,7 @@
             const blocks = [...new Set(roomsData.map(r => r.block))].filter(Boolean).sort();
             const curB = bSel.value;
             bSel.innerHTML = '<option value="">-- Block --</option>' + blocks.map(b => `<option value="${b}">${b}</option>`).join('');
-            if (curB) bSel.value = curB;
+            if (curB && blocks.includes(curB)) bSel.value = curB;
         }
         function onInvBlockChange() {
             const b = document.getElementById('inv-block').value;
@@ -1587,7 +1448,7 @@
             tbody.innerHTML = invEditList.map((it, i) => `
                 <tr>
                     <td class="p-2 border text-center">${i+1}</td>
-                    <td class="p-2 border">${activationEscape(it.name)}</td>
+                    <td class="p-2 border">${it.name}</td>
                     <td class="p-2 border text-center">${it.qty || 1}</td>
                     <td class="p-2 border text-center"><input type="checkbox" class="w-4 h-4" ${it.available !== false ? 'checked' : ''} onchange="invEditList[${i}].available=this.checked"></td>
                     <td class="p-2 border text-center"><button onclick="invEditList.splice(${i},1);renderInvTable();" class="text-red-500 text-sm">✕</button></td>
@@ -1597,7 +1458,6 @@
             if (!invSelectedRoom) { alert('Select a room first'); return; }
             const name = document.getElementById('inv-item-name').value.trim();
             if (!name) { alert('Enter item name'); return; }
-            if(invEditList.length>=40){alert('Maximum 40 inventory items per room in this version.');return;}
             invEditList.push({
                 name,
                 qty: parseInt(document.getElementById('inv-item-qty').value) || 1,
@@ -1610,9 +1470,8 @@
         }
         async function saveRoomInventory() {
             if (!invSelectedRoom) return;
-            if(invEditList.length>40){alert('Maximum 40 inventory items per room.');return;}
             try {
-                await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', invSelectedRoom), { inventory: invEditList,inventoryAvailability:Object.fromEntries(invEditList.map((item,i)=>[String(i),item.available!==false])) });
+                await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', invSelectedRoom), { inventory: invEditList });
                 alert('✓ Inventory saved!');
             } catch (e) { alert('Error: ' + e.message); }
         }
@@ -1636,8 +1495,7 @@
                     for (const roomNo in byRoom) {
                         const room = roomsData.find(r => r.number === roomNo);
                         const existing = (room && room.inventory) || [];
-                        if(existing.length+byRoom[roomNo].length>40)throw Error('Room '+roomNo+' would exceed 40 inventory items.');
-                        await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', roomNo), { inventory:[...existing,...byRoom[roomNo]],inventoryAvailability:Object.fromEntries([...existing,...byRoom[roomNo]].map((item,i)=>[String(i),item.available!==false])) });
+                        await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', roomNo), { inventory: [...existing, ...byRoom[roomNo]] });
                         count += byRoom[roomNo].length;
                     }
                     alert(`✓ ${count} inventory items uploaded!`);
@@ -1759,7 +1617,7 @@
                     <td class="p-3 font-medium">${emp.name} ${emp.isMOD?'<span class="text-xs bg-orange-100 text-orange-700 px-1 rounded ml-1">MOD</span>':''}</td>
                     <td class="p-3 text-xs"><code>${emp.username||emp.email||'-'}</code></td>
                     <td class="p-3">${emp.dept}</td><td class="p-3">${emp.designation||'-'}</td><td class="p-3">${emp.room||'-'}</td>
-                    <td class="p-3"><span class="text-xs px-2 py-1 rounded ${emp.registered?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${emp.registered?'Registered':'Pending'}</span>${!emp.registered?`<button type="button" data-activation-employee="${activationEscape(emp.id)}" class="block mt-2 text-blue-700 underline text-xs text-left" style="min-width:160px">Generate / replace signup code</button><button type="button" data-revoke-activation="${activationEscape(emp.id)}" class="block mt-1 text-red-700 underline text-xs text-left" style="min-width:160px">Revoke unused code</button>`:''}</td>
+                    <td class="p-3"><span class="text-xs px-2 py-1 rounded ${emp.registered?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${emp.registered?'Registered':'Pending'}</span></td>
                     <td class="p-3"><label class="toggle-switch"><input type="checkbox" ${emp.loginEnabled?'checked':''} onchange="toggleLogin('${emp.id}')"><span class="slider"></span></label></td>
                 </tr>`).join('');
         }
@@ -1773,7 +1631,7 @@
                 <tr class="border-b hover:bg-gray-50">
                     <td class="p-3">${emp.name}</td><td class="p-3 text-xs"><code>${emp.username||emp.email||'-'}</code></td>
                     <td class="p-3">${emp.dept}</td><td class="p-3">${emp.designation||'-'}</td><td class="p-3">${emp.room||'-'}</td>
-                    <td class="p-3"><span class="text-xs px-2 py-1 rounded ${emp.registered?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${emp.registered?'Registered':'Pending'}</span>${!emp.registered?`<button type="button" data-activation-employee="${activationEscape(emp.id)}" class="block mt-2 text-blue-700 underline text-xs text-left" style="min-width:160px">Generate / replace signup code</button><button type="button" data-revoke-activation="${activationEscape(emp.id)}" class="block mt-1 text-red-700 underline text-xs text-left" style="min-width:160px">Revoke unused code</button>`:''}</td>
+                    <td class="p-3"><span class="text-xs px-2 py-1 rounded ${emp.registered?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${emp.registered?'Registered':'Pending'}</span></td>
                     <td class="p-3"><label class="toggle-switch"><input type="checkbox" ${emp.loginEnabled?'checked':''} onchange="toggleLogin('${emp.id}')"><span class="slider"></span></label></td>
                 </tr>`).join('');
         }
@@ -1803,12 +1661,12 @@
             const cap = room.capacity || 0;
             let html = `<div class="mb-4"><p class="text-sm"><strong>Type:</strong> ${room.type} | <strong>Beds:</strong> ${cap}</p></div><h4 class="font-semibold mb-2">Occupants</h4><div class="space-y-2">`;
             for (let i=0;i<cap;i++){
-                const o = room.occupants?.[i],uid=room.occupantUids?.[i];
-                html += `<div class="p-3 border rounded flex justify-between items-center"><span><strong>Bed ${i+1}:</strong> ${o||'<span class="text-green-600">Vacant</span>'}</span>${o?`<button data-room-checkout="${activationEscape(room.number)}" data-occupant-uid="${activationEscape(uid||'')}" class="text-red-500 text-sm">Check-Out</button>`:`<button data-room-allocate="${activationEscape(room.number)}" class="text-blue-500 text-sm">Allocate</button>`}</div>`;
+                const o = room.occupants?.[i];
+                html += `<div class="p-3 border rounded flex justify-between items-center"><span><strong>Bed ${i+1}:</strong> ${o||'<span class="text-green-600">Vacant</span>'}</span>${o?'<button class="text-red-500 text-sm">Check-Out</button>':'<button class="text-blue-500 text-sm">Allocate</button>'}</div>`;
             }
             html += `</div>`;
             if (room.inventory && room.inventory.length) {
-                html += `<h4 class="font-semibold mt-4 mb-2">Inventory</h4><ul class="list-disc pl-5 text-sm text-gray-600">${room.inventory.map(it=>`<li>${activationEscape(it.name)} × ${it.qty||1} ${it.available===false?'<span class="text-red-500">(not available)</span>':''}</li>`).join('')}</ul>`;
+                html += `<h4 class="font-semibold mt-4 mb-2">Inventory</h4><ul class="list-disc pl-5 text-sm text-gray-600">${room.inventory.map(it=>`<li>${it.name} × ${it.qty||1} ${it.available===false?'<span class="text-red-500">(not available)</span>':''}</li>`).join('')}</ul>`;
             }
             document.getElementById('room-detail-content').innerHTML = html;
             document.getElementById('room-modal').classList.add('show');
@@ -1834,28 +1692,33 @@
         }
 
         // ===== REALTIME LISTENERS =====
-        let accommodationUnsubscribers=[];
-        function stopAccommodationListeners(){accommodationUnsubscribers.forEach(stop=>stop());accommodationUnsubscribers=[];}
         function startRealtimeListeners() {
-            stopAccommodationListeners();const admin=currentUser?.role==='admin';
-            const listen=(target,callback)=>accommodationUnsubscribers.push(window.fb.onSnapshot(target,callback,error=>alert('Record access failed: '+error.message)));
-            const employees=admin?window.fb.collection(window.fb.db,'employees'):window.fb.query(window.fb.collection(window.fb.db,'employees'),window.fb.where('uid','==',currentUser.uid),window.fb.where('email','==',window.fb.auth.currentUser.email),window.fb.where('loginEnabled','==',true));
-            listen(employees,snapshot=>{employeesData=snapshot.docs.map(d=>({id:d.id,...d.data()}));if(admin){renderEmpTable();renderUploadPreview();updateStats();}else if(employeesData.length===1){const next=employeesData[0];if(currentUser.room!==next.room){currentUser={...currentUser,...next};document.getElementById('current-room-display').textContent=next.room||'Not assigned';startRealtimeListeners();}else currentUser={...currentUser,...next};}});
-            if(admin){listen(window.fb.collection(window.fb.db,'rooms'),snapshot=>{roomsData=snapshot.docs.map(d=>displayRoomInventory({id:d.id,...d.data()}));renderBlockTabs();renderBlockSummary();renderRooms();renderUploadPreview();updateStats();populateInventoryDropdowns();});}
-            else if(currentUser.room){listen(activationRef('rooms',currentUser.room),snapshot=>{roomsData=snapshot.exists()?[displayRoomInventory({id:snapshot.id,...snapshot.data()})]:[];if(!document.getElementById('emp-checkin').classList.contains('hidden'))renderAmenitiesTable();if(!document.getElementById('emp-checkout').classList.contains('hidden'))renderCheckoutChecklist();});}
-            const assignments=admin?window.fb.collection(window.fb.db,'modAssignments'):window.fb.query(window.fb.collection(window.fb.db,'modAssignments'),window.fb.where('empId','==',currentUser.id));
-            listen(assignments,snapshot=>{modAssignments=snapshot.docs.map(d=>({id:d.id,...d.data()}));if(!admin)loadMODAssignment();});
-            if(admin)listen(window.fb.collection(window.fb.db,'roomChangeRequests'),renderAccommodationMoves);
-            if(!admin){
-                listen(activationRef('roomChangeRequests',currentUser.uid),snapshot=>{const status=document.getElementById('own-room-move-status');status.textContent=snapshot.exists()?'Last request: '+snapshot.data().status:'';});
-                listen(window.fb.collection(window.fb.db,'roomAvailability'),snapshot=>{modAvailableRooms=snapshot.docs.map(d=>({id:d.id,...d.data()}));const select=document.getElementById('employee-move-room');select.replaceChildren(new Option('Select a vacant room',''));for(const room of modAvailableRooms.filter(r=>r.free>0&&r.number!==currentUser.room))select.add(new Option(room.number+' (Block '+room.block+')',room.number));if(currentUser.isMOD){loadMODRoomDropdown();loadMODAssignment();}});
-            }
-            if(!admin && currentUser.isMOD){
-                listen(window.fb.query(window.fb.collection(window.fb.db,'modstays'),window.fb.where('uid','==',currentUser.uid)),snapshot=>{ownMODStays=snapshot.docs.map(d=>({id:d.id,...d.data()}));document.getElementById('mod-history-body').innerHTML=ownMODStays.map(stay=>`<tr><td class="p-2">${activationEscape(stay.room)}</td><td class="p-2">${activationEscape(stay.checkIn)}</td><td class="p-2">${activationEscape(stay.actualCheckOut||stay.checkOut)}</td><td class="p-2">${activationEscape(stay.purpose)}</td><td class="p-2">${activationEscape(stay.status)}</td></tr>`).join('')||'<tr><td colspan="5" class="p-4">No MOD stays recorded yet.</td></tr>';});
-            }
-            listen(activationRef('settings','branding'),snapshot=>{if(snapshot.exists())applyBrandSettings(snapshot.data());});
-        }
+            window.fb.onSnapshot(window.fb.collection(window.fb.db, 'rooms'), (snapshot) => {
+                roomsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                if (currentUser?.role === 'admin') {
+                    renderBlockTabs(); renderBlockSummary(); renderRooms(); renderUploadPreview(); updateStats(); populateInventoryDropdowns();
+                } else if (currentUser?.role === 'employee') {
+                    loadMODRoomDropdown();
+                    if (!document.getElementById('emp-checkin').classList.contains('hidden')) renderAmenitiesTable();
+                    if (!document.getElementById('emp-checkout').classList.contains('hidden')) renderCheckoutChecklist();
+                }
+            }, (err) => console.warn('rooms listener:', err.message));
 
+            if (currentUser?.role === 'admin') {
+                window.fb.onSnapshot(window.fb.collection(window.fb.db, 'employees'), (snapshot) => {
+                    employeesData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    renderEmpTable(); renderUploadPreview(); updateStats();
+                }, (err) => console.warn('employees listener:', err.message));
+            }
+
+            window.fb.onSnapshot(window.fb.collection(window.fb.db, 'modAssignments'), (snapshot) => {
+                modAssignments = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            }, (err) => console.warn('modAssignments listener:', err.message));
+
+            window.fb.onSnapshot(window.fb.doc(window.fb.db, 'settings', 'branding'), (snap) => {
+                if (snap.exists()) applyBrandSettings(snap.data());
+            }, (err) => console.warn('branding listener:', err.message));
+        }
     </script>
 </body>
 </html>
