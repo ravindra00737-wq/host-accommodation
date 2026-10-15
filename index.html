@@ -101,7 +101,6 @@
             </div>
             
             <form id="login-form" class="space-y-4" onsubmit="handleLogin(event)">
-                <!-- Email field (hidden on Admin tab) -->
                 <div id="login-email-wrap">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
                     <input type="text" id="login-email" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="your.email@company.com">
@@ -461,7 +460,8 @@
                         
                         <div class="bg-blue-50 p-5 rounded-lg border border-blue-200 mb-6">
                             <h4 class="font-bold text-blue-900 mb-2">Step 1: Upload Room Structure</h4>
-                            <p class="text-sm text-blue-800 mb-3">CSV: <code class="bg-white px-2 py-0.5 rounded">BlockNo, CabinNo, RoomNo, RoomType, Beds</code></p>
+                            <p class="text-sm text-blue-800 mb-1">CSV: <code class="bg-white px-2 py-0.5 rounded">BlockNo, CabinNo, RoomNo, RoomType, Beds</code></p>
+                            <p class="text-xs text-blue-700 mb-3">ℹ RoomNo = room label inside the cabin (A, B, C…). The system auto-creates a unique full room ID like <strong>K-17-A</strong>.</p>
                             <input type="file" id="room-struct-csv" accept=".csv" class="hidden" onchange="uploadRoomStructure(event)">
                             <div class="flex gap-2 flex-wrap">
                                 <button onclick="document.getElementById('room-struct-csv').click()" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">📤 Upload Room CSV</button>
@@ -472,7 +472,8 @@
 
                         <div class="bg-green-50 p-5 rounded-lg border border-green-200 mb-6">
                             <h4 class="font-bold text-green-900 mb-2">Step 2: Upload Employee List</h4>
-                            <p class="text-sm text-green-800 mb-3">CSV: <code class="bg-white px-2 py-0.5 rounded">Name, Designation, Department, RoomNo</code></p>
+                            <p class="text-sm text-green-800 mb-1">CSV: <code class="bg-white px-2 py-0.5 rounded">Name, Designation, Department, RoomNo</code></p>
+                            <p class="text-xs text-green-700 mb-3">ℹ RoomNo = full room ID shown in Layout / preview (e.g. <strong>K-17-A</strong>).</p>
                             <input type="file" id="emp-list-csv" accept=".csv" class="hidden" onchange="uploadEmployeeList(event)">
                             <div class="flex gap-2 flex-wrap">
                                 <button onclick="document.getElementById('emp-list-csv').click()" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">📤 Upload Employee CSV</button>
@@ -488,7 +489,7 @@
                                     <h5 class="text-sm font-semibold mb-2">Rooms (<span id="room-count">0</span>)</h5>
                                     <div class="max-h-64 overflow-y-auto bg-white border rounded">
                                         <table class="w-full text-xs">
-                                            <thead class="bg-gray-100 sticky top-0"><tr><th class="p-2 text-left">Block</th><th class="p-2 text-left">Cabin</th><th class="p-2 text-left">Room</th><th class="p-2 text-left">Type</th><th class="p-2 text-left">Beds</th></tr></thead>
+                                            <thead class="bg-gray-100 sticky top-0"><tr><th class="p-2 text-left">Block</th><th class="p-2 text-left">Cabin</th><th class="p-2 text-left">Room ID</th><th class="p-2 text-left">Type</th><th class="p-2 text-left">Beds</th></tr></thead>
                                             <tbody id="preview-rooms"></tbody>
                                         </table>
                                     </div>
@@ -668,6 +669,9 @@
             </div>
             <div class="p-6">
                 <div id="room-detail-content"></div>
+                <div class="mt-5 pt-4 border-t flex justify-end">
+                    <button id="delete-room-btn" onclick="deleteCurrentRoom()" class="px-4 py-2 bg-red-500 text-white rounded text-sm hover:bg-red-600">🗑 Delete This Room</button>
+                </div>
             </div>
         </div>
     </div>
@@ -688,7 +692,8 @@
         let checkoutEditable = false;
         let pendingLogoUrl = null;
         let pendingBgUrl = null;
-        let currentLoginTab = 'employee';  // NEW: track which tab is active
+        let currentLoginTab = 'employee';
+        let currentModalRoom = null;
         const amenitiesList = ["Single Bed", "Mattress", "Pillow", "Blanket", "Wardrobe", "Study Table", "Chair", "AC", "Fan", "Light", "Mirror", "Curtains"];
 
         // ===== COLOR HELPERS =====
@@ -819,13 +824,13 @@
         function downloadSampleCSV(type) {
             let csv = '', filename = '';
             if (type === 'rooms') {
-                csv = 'BlockNo,CabinNo,RoomNo,RoomType,Beds\nA,Cabin-1,A-101,Single,1\nA,Cabin-1,A-102,Sharing,2\nA,Cabin-2,A-201,Sharing,3\nB,Cabin-1,B-101,Single,1\nB,Cabin-1,B-102,Sharing,2\n';
+                csv = 'BlockNo,CabinNo,RoomNo,RoomType,Beds\nK,17,A,Sharing,2\nK,17,B,Sharing,2\nK,18,A,Sharing,2\nK,18,B,Single,1\nA,1,A,Single,1\nA,1,B,Sharing,2\n';
                 filename = 'sample_rooms.csv';
             } else if (type === 'employees') {
-                csv = 'Name,Designation,Department,RoomNo\nJohn Doe,Manager,Engineering,A-101\nJane Smith,Executive,HR,A-102\nRobert Brown,Analyst,Finance,A-102\n';
+                csv = 'Name,Designation,Department,RoomNo\nJohn Doe,Manager,Engineering,K-17-A\nJane Smith,Executive,HR,K-17-B\nRobert Brown,Analyst,Finance,K-18-A\n';
                 filename = 'sample_employees.csv';
             } else {
-                csv = 'BlockNo,RoomNo,ItemName,Available,Qty\nA,A-101,Single Bed,Yes,1\nA,A-101,Mattress,Yes,1\nA,A-101,Wardrobe,Yes,1\nA,A-101,AC,Yes,1\n';
+                csv = 'BlockNo,RoomNo,ItemName,Available,Qty\nK,K-17-A,Single Bed,Yes,2\nK,K-17-A,Mattress,Yes,2\nK,K-17-A,Wardrobe,Yes,1\nK,K-17-A,AC,Yes,1\n';
                 filename = 'sample_inventory.csv';
             }
             const blob = new Blob([csv], { type: 'text/csv' });
@@ -833,6 +838,17 @@
             const a = document.createElement('a');
             a.href = url; a.download = filename; a.click();
             URL.revokeObjectURL(url);
+        }
+
+        // ===== ROOM ID RESOLVER =====
+        // Accepts full ID (K-17-A) or, if unique, a short label (A)
+        function resolveRoomNo(input) {
+            if (!input) return '';
+            const exact = roomsData.find(r => r.number === input);
+            if (exact) return exact.number;
+            const suffix = roomsData.filter(r => (r.room && r.room === input) || r.number.endsWith('-' + input));
+            if (suffix.length === 1) return suffix[0].number;
+            return input;
         }
 
         // ===== INITIALIZATION =====
@@ -851,7 +867,6 @@
         });
 
         // ===== LOGIN =====
-        // UPDATED: toggle form fields based on active tab
         function switchLoginTab(type) {
             currentLoginTab = type;
             const empTab = document.getElementById('login-tab-employee');
@@ -896,10 +911,8 @@
             try {
                 let loginEmail;
                 if (currentLoginTab === 'admin') {
-                    // Admin tab: no email needed, use hardcoded admin email
                     loginEmail = 'admin@company.com';
                 } else {
-                    // Employee tab: normal flow
                     loginEmail = emailInput;
                     if (!emailInput.includes('@')) loginEmail = `${emailInput}@company.com`;
                 }
@@ -956,7 +969,6 @@
             document.getElementById('admin-dashboard').classList.add('hidden');
             document.getElementById('login-screen').classList.remove('hidden');
             document.getElementById('login-form').reset();
-            // Reset to employee tab on logout
             switchLoginTab('employee');
         }
 
@@ -1348,13 +1360,14 @@
         }
 
         // ===== ADMIN UPLOAD =====
+        // FIXED: unique room ID = Block-Cabin-Room so repeated room letters never overwrite each other
         async function uploadRoomStructure(event) {
             const file = event.target.files[0]; if (!file) return;
             const reader = new FileReader();
             reader.onload = async (e) => {
                 const lines = e.target.result.split('\n').filter(l => l.trim());
                 const startIdx = lines[0].toLowerCase().includes('block') ? 1 : 0;
-                let count = 0;
+                let count = 0, skipped = 0;
                 const statusDiv = document.getElementById('room-upload-status');
                 statusDiv.innerHTML = 'Uploading...';
                 try {
@@ -1362,15 +1375,17 @@
                         const p = lines[i].split(',').map(s => s.trim());
                         if (p.length >= 5) {
                             const [block, cabin, roomNo, roomType, beds] = p;
-                            await window.fb.setDoc(window.fb.doc(window.fb.db, 'rooms', roomNo), {
-                                number: roomNo, block, cabin, type: roomType,
+                            const roomId = `${block}-${cabin}-${roomNo}`;
+                            await window.fb.setDoc(window.fb.doc(window.fb.db, 'rooms', roomId), {
+                                number: roomId, block, cabin, room: roomNo, type: roomType,
                                 capacity: parseInt(beds) || 1, occupants: [], inventory: [],
                                 createdAt: new Date().toISOString()
                             }, { merge: true });
                             count++;
-                        }
+                        } else skipped++;
                     }
-                    statusDiv.innerHTML = `<span class="text-green-600">✓ ${count} rooms uploaded!</span>`;
+                    statusDiv.innerHTML = `<span class="text-green-600">✓ ${count} rooms uploaded!</span>` +
+                        (skipped ? ` <span class="text-red-600">(${skipped} rows skipped – need 5 columns)</span>` : '');
                 } catch (error) { statusDiv.innerHTML = `<span class="text-red-600">Error: ${error.message}</span>`; }
             };
             reader.readAsText(file);
@@ -1389,9 +1404,12 @@
                     for (let i = startIdx; i < lines.length; i++) {
                         const p = lines[i].split(',').map(s => s.trim());
                         if (p.length >= 4) {
-                            const [name, designation, dept, roomNo] = p;
+                            const [name, designation, dept, roomInput] = p;
+                            const roomNo = resolveRoomNo(roomInput);
+                            const room = roomsData.find(r => r.number === roomNo);
                             await window.fb.addDoc(window.fb.collection(window.fb.db, 'employees'), {
                                 name, code: 'EMP' + String(Date.now()).slice(-6) + i, dept, designation, room: roomNo,
+                                block: room ? room.block : '',
                                 gender: 'Male', email: '', uid: '', status: 'pending', isMOD: false,
                                 loginEnabled: false, registered: false, createdAt: new Date().toISOString()
                             });
@@ -1437,7 +1455,7 @@
             const room = roomsData.find(r => r.number === roomNo);
             if (!room) { document.getElementById('inv-list-wrap').classList.add('hidden'); document.getElementById('inv-empty').classList.remove('hidden'); return; }
             invEditList = (room.inventory || []).map(it => ({ ...it }));
-            document.getElementById('inv-room-label').textContent = `${room.number} (Block ${room.block}, ${room.cabin || '-'}, ${room.type})`;
+            document.getElementById('inv-room-label').textContent = `${room.number} (Block ${room.block}, Cabin ${room.cabin || '-'}, ${room.type})`;
             document.getElementById('inv-empty').classList.add('hidden');
             document.getElementById('inv-list-wrap').classList.remove('hidden');
             renderInvTable();
@@ -1485,16 +1503,18 @@
                 for (let i = startIdx; i < lines.length; i++) {
                     const p = lines[i].split(',').map(s => s.trim());
                     if (p.length >= 3) {
-                        const [block, roomNo, itemName, avail, qty] = p;
-                        if (!byRoom[roomNo]) byRoom[roomNo] = [];
-                        byRoom[roomNo].push({ name: itemName, available: (avail || 'yes').toLowerCase().startsWith('y'), qty: parseInt(qty) || 1 });
+                        const [block, roomInput, itemName, avail, qty] = p;
+                        const key = resolveRoomNo(roomInput);
+                        if (!byRoom[key]) byRoom[key] = [];
+                        byRoom[key].push({ name: itemName, available: (avail || 'yes').toLowerCase().startsWith('y'), qty: parseInt(qty) || 1 });
                     }
                 }
                 let count = 0;
                 try {
                     for (const roomNo in byRoom) {
                         const room = roomsData.find(r => r.number === roomNo);
-                        const existing = (room && room.inventory) || [];
+                        if (!room) continue;
+                        const existing = (room.inventory) || [];
                         await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', roomNo), { inventory: [...existing, ...byRoom[roomNo]] });
                         count += byRoom[roomNo].length;
                     }
@@ -1541,12 +1561,14 @@
             const form = document.getElementById('admin-create-form');
             const data = Object.fromEntries(new FormData(form).entries());
             if (!data.name || !data.code || !data.dept) { alert('Please fill required fields'); return; }
+            const roomNo = resolveRoomNo(data.room || '');
+            const room = roomsData.find(r => r.number === roomNo);
             try {
                 await window.fb.addDoc(window.fb.collection(window.fb.db, 'employees'), {
                     name: data.name, code: data.code, dept: data.dept,
                     designation: data.designation || '', gender: data.gender || 'Male',
-                    email: '', uid: '', room: data.room || '',
-                    block: data.room ? data.room.split('-')[0] : '',
+                    email: '', uid: '', room: roomNo,
+                    block: room ? room.block : '',
                     status: 'pending', isMOD: document.getElementById('admin-is-mod').checked,
                     loginEnabled: true, registered: false, createdAt: new Date().toISOString()
                 });
@@ -1605,7 +1627,7 @@
                 }
                 return `<div onclick="openRoomModal('${room.number}')" class="room-card p-3 rounded-lg border-2 ${cls} cursor-pointer">
                     <div class="flex justify-between items-center mb-1"><span class="font-bold text-sm">${room.number}</span><span class="text-xs px-1.5 py-0.5 bg-white rounded border">${room.type}</span></div>
-                    <p class="text-xs text-gray-600">${room.block} • ${room.cabin||''} • ${occ}/${cap}</p>${bedDisplay}</div>`;
+                    <p class="text-xs text-gray-600">Block ${room.block} • Cabin ${room.cabin||''} • ${occ}/${cap}</p>${bedDisplay}</div>`;
             }).join('');
         }
 
@@ -1653,11 +1675,12 @@
             } catch (error) { alert('Error: ' + error.message); }
         }
 
-        // ===== ROOM MODAL =====
+        // ===== ROOM MODAL + DELETE =====
         function openRoomModal(roomNum) {
             const room = roomsData.find(r => r.number === roomNum);
             if (!room) return;
-            document.getElementById('modal-room-title').textContent = `Room ${room.number} (${room.block}, ${room.cabin||''})`;
+            currentModalRoom = room.number;
+            document.getElementById('modal-room-title').textContent = `Room ${room.number} (Block ${room.block}, Cabin ${room.cabin||''})`;
             const cap = room.capacity || 0;
             let html = `<div class="mb-4"><p class="text-sm"><strong>Type:</strong> ${room.type} | <strong>Beds:</strong> ${cap}</p></div><h4 class="font-semibold mb-2">Occupants</h4><div class="space-y-2">`;
             for (let i=0;i<cap;i++){
@@ -1671,7 +1694,17 @@
             document.getElementById('room-detail-content').innerHTML = html;
             document.getElementById('room-modal').classList.add('show');
         }
-        function closeModal() { document.getElementById('room-modal').classList.remove('show'); }
+        function closeModal() { document.getElementById('room-modal').classList.remove('show'); currentModalRoom = null; }
+
+        async function deleteCurrentRoom() {
+            if (!currentModalRoom) return;
+            if (!confirm(`Delete room ${currentModalRoom} and all its data (inventory, checklist)? This cannot be undone.`)) return;
+            try {
+                await window.fb.deleteDoc(window.fb.doc(window.fb.db, 'rooms', currentModalRoom));
+                closeModal();
+                alert('✓ Room deleted.');
+            } catch (e) { alert('Error: ' + e.message); }
+        }
 
         // ===== STATS / PREVIEW =====
         function updateStats() {
