@@ -19,16 +19,16 @@
         import { getStorage, ref, uploadString, getDownloadURL } 
                  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-        // ⚠️ REPLACE WITH YOUR FIREBASE CONFIG
+        // ⚠️ YOUR FIREBASE CONFIG
         const firebaseConfig = {
-  apiKey: "AIzaSyDpFzaPnqHHfXY24X1WbAmKx-3_gzTLGSk",
-  authDomain: "host-accommodation-4e160.firebaseapp.com",
-  projectId: "host-accommodation-4e160",
-  storageBucket: "host-accommodation-4e160.firebasestorage.app",
-  messagingSenderId: "47884919984",
-  appId: "1:47884919984:web:50ebd5e9d8149ca17d4775",
-  measurementId: "G-89M38RV9Z9"
-};
+            apiKey: "AIzaSyDpFzaPnqHHfXY24X1WbAmKx-3_gzTLGSk",
+            authDomain: "host-accommodation-4e160.firebaseapp.com",
+            projectId: "host-accommodation-4e160",
+            storageBucket: "host-accommodation-4e160.firebasestorage.app",
+            messagingSenderId: "47884919984",
+            appId: "1:47884919984:web:50ebd5e9d8149ca17d4775",
+            measurementId: "G-89M38RV9Z9"
+        };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -101,8 +101,8 @@
             
             <form id="login-form" class="space-y-4" onsubmit="handleLogin(event)">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Email / Username</label>
-                    <input type="text" id="login-email" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="email@company.com" required>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Username or Email</label>
+                    <input type="text" id="login-email" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="admin or email@company.com" required>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
@@ -114,6 +114,10 @@
                 <div class="flex justify-between text-xs pt-2">
                     <button type="button" onclick="openForgotPassword()" class="text-blue-600 hover:underline">Forgot Password?</button>
                     <button type="button" onclick="openCreateProfile()" class="text-green-600 font-semibold hover:underline">New Employee? Create Profile →</button>
+                </div>
+                <div class="text-xs text-gray-400 mt-4 pt-4 border-t space-y-1 text-center">
+                    <p><strong>Demo Credentials:</strong></p>
+                    <p>Admin: type <code>admin</code> / Password: <code>872171</code></p>
                 </div>
             </form>
         </div>
@@ -204,7 +208,7 @@
                 </button>
             </div>
 
-            <!-- Check-In Form (simplified for brevity - same structure as before) -->
+            <!-- Check-In Form -->
             <div id="emp-checkin" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
                 <h3 class="text-xl font-bold mb-4">Employee Check-In Form</h3>
                 <form id="checkin-form" onsubmit="return false;" class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -336,7 +340,6 @@
         let employeesData = [];
 
         // ===== AUTH STATE LISTENER =====
-        // This runs when page loads - checks if user is already logged in
         window.addEventListener('DOMContentLoaded', () => {
             const checkAuth = setInterval(() => {
                 if (window.fb && window.fb.onAuthStateChanged) {
@@ -344,7 +347,6 @@
                     window.fb.onAuthStateChanged(window.fb.auth, async (user) => {
                         document.getElementById('loading-screen').classList.add('hidden');
                         if (user) {
-                            // User is logged in - fetch their profile
                             await loadUserProfile(user);
                         } else {
                             document.getElementById('login-screen').classList.remove('hidden');
@@ -362,7 +364,7 @@
 
         async function handleLogin(e) {
             e.preventDefault();
-            const email = document.getElementById('login-email').value.trim();
+            let emailInput = document.getElementById('login-email').value.trim();
             const password = document.getElementById('login-password').value;
             const errDiv = document.getElementById('login-error');
             const btn = document.getElementById('login-btn');
@@ -371,11 +373,12 @@
             btn.disabled = true;
 
             try {
-                // Convert username to email if needed
-                let loginEmail = email;
-                if (!email.includes('@')) {
-                    // Assume company domain
-                    loginEmail = `${email}@company.com`;
+                // FORCE ADMIN LOGIN TO USE THE CORRECT EMAIL FORMAT
+                let loginEmail = emailInput;
+                if (emailInput.toLowerCase() === 'admin') {
+                    loginEmail = 'admin@company.com';
+                } else if (!emailInput.includes('@')) {
+                    loginEmail = `${emailInput}@company.com`;
                 }
 
                 await window.fb.signInWithEmailAndPassword(window.fb.auth, loginEmail, password);
@@ -383,10 +386,13 @@
             } catch (error) {
                 console.error(error);
                 let msg = 'Login failed.';
-                if (error.code === 'auth/user-not-found') msg = 'No account found with this email.';
-                else if (error.code === 'auth/wrong-password') msg = 'Incorrect password.';
-                else if (error.code === 'auth/invalid-email') msg = 'Invalid email format.';
-                else if (error.code === 'auth/invalid-credential') msg = 'Invalid credentials.';
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+                    msg = 'No account found. Did you create "admin@company.com" in Firebase Console?';
+                } else if (error.code === 'auth/wrong-password') {
+                    msg = 'Incorrect password. Try 872171';
+                } else if (error.code === 'auth/invalid-email') {
+                    msg = 'Invalid email format.';
+                }
                 errDiv.textContent = msg;
                 errDiv.classList.remove('hidden');
                 btn.innerHTML = 'Sign In';
@@ -396,8 +402,8 @@
 
         async function loadUserProfile(user) {
             try {
-                // Check if admin
-                if (user.email === 'admin@company.com' || user.email === 'admin@yourcompany.com') {
+                // EXACT MATCH TO THE EMAIL WE FORCE IN handleLogin
+                if (user.email === 'admin@company.com') {
                     currentUser = { role: 'admin', uid: user.uid, email: user.email };
                     document.getElementById('login-screen').classList.add('hidden');
                     document.getElementById('admin-dashboard').classList.remove('hidden');
@@ -517,11 +523,9 @@
             btn.disabled = true;
 
             try {
-                // Create Firebase Auth user
                 const userCred = await window.fb.createUserWithEmailAndPassword(window.fb.auth, email, pass);
                 const uid = userCred.user.uid;
 
-                // Update employee record in Firestore
                 await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', regSearchEmpId), {
                     uid: uid,
                     email: email,
@@ -530,7 +534,6 @@
                     status: 'pending'
                 });
 
-                // Sign out and redirect to login
                 await window.fb.signOut(window.fb.auth);
                 closeCreateProfile();
                 alert('✓ Profile created! Please login with your new email and password.');
@@ -617,7 +620,6 @@
             const form = document.getElementById('checkin-form');
             const data = Object.fromEntries(new FormData(form).entries());
             
-            // Save signature to Firebase Storage
             let signatureUrl = '';
             if (canvases[1]) {
                 const sigData = canvases[1].toDataURL('image/png');
@@ -627,7 +629,6 @@
             }
 
             try {
-                // Save check-in record
                 await window.fb.addDoc(window.fb.collection(window.fb.db, 'checkins'), {
                     employeeId: currentUser.id,
                     employeeName: currentUser.name,
@@ -637,7 +638,6 @@
                     timestamp: new Date().toISOString()
                 });
 
-                // Update employee status
                 await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', currentUser.id), {
                     status: 'active',
                     lastCheckIn: new Date().toISOString()
@@ -759,7 +759,6 @@
 
         // ===== REALTIME LISTENERS =====
         function startRealtimeListeners() {
-            // Listen to rooms
             window.fb.onSnapshot(window.fb.collection(window.fb.db, 'rooms'), (snapshot) => {
                 roomsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                 if (currentUser?.role === 'admin') {
@@ -768,7 +767,6 @@
                 }
             });
 
-            // Listen to employees
             window.fb.onSnapshot(window.fb.collection(window.fb.db, 'employees'), (snapshot) => {
                 employeesData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                 if (currentUser?.role === 'admin') {
