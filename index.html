@@ -36,7 +36,6 @@
         const db = getFirestore(app);
         const storage = getStorage(app);
 
-        // FIX: session-only login (closing the tab signs out; link no longer auto-opens admin)
         setPersistence(auth, browserSessionPersistence).catch(err => console.warn('persistence:', err));
 
         window.fb = { auth, db, storage, 
@@ -599,7 +598,7 @@
                                 <div class="flex gap-2">
                                     <input type="file" id="inv-csv" accept=".csv" class="hidden" onchange="uploadInventoryCSV(event)">
                                     <button onclick="document.getElementById('inv-csv').click()" class="px-3 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700">📤 CSV</button>
-                                    <button onclick="downloadSampleCSV('inventory')" class="px-3 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">⬇ Sample</button>
+                                    <button onclick="downloadSampleCSV('inventory')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">⬇ Sample</button>
                                 </div>
                             </div>
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -625,7 +624,6 @@
                             <h3 class="text-lg font-bold">Employee Profiles</h3>
                             <button onclick="openAdminCreateProfile()" class="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">+ Create Profile</button>
                         </div>
-                        <!-- Status tabs -->
                         <div class="flex gap-2 mb-3 flex-wrap">
                             <button onclick="setEmpStatusTab('all')" id="emptab-all" class="block-tab active">All</button>
                             <button onclick="setEmpStatusTab('active')" id="emptab-active" class="block-tab">Active</button>
@@ -685,7 +683,7 @@
                             <div><label class="block text-sm font-medium mb-1">Brand Primary Color</label><input type="color" id="brand-color-input" class="w-full h-10 border rounded" value="#2563eb"></div>
                             <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Description / Tagline (under name)</label><textarea id="brand-desc-input" rows="2" class="w-full px-3 py-2 border rounded" placeholder="e.g., Comfortable & secure stay for our employees"></textarea></div>
                             <div>
-                                <label class="block text-sm font-medium mb-1">Company Logo (above title & on forms)</label>
+                                <label class="block text-sm font-medium mb-1">Company Logo (above title & on all forms)</label>
                                 <input type="file" id="brand-logo-input" accept="image/*" class="w-full text-sm" onchange="uploadBrandingImage('logo', event)">
                                 <img id="brand-logo-preview" class="hidden mt-2 h-12 object-contain" alt="logo preview">
                             </div>
@@ -695,8 +693,8 @@
                                 <img id="brand-bg-preview" class="hidden mt-2 h-12 object-cover rounded" alt="bg preview">
                             </div>
                             <div class="md:col-span-2 flex gap-6 items-start text-xs text-gray-600 bg-gray-50 p-3 rounded border">
-                                <div>Currently saved logo:<br><img id="brand-logo-current" class="mt-1 h-10 object-contain hidden" alt=""></div>
-                                <div>Currently saved background:<br><img id="brand-bg-current" class="mt-1 h-10 object-cover rounded hidden" alt=""></div>
+                                <div>Saved logo:<br><img id="brand-logo-current" class="mt-1 h-10 object-contain hidden" alt=""></div>
+                                <div>Saved background:<br><img id="brand-bg-current" class="mt-1 h-10 object-cover rounded hidden" alt=""></div>
                                 <div id="brand-upload-status" class="text-xs text-gray-700"></div>
                             </div>
                             <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Accommodation Rules PDF (text extracted & shown in check-in)</label><input type="file" id="rules-pdf-input" accept="application/pdf" class="w-full text-sm" onchange="uploadRulesPdf(event)"><div id="rules-pdf-status" class="text-xs mt-1 text-gray-600"></div></div>
@@ -946,11 +944,10 @@
             const cb=document.getElementById('brand-bg-current');
             if(cb){ if(brandSettings.bgUrl){cb.src=brandSettings.bgUrl;cb.classList.remove('hidden');} else cb.classList.add('hidden'); }
             const st=document.getElementById('brand-upload-status');
-            if(st) st.textContent = '';
+            if(st) st.innerHTML = `In database → Logo: <strong>${brandSettings.logoUrl ? '✓ saved' : '✗ empty'}</strong> | Background: <strong>${brandSettings.bgUrl ? '✓ saved' : '✗ empty'}</strong>${brandSettings.logoUrl ? '' : ' — upload & apply again'}`;
         }
 
-        // Compress image then upload; fall back to embedded dataURL if Storage blocks
-        function fileToCompressedDataUrl(file, maxW) {
+        function fileToCompressedDataUrl(file, maxW, quality) {
             return new Promise((res, rej) => {
                 const img = new Image();
                 const url = URL.createObjectURL(file);
@@ -960,11 +957,20 @@
                     c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
                     c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
                     URL.revokeObjectURL(url);
-                    res(c.toDataURL('image/jpeg', 0.82));
+                    res(c.toDataURL('image/jpeg', quality));
                 };
                 img.onerror = rej;
                 img.src = url;
             });
+        }
+        function livePreviewBrand(type, url) {
+            if (type === 'logo') {
+                document.querySelectorAll('[data-brand-logo]').forEach(img => { img.src = url; img.classList.remove('hidden'); });
+                const w = document.getElementById('logo-wrap'); if (w) w.classList.add('hidden');
+            } else {
+                const ls = document.getElementById('login-screen');
+                if (ls) { ls.style.background = `linear-gradient(rgba(15,23,42,0.55),rgba(15,23,42,0.55)), url('${url}') center/cover no-repeat`; ls.dataset.bgset = '1'; }
+            }
         }
         async function uploadBrandingImage(type, event) {
             const file = event.target.files[0];
@@ -972,7 +978,7 @@
             const status = document.getElementById('brand-upload-status');
             status.textContent = 'Processing image...';
             try {
-                const dataUrl = await fileToCompressedDataUrl(file, 1200);
+                let dataUrl = await fileToCompressedDataUrl(file, 1000, 0.75);
                 let url = '';
                 try {
                     const path = `branding/${type}-${Date.now()}.jpg`;
@@ -981,12 +987,17 @@
                     url = await window.fb.getDownloadURL(r);
                 } catch (storageErr) {
                     console.warn('Storage upload failed, embedding image directly:', storageErr.message);
-                    if (dataUrl.length < 900000) url = dataUrl;
-                    else { alert('Image too large and Storage upload failed. Try a smaller image.'); status.textContent = ''; return; }
+                    if (dataUrl.length < 950000) url = dataUrl;
+                    else {
+                        dataUrl = await fileToCompressedDataUrl(file, 700, 0.6);
+                        if (dataUrl.length < 950000) url = dataUrl;
+                        else { alert('Image too large and Storage upload failed. Try a smaller image.'); status.textContent = ''; return; }
+                    }
                 }
                 if (type === 'logo') { pendingLogoUrl = url; const p=document.getElementById('brand-logo-preview'); p.src=url; p.classList.remove('hidden'); }
                 else { pendingBgUrl = url; const p=document.getElementById('brand-bg-preview'); p.src=url; p.classList.remove('hidden'); }
-                status.textContent = `✓ ${type === 'logo' ? 'Logo' : 'Background'} ready — click "Preview & Apply" to save.`;
+                livePreviewBrand(type, url);   // instant visible preview on this page
+                status.textContent = `✓ ${type === 'logo' ? 'Logo' : 'Background'} ready & previewed — click "Preview & Apply" to save permanently.`;
             } catch (err) {
                 console.error(err);
                 alert('Image processing failed: ' + err.message);
@@ -1032,7 +1043,7 @@
                 pendingLogoUrl = null; pendingBgUrl = null; pendingRulesText = null;
                 applyBrandSettings(data);
                 loadBrandingIntoForm();
-                alert('✓ Branding applied! Logo & background now show on the home page.');
+                alert(`✓ Branding applied!\nLogo: ${data.logoUrl ? 'saved ✓' : 'none'}\nBackground: ${data.bgUrl ? 'saved ✓' : 'none'}\n\nLogo & background now appear on login, employee, admin and guest screens.`);
             } catch (e) {
                 console.error(e);
                 let msg = 'Error: ' + e.message;
@@ -1146,7 +1157,11 @@
                 }
                 const q = window.fb.query(window.fb.collection(window.fb.db, 'employees'), window.fb.where('uid', '==', user.uid));
                 const snapshot = await window.fb.getDocs(q);
-                if (snapshot.empty) { alert('Employee profile not found. Contact admin.'); await logout(); return; }
+                if (snapshot.empty) {
+                    alert('Employee profile not found for this login.\n\nIf you just registered, please open "New Employee? Create Profile" again, select your name and repeat the steps once — the system will re-link your account automatically.');
+                    await logout();
+                    return;
+                }
                 const empDoc = snapshot.docs[0];
                 const empData = empDoc.data();
                 if (!empData.loginEnabled) { alert('Your login is disabled. Contact admin.'); await logout(); return; }
@@ -1173,7 +1188,7 @@
             switchLoginTab('employee');
         }
 
-        // ===== SELF REGISTRATION =====
+        // ===== SELF REGISTRATION (with orphan-account recovery) =====
         function openCreateProfile() { document.getElementById('create-profile-modal').classList.add('show'); resetRegistration(); }
         function closeCreateProfile() { document.getElementById('create-profile-modal').classList.remove('show'); }
         function resetRegistration() {
@@ -1223,18 +1238,29 @@
             btn.disabled = true;
             registering = true;
             try {
-                const userCred = await window.fb.createUserWithEmailAndPassword(window.fb.auth, email, pass);
+                let uid;
+                try {
+                    const userCred = await window.fb.createUserWithEmailAndPassword(window.fb.auth, email, pass);
+                    uid = userCred.user.uid;
+                } catch (authErr) {
+                    if (authErr.code === 'auth/email-already-in-use') {
+                        // FIX: adopt the orphan account from a previous failed attempt and link it now
+                        const cred = await window.fb.signInWithEmailAndPassword(window.fb.auth, email, pass);
+                        uid = cred.user.uid;
+                    } else throw authErr;
+                }
                 await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', regSearchEmpId), {
-                    uid: userCred.user.uid, email, registered: true, loginEnabled: true, status: 'pending'
+                    uid, email, registered: true, loginEnabled: true, status: 'pending'
                 });
                 await window.fb.signOut(window.fb.auth);
                 closeCreateProfile();
-                alert('✓ Profile created! Please login with your new email and password.');
+                alert('✓ Profile created & linked to your login! Please sign in with your email and password.');
             } catch (error) {
                 let msg = 'Registration failed.';
-                if (error.code === 'auth/email-already-in-use') msg = 'Email already registered.';
+                if (error.code === 'auth/wrong-password') msg = 'An account with this email already exists but the password is different. Use "Forgot Password?" on the login page, then register again.';
                 else if (error.code === 'auth/weak-password') msg = 'Password too weak.';
                 else if (error.code === 'permission-denied') msg = 'Permission denied. Publish the updated Firestore Rules first.';
+                else msg += ' ' + error.message;
                 alert(msg);
                 try { await window.fb.signOut(window.fb.auth); } catch(e) {}
             } finally {
@@ -1394,7 +1420,7 @@
                 <td class="p-2 border"><input type="text" class="co-remark w-full px-2 py-1 border rounded text-sm" data-idx="${i}" ${lastOccupant ? '' : 'disabled'} placeholder="Remarks"></td></tr>`).join('');
         }
 
-        // ===== SUBMIT CHECK-IN / CHECK-OUT =====
+        // ===== SUBMIT CHECK-IN / OUT =====
         async function submitCheckIn() {
             if (!currentUser) return;
             if (!document.getElementById('rules-agree').checked) { alert('Please agree to rules'); return; }
@@ -1822,7 +1848,7 @@
             } catch (e) { alert('Error: ' + e.message); }
         }
 
-        // ===== ADMIN CREATE / EDIT PROFILE =====
+        // ===== ADMIN CREATE / EDIT =====
         function openAdminCreateProfile() {
             document.getElementById('admin-create-profile-modal').classList.add('show');
             document.getElementById('admin-room-select').innerHTML = '<option value="">-- Select Room --</option>' + roomsData.map(r => `<option value="${r.number}">${r.number} (${r.block}, ${r.type}, ${r.capacity} beds)</option>`).join('');
@@ -1885,7 +1911,6 @@
                 loginEnabled: document.getElementById('edit-login-enabled').checked
             };
             try {
-                // keep room occupancy in sync if room changed
                 if (old && old.room && old.room !== roomNo) {
                     const oldRoom = roomsData.find(r => r.number === old.room);
                     if (oldRoom) await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', oldRoom.id || oldRoom.number), { occupants: (oldRoom.occupants || []).filter(n => n !== old.name) });
@@ -1904,7 +1929,7 @@
             } catch (e) { alert('Error: ' + e.message); }
         }
 
-        // ===== ALLOCATE FROM LAYOUT =====
+        // ===== ALLOCATE =====
         function openAllocateModal(roomNumber) {
             allocateTargetRoom = roomNumber;
             document.getElementById('allocate-room-label').textContent = roomNumber;
@@ -1967,7 +1992,7 @@
             } catch (e) { alert('Error: ' + e.message); }
         }
 
-        // ===== EMP TABLE: type / status / login =====
+        // ===== EMP TABLE =====
         async function setEmpType(empId, val) {
             try { await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', empId), { employmentType: val }); }
             catch (e) { alert('Error: ' + e.message); }
@@ -1984,10 +2009,7 @@
         }
         function setEmpStatusTab(tab) {
             empStatusTab = tab;
-            ['all','active','resigned'].forEach(t => {
-                const b = document.getElementById('emptab-' + t);
-                b.classList.toggle('active', t === tab);
-            });
+            ['all','active','resigned'].forEach(t => document.getElementById('emptab-' + t).classList.toggle('active', t === tab));
             renderEmpTable();
         }
         function empTypeSelect(emp) {
