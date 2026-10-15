@@ -87,11 +87,12 @@
     <div id="login-screen" class="hidden min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-800 p-4">
         <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md fade-in">
             <div class="text-center mb-6">
-                <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden" id="logo-wrap">
+                    <img id="brand-logo" class="hidden w-full h-full object-contain" alt="logo">
+                    <svg id="default-logo" class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                 </div>
                 <h1 class="text-2xl font-bold text-gray-800" id="brand-title">Host Accommodation</h1>
-                <p class="text-gray-500 text-sm mt-1">Secure Employee Housing Portal</p>
+                <p class="text-gray-500 text-sm mt-1" id="brand-desc">Secure Employee Housing Portal</p>
             </div>
             
             <div class="flex mb-6 border-b">
@@ -115,16 +116,11 @@
                     <button type="button" onclick="openForgotPassword()" class="text-blue-600 hover:underline">Forgot Password?</button>
                     <button type="button" onclick="openCreateProfile()" class="text-green-600 font-semibold hover:underline">New Employee? Create Profile →</button>
                 </div>
-                
-                <div class="text-xs text-gray-400 mt-4 pt-4 border-t space-y-1 text-center">
-                    <p><strong>Admin Credentials:</strong></p>
-                    <p>Username: <code>admin</code> / Password: <code>872171</code></p>
-                </div>
             </form>
         </div>
     </div>
 
-    <!-- ================= CREATE PROFILE MODAL (Self-Registration) ================= -->
+    <!-- ================= CREATE PROFILE MODAL ================= -->
     <div id="create-profile-modal" class="modal">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b flex justify-between items-center sticky top-0 bg-white">
@@ -137,13 +133,11 @@
                     <strong>Step 2:</strong> Verify your department.<br>
                     <strong>Step 3:</strong> Set email & password to activate your account.
                 </div>
-
                 <div id="reg-step-1">
                     <label class="block text-sm font-medium mb-1">Your Full Name *</label>
                     <input type="text" id="reg-name-search" class="w-full px-3 py-2 border rounded mb-2" placeholder="Type your name..." oninput="searchRegName(this.value)">
                     <div id="reg-search-results" class="text-sm"></div>
                 </div>
-
                 <div id="reg-step-2" class="hidden">
                     <div class="bg-green-50 p-3 rounded-lg mb-4 border border-green-200">
                         <p class="text-sm"><strong>✓ Found:</strong> <span id="reg-found-name"></span></p>
@@ -187,7 +181,10 @@
     <div id="employee-dashboard" class="hidden min-h-screen bg-gray-50">
         <nav class="bg-white shadow-sm border-b">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16 items-center">
-                <h2 class="text-xl font-bold text-blue-600" id="emp-brand-title">Host Accommodation</h2>
+                <div class="flex items-center gap-2">
+                    <img id="emp-brand-logo" class="hidden w-8 h-8 object-contain" alt="logo">
+                    <h2 class="text-xl font-bold text-blue-600" id="emp-brand-title">Host Accommodation</h2>
+                </div>
                 <div class="flex items-center space-x-4">
                     <span class="text-sm text-gray-600 hidden sm:block">Welcome, <span id="emp-name-display" class="font-semibold"></span> <span id="emp-role-badge" class="ml-1 text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded"></span></span>
                     <button onclick="logout()" class="text-sm text-red-500 hover:text-red-700 font-medium">Logout</button>
@@ -267,6 +264,7 @@
 
                     <div id="step-2" class="hidden fade-in">
                         <h4 class="font-bold text-lg mb-3">Room Amenities Checklist</h4>
+                        <div id="shared-checklist-note" class="hidden bg-blue-50 border-l-4 border-blue-400 p-3 mb-3 text-sm text-blue-800"></div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-sm border">
                                 <thead class="bg-gray-100">
@@ -335,6 +333,21 @@
                     <div><label class="block text-sm font-medium mb-1">Check-Out Date</label><input type="date" id="co-date" class="w-full px-3 py-2 border rounded"></div>
                     <div><label class="block text-sm font-medium mb-1">Reason</label><select id="co-reason" class="w-full px-3 py-2 border rounded"><option>End of Assignment</option><option>Transfer</option><option>Resignation</option><option>Other</option></select></div>
                 </div>
+
+                <!-- Check-out amenities verification -->
+                <div id="co-checklist-wrap" class="hidden mt-4">
+                    <h4 class="font-semibold mb-2">Amenities Verification (vs Check-In)</h4>
+                    <div id="co-checklist-note" class="text-sm text-gray-600 mb-2"></div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm border">
+                            <thead class="bg-gray-100">
+                                <tr><th class="p-2 border text-left">Item</th><th class="p-2 border text-center w-24">At Check-In</th><th class="p-2 border w-32">Condition</th><th class="p-2 border text-left">Remarks</th></tr>
+                            </thead>
+                            <tbody id="co-checklist-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <div class="mt-4">
                     <label class="block text-sm font-medium mb-2">Signature *</label>
                     <canvas id="signature-canvas-co" class="signature-pad w-full h-32 rounded bg-gray-50"></canvas>
@@ -413,7 +426,10 @@
     <div id="admin-dashboard" class="hidden min-h-screen bg-gray-100">
         <nav class="bg-white shadow-sm border-b">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16 items-center">
-                <h2 class="text-xl font-bold text-gray-800">Admin Control Panel</h2>
+                <div class="flex items-center gap-2">
+                    <img id="admin-brand-logo" class="hidden w-8 h-8 object-contain" alt="logo">
+                    <h2 class="text-xl font-bold text-gray-800">Admin Control Panel</h2>
+                </div>
                 <button onclick="logout()" class="text-sm text-red-500 hover:text-red-700 font-medium">Logout</button>
             </div>
         </nav>
@@ -432,6 +448,7 @@
                 <div class="flex border-b overflow-x-auto">
                     <button onclick="showAdminSection('upload')" class="px-4 py-3 text-sm font-medium whitespace-nowrap tab-active" id="tab-upload">📤 Upload Data</button>
                     <button onclick="showAdminSection('layout')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-layout">🏠 Layout</button>
+                    <button onclick="showAdminSection('inventory')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-inventory">📦 Inventory</button>
                     <button onclick="showAdminSection('employees')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-employees">👥 Employees</button>
                     <button onclick="showAdminSection('modguest')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-modguest">⭐ MOD & Guests</button>
                     <button onclick="showAdminSection('branding')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-branding">🎨 Branding</button>
@@ -445,27 +462,22 @@
                         <div class="bg-blue-50 p-5 rounded-lg border border-blue-200 mb-6">
                             <h4 class="font-bold text-blue-900 mb-2">Step 1: Upload Room Structure</h4>
                             <p class="text-sm text-blue-800 mb-3">CSV: <code class="bg-white px-2 py-0.5 rounded">BlockNo, CabinNo, RoomNo, RoomType, Beds</code></p>
-                            <div class="bg-white p-3 rounded text-xs text-gray-600 mb-3">
-                                <strong>Example:</strong><br>
-                                A,Cabin-1,A-101,Single,1<br>
-                                A,Cabin-1,A-102,Sharing,2<br>
-                                B,Cabin-1,B-101,Single,1
-                            </div>
                             <input type="file" id="room-struct-csv" accept=".csv" class="hidden" onchange="uploadRoomStructure(event)">
-                            <button onclick="document.getElementById('room-struct-csv').click()" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">📤 Upload Room Structure CSV</button>
+                            <div class="flex gap-2 flex-wrap">
+                                <button onclick="document.getElementById('room-struct-csv').click()" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">📤 Upload Room CSV</button>
+                                <button onclick="downloadSampleCSV('rooms')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">⬇ Download Sample</button>
+                            </div>
                             <div id="room-upload-status" class="mt-3 text-sm"></div>
                         </div>
 
                         <div class="bg-green-50 p-5 rounded-lg border border-green-200 mb-6">
                             <h4 class="font-bold text-green-900 mb-2">Step 2: Upload Employee List</h4>
                             <p class="text-sm text-green-800 mb-3">CSV: <code class="bg-white px-2 py-0.5 rounded">Name, Designation, Department, RoomNo</code></p>
-                            <div class="bg-white p-3 rounded text-xs text-gray-600 mb-3">
-                                <strong>Example:</strong><br>
-                                John Doe,Manager,Engineering,A-101<br>
-                                Jane Smith,Executive,HR,A-102
-                            </div>
                             <input type="file" id="emp-list-csv" accept=".csv" class="hidden" onchange="uploadEmployeeList(event)">
-                            <button onclick="document.getElementById('emp-list-csv').click()" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">📤 Upload Employee List CSV</button>
+                            <div class="flex gap-2 flex-wrap">
+                                <button onclick="document.getElementById('emp-list-csv').click()" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">📤 Upload Employee CSV</button>
+                                <button onclick="downloadSampleCSV('employees')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">⬇ Download Sample</button>
+                            </div>
                             <div id="emp-upload-status" class="mt-3 text-sm"></div>
                         </div>
 
@@ -508,6 +520,40 @@
                         <div id="room-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
                     </div>
 
+                    <!-- INVENTORY SECTION -->
+                    <div id="admin-inventory" class="hidden fade-in">
+                        <h3 class="text-lg font-bold mb-4">📦 Room Amenities / Inventory Management</h3>
+                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+                                <select id="inv-block" onchange="onInvBlockChange()" class="px-3 py-2 border rounded text-sm"><option value="">-- Block --</option></select>
+                                <select id="inv-cabin" onchange="onInvCabinChange()" class="px-3 py-2 border rounded text-sm"><option value="">-- Cabin --</option></select>
+                                <select id="inv-room" onchange="loadRoomInventory()" class="px-3 py-2 border rounded text-sm"><option value="">-- Room --</option></select>
+                                <div class="flex gap-2">
+                                    <input type="file" id="inv-csv" accept=".csv" class="hidden" onchange="uploadInventoryCSV(event)">
+                                    <button onclick="document.getElementById('inv-csv').click()" class="px-3 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700">📤 CSV</button>
+                                    <button onclick="downloadSampleCSV('inventory')" class="px-3 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">⬇ Sample</button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <input id="inv-item-name" placeholder="Item name" class="px-3 py-2 border rounded text-sm">
+                                <input id="inv-item-qty" type="number" min="1" value="1" class="px-3 py-2 border rounded text-sm">
+                                <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="inv-item-avail" checked class="w-4 h-4"> Available</label>
+                                <button onclick="addInventoryItem()" class="px-3 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">+ Add Item</button>
+                            </div>
+                        </div>
+                        <div id="inv-list-wrap" class="hidden">
+                            <h4 class="font-semibold mb-2">Current Inventory: <span id="inv-room-label" class="text-blue-700"></span></h4>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm border bg-white">
+                                    <thead class="bg-gray-100"><tr><th class="p-2 border w-12">#</th><th class="p-2 border text-left">Item</th><th class="p-2 border w-20">Qty</th><th class="p-2 border w-28">Available</th><th class="p-2 border w-16"></th></tr></thead>
+                                    <tbody id="inv-table-body"></tbody>
+                                </table>
+                            </div>
+                            <button onclick="saveRoomInventory()" class="mt-3 px-5 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">💾 Save Inventory</button>
+                        </div>
+                        <p id="inv-empty" class="text-sm text-gray-500 italic">Select a block, cabin and room to manage its inventory. One list per room (shared rooms use a single list).</p>
+                    </div>
+
                     <div id="admin-employees" class="hidden fade-in">
                         <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
                             <h3 class="text-lg font-bold">Employee Profiles</h3>
@@ -548,13 +594,37 @@
                         </div>
                     </div>
 
+                    <!-- BRANDING -->
                     <div id="admin-branding" class="hidden fade-in">
-                        <h3 class="text-lg font-bold mb-4">Customize Portal</h3>
+                        <h3 class="text-lg font-bold mb-4">🎨 Customize Portal (Branding)</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div><label class="block text-sm font-medium mb-1">Accommodation Name</label><input type="text" id="brand-title-input" class="w-full px-3 py-2 border rounded" value="Host Accommodation"></div>
-                            <div><label class="block text-sm font-medium mb-1">Brand Primary Color</label><input type="color" id="brand-color-input" class="w-full h-10 border rounded" value="#2563eb"></div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Accommodation Name</label>
+                                <input type="text" id="brand-title-input" class="w-full px-3 py-2 border rounded" value="Host Accommodation">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Brand Primary Color</label>
+                                <input type="color" id="brand-color-input" class="w-full h-10 border rounded" value="#2563eb">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium mb-1">Description / Tagline (under name)</label>
+                                <textarea id="brand-desc-input" rows="2" class="w-full px-3 py-2 border rounded" placeholder="e.g., Comfortable & secure stay for our employees"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Company Logo</label>
+                                <input type="file" id="brand-logo-input" accept="image/*" class="w-full text-sm" onchange="uploadBrandingImage('logo', event)">
+                                <img id="brand-logo-preview" class="hidden mt-2 h-12 object-contain" alt="logo preview">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Homepage Background Picture</label>
+                                <input type="file" id="brand-bg-input" accept="image/*" class="w-full text-sm" onchange="uploadBrandingImage('bg', event)">
+                                <img id="brand-bg-preview" class="hidden mt-2 h-12 object-cover rounded" alt="bg preview">
+                            </div>
                         </div>
-                        <button onclick="applyBranding()" class="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Apply</button>
+                        <div class="mt-6 flex gap-3">
+                            <button onclick="saveBranding()" class="px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700">💾 Preview & Apply</button>
+                            <button onclick="loadBrandingIntoForm()" class="px-5 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Reset Form</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -610,20 +680,160 @@
         let currentUser = null;
         let regSearchEmpId = null;
         let modAssignments = [];
+        let brandSettings = {};
+        let invEditList = [];
+        let invSelectedRoom = null;
+        let checkinItems = [];
+        let checkoutItems = [];
+        let checkoutEditable = false;
+        let pendingLogoUrl = null;
+        let pendingBgUrl = null;
         const amenitiesList = ["Single Bed", "Mattress", "Pillow", "Blanket", "Wardrobe", "Study Table", "Chair", "AC", "Fan", "Light", "Mirror", "Curtains"];
+
+        // ===== COLOR HELPERS =====
+        function shadeColor(hex, percent) {
+            let h = String(hex).replace('#','');
+            if (h.length === 3) h = h.split('').map(c=>c+c).join('');
+            const num = parseInt(h,16);
+            let r = (num>>16)&255, g=(num>>8)&255, b=num&255;
+            const t = percent<0?0:255, p=Math.abs(percent)/100;
+            r=Math.round((t-r)*p+r); g=Math.round((t-g)*p+g); b=Math.round((t-b)*p+b);
+            return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+        }
+
+        function applyBrandColor(color) {
+            if (!color) return;
+            let el = document.getElementById('dynamic-brand');
+            if (!el) { el = document.createElement('style'); el.id = 'dynamic-brand'; document.head.appendChild(el); }
+            const dark = shadeColor(color,-25), light = shadeColor(color,86), lighter = shadeColor(color,93), deep = shadeColor(color,-45);
+            el.textContent = `
+                .bg-blue-600{background-color:${color}!important}
+                .bg-blue-700,.hover\\:bg-blue-700:hover{background-color:${dark}!important}
+                .text-blue-600,.text-blue-700{color:${color}!important}
+                .text-blue-800,.text-blue-900{color:${deep}!important}
+                .bg-blue-100{background-color:${light}!important}
+                .bg-blue-50{background-color:${lighter}!important}
+                .border-blue-200{border-color:${light}!important}
+                .border-blue-400,.border-blue-500{border-color:${color}!important}
+                .focus\\:ring-blue-500:focus{box-shadow:0 0 0 2px ${color}!important}
+                .block-tab.active{background:${color}!important}
+                .tab-active{border-bottom-color:${color}!important;color:${color}!important}
+                .step-active{background:${color}!important}
+                #logo-wrap{background-color:${light}!important}
+                #default-logo{color:${color}!important}
+            `;
+            ['login-screen','loading-screen'].forEach(id=>{
+                const s = document.getElementById(id);
+                if (s && !s.dataset.bgset) s.style.background = `linear-gradient(135deg, ${color}, ${shadeColor(color,-40)})`;
+            });
+        }
+
+        function applyBrandSettings(s) {
+            brandSettings = s || {};
+            if (s.title) {
+                ['brand-title','emp-brand-title'].forEach(id=>{const e=document.getElementById(id); if(e)e.textContent=s.title;});
+                document.title = s.title;
+                const ti=document.getElementById('brand-title-input'); if(ti) ti.value=s.title;
+            }
+            if (s.description !== undefined) {
+                const d=document.getElementById('brand-desc');
+                if(d){ d.textContent = s.description || 'Secure Employee Housing Portal'; }
+                const di=document.getElementById('brand-desc-input'); if(di) di.value = s.description || '';
+            }
+            if (s.color) { applyBrandColor(s.color); const ci=document.getElementById('brand-color-input'); if(ci) ci.value=s.color; }
+            if (s.logoUrl) {
+                ['brand-logo','emp-brand-logo','admin-brand-logo'].forEach(id=>{
+                    const e=document.getElementById(id);
+                    if(e){ e.src=s.logoUrl; e.classList.remove('hidden'); }
+                });
+                const dl=document.getElementById('default-logo'); if(dl) dl.classList.add('hidden');
+            }
+            const ls=document.getElementById('login-screen');
+            if (s.bgUrl && ls) {
+                ls.style.background = `linear-gradient(rgba(15,23,42,0.55),rgba(15,23,42,0.55)), url('${s.bgUrl}') center/cover no-repeat`;
+                ls.dataset.bgset = '1';
+            }
+        }
+
+        async function loadBrandingOnce() {
+            try {
+                const snap = await window.fb.getDoc(window.fb.doc(window.fb.db, 'settings', 'branding'));
+                if (snap.exists()) applyBrandSettings(snap.data());
+            } catch(e) { console.warn('Branding load:', e); }
+        }
+
+        function loadBrandingIntoForm() {
+            const t=document.getElementById('brand-title-input'); if(t) t.value = brandSettings.title || 'Host Accommodation';
+            const d=document.getElementById('brand-desc-input'); if(d) d.value = brandSettings.description || '';
+            const c=document.getElementById('brand-color-input'); if(c) c.value = brandSettings.color || '#2563eb';
+            pendingLogoUrl = null; pendingBgUrl = null;
+            document.getElementById('brand-logo-preview').classList.add('hidden');
+            document.getElementById('brand-bg-preview').classList.add('hidden');
+        }
+
+        async function uploadBrandingImage(type, event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const path = `branding/${type}-${Date.now()}.png`;
+                    const r = window.fb.ref(window.fb.storage, path);
+                    await window.fb.uploadString(r, e.target.result, 'data_url');
+                    const url = await window.fb.getDownloadURL(r);
+                    if (type === 'logo') { pendingLogoUrl = url; const p=document.getElementById('brand-logo-preview'); p.src=url; p.classList.remove('hidden'); }
+                    else { pendingBgUrl = url; const p=document.getElementById('brand-bg-preview'); p.src=url; p.classList.remove('hidden'); }
+                } catch (err) { alert('Upload failed: ' + err.message); }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function saveBranding() {
+            const data = {
+                title: document.getElementById('brand-title-input').value.trim(),
+                description: document.getElementById('brand-desc-input').value.trim(),
+                color: document.getElementById('brand-color-input').value,
+                logoUrl: pendingLogoUrl || brandSettings.logoUrl || '',
+                bgUrl: pendingBgUrl || brandSettings.bgUrl || '',
+                updatedAt: new Date().toISOString()
+            };
+            try {
+                await window.fb.setDoc(window.fb.doc(window.fb.db, 'settings', 'branding'), data, { merge: true });
+                applyBrandSettings(data);
+                alert('✓ Branding applied!');
+            } catch (e) { alert('Error: ' + e.message); }
+        }
+
+        // ===== SAMPLE CSV DOWNLOAD =====
+        function downloadSampleCSV(type) {
+            let csv = '', filename = '';
+            if (type === 'rooms') {
+                csv = 'BlockNo,CabinNo,RoomNo,RoomType,Beds\nA,Cabin-1,A-101,Single,1\nA,Cabin-1,A-102,Sharing,2\nA,Cabin-2,A-201,Sharing,3\nB,Cabin-1,B-101,Single,1\nB,Cabin-1,B-102,Sharing,2\n';
+                filename = 'sample_rooms.csv';
+            } else if (type === 'employees') {
+                csv = 'Name,Designation,Department,RoomNo\nJohn Doe,Manager,Engineering,A-101\nJane Smith,Executive,HR,A-102\nRobert Brown,Analyst,Finance,A-102\n';
+                filename = 'sample_employees.csv';
+            } else {
+                csv = 'BlockNo,RoomNo,ItemName,Available,Qty\nA,A-101,Single Bed,Yes,1\nA,A-101,Mattress,Yes,1\nA,A-101,Wardrobe,Yes,1\nA,A-101,AC,Yes,1\n';
+                filename = 'sample_inventory.csv';
+            }
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename; a.click();
+            URL.revokeObjectURL(url);
+        }
 
         // ===== INITIALIZATION =====
         window.addEventListener('DOMContentLoaded', () => {
             const checkFirebase = setInterval(() => {
                 if (window.fb && window.fb.onAuthStateChanged) {
                     clearInterval(checkFirebase);
+                    loadBrandingOnce();
                     window.fb.onAuthStateChanged(window.fb.auth, async (user) => {
                         document.getElementById('loading-screen').classList.add('hidden');
-                        if (user) {
-                            await loadUserProfile(user);
-                        } else {
-                            document.getElementById('login-screen').classList.remove('hidden');
-                        }
+                        if (user) { await loadUserProfile(user); }
+                        else { document.getElementById('login-screen').classList.remove('hidden'); }
                     });
                 }
             }, 100);
@@ -646,38 +856,22 @@
             errDiv.classList.add('hidden');
             btn.innerHTML = '<span class="loading"></span>';
             btn.disabled = true;
-
             try {
                 let loginEmail = emailInput;
-                // Convert 'admin' username to email format
-                if (emailInput.toLowerCase() === 'admin') {
-                    loginEmail = 'admin@company.com';
-                } else if (!emailInput.includes('@')) {
-                    loginEmail = `${emailInput}@company.com`;
-                }
-
+                if (emailInput.toLowerCase() === 'admin') loginEmail = 'admin@company.com';
+                else if (!emailInput.includes('@')) loginEmail = `${emailInput}@company.com`;
                 await window.fb.signInWithEmailAndPassword(window.fb.auth, loginEmail, password);
             } catch (error) {
-                console.error(error);
                 let msg = 'Login failed.';
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-                    msg = 'Invalid credentials. Make sure "admin@company.com" is created in Firebase Console.';
-                } else if (error.code === 'auth/wrong-password') {
-                    msg = 'Incorrect password.';
-                } else if (error.code === 'auth/invalid-email') {
-                    msg = 'Invalid email format.';
-                }
-                errDiv.textContent = msg;
-                errDiv.classList.remove('hidden');
-            } finally {
-                btn.innerHTML = 'Sign In';
-                btn.disabled = false;
-            }
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') msg = 'Invalid credentials.';
+                else if (error.code === 'auth/wrong-password') msg = 'Incorrect password.';
+                else if (error.code === 'auth/invalid-email') msg = 'Invalid email format.';
+                errDiv.textContent = msg; errDiv.classList.remove('hidden');
+            } finally { btn.innerHTML = 'Sign In'; btn.disabled = false; }
         }
 
         async function loadUserProfile(user) {
             try {
-                // ADMIN CHECK
                 if (user.email === 'admin@company.com') {
                     currentUser = { role: 'admin', uid: user.uid, email: user.email };
                     document.getElementById('login-screen').classList.add('hidden');
@@ -685,29 +879,12 @@
                     startRealtimeListeners();
                     return;
                 }
-
-                // EMPLOYEE CHECK
-                const q = window.fb.query(
-                    window.fb.collection(window.fb.db, 'employees'),
-                    window.fb.where('uid', '==', user.uid)
-                );
+                const q = window.fb.query(window.fb.collection(window.fb.db, 'employees'), window.fb.where('uid', '==', user.uid));
                 const snapshot = await window.fb.getDocs(q);
-                
-                if (snapshot.empty) {
-                    alert('Employee profile not found. Contact admin.');
-                    await logout();
-                    return;
-                }
-
+                if (snapshot.empty) { alert('Employee profile not found. Contact admin.'); await logout(); return; }
                 const empDoc = snapshot.docs[0];
                 const empData = empDoc.data();
-                
-                if (!empData.loginEnabled) {
-                    alert('Your login is disabled. Contact admin to re-enable.');
-                    await logout();
-                    return;
-                }
-
+                if (!empData.loginEnabled) { alert('Your login is disabled. Contact admin.'); await logout(); return; }
                 currentUser = { role: 'employee', uid: user.uid, ...empData, id: empDoc.id };
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('employee-dashboard').classList.remove('hidden');
@@ -715,19 +892,14 @@
                 document.getElementById('emp-role-badge').textContent = empData.isMOD ? 'MOD' : 'Employee';
                 document.getElementById('current-room-display').textContent = empData.room || 'Not assigned';
                 initAllSignaturePads();
-                renderAmenitiesTable();
                 prefillCheckInForm(empData);
                 loadMODRoomDropdown();
-            } catch (error) {
-                console.error('Error loading profile:', error);
-                alert('Error loading profile.');
-            }
+                startRealtimeListeners();
+            } catch (error) { console.error(error); alert('Error loading profile.'); }
         }
 
         async function logout() {
-            try {
-                await window.fb.signOut(window.fb.auth);
-            } catch(e) { console.error(e); }
+            try { await window.fb.signOut(window.fb.auth); } catch(e) {}
             currentUser = null;
             document.getElementById('employee-dashboard').classList.add('hidden');
             document.getElementById('admin-dashboard').classList.add('hidden');
@@ -736,13 +908,8 @@
         }
 
         // ===== SELF REGISTRATION =====
-        function openCreateProfile() {
-            document.getElementById('create-profile-modal').classList.add('show');
-            resetRegistration();
-        }
-        function closeCreateProfile() {
-            document.getElementById('create-profile-modal').classList.remove('show');
-        }
+        function openCreateProfile() { document.getElementById('create-profile-modal').classList.add('show'); resetRegistration(); }
+        function closeCreateProfile() { document.getElementById('create-profile-modal').classList.remove('show'); }
         function resetRegistration() {
             document.getElementById('reg-step-1').classList.remove('hidden');
             document.getElementById('reg-step-2').classList.add('hidden');
@@ -750,39 +917,21 @@
             document.getElementById('reg-search-results').innerHTML = '';
             regSearchEmpId = null;
         }
-
         async function searchRegName(query) {
             const resDiv = document.getElementById('reg-search-results');
             if (!query || query.length < 2) { resDiv.innerHTML = ''; return; }
-            
             try {
-                const q = window.fb.query(
-                    window.fb.collection(window.fb.db, 'employees'),
-                    window.fb.where('registered', '==', false)
-                );
+                const q = window.fb.query(window.fb.collection(window.fb.db, 'employees'), window.fb.where('registered', '==', false));
                 const snapshot = await window.fb.getDocs(q);
-                const matches = snapshot.docs
-                    .map(d => ({ id: d.id, ...d.data() }))
-                    .filter(e => e.name.toLowerCase().includes(query.toLowerCase()));
-                
-                if (matches.length === 0) {
-                    resDiv.innerHTML = '<p class="text-red-600">❌ No matching unregistered employee found. Contact admin.</p>';
-                    return;
-                }
-                
-                resDiv.innerHTML = '<p class="text-gray-600 mb-2">Select your name:</p>' + 
-                    matches.map(e => `
-                        <button onclick="selectRegEmployee('${e.id}')" class="w-full text-left p-2 mb-1 bg-gray-50 hover:bg-blue-50 border rounded">
-                            <strong>${e.name}</strong> <span class="text-xs text-gray-500">(${e.code || 'N/A'})</span><br>
-                            <span class="text-xs text-blue-700">${e.dept} • ${e.designation || 'N/A'}</span>
-                        </button>
-                    `).join('');
-            } catch (error) {
-                console.error(error);
-                resDiv.innerHTML = '<p class="text-red-600">Error searching.</p>';
-            }
+                const matches = snapshot.docs.map(d => ({ id: d.id, ...d.data() })).filter(e => e.name.toLowerCase().includes(query.toLowerCase()));
+                if (matches.length === 0) { resDiv.innerHTML = '<p class="text-red-600">❌ No matching unregistered employee found. Contact admin.</p>'; return; }
+                resDiv.innerHTML = '<p class="text-gray-600 mb-2">Select your name:</p>' + matches.map(e => `
+                    <button onclick="selectRegEmployee('${e.id}')" class="w-full text-left p-2 mb-1 bg-gray-50 hover:bg-blue-50 border rounded">
+                        <strong>${e.name}</strong> <span class="text-xs text-gray-500">(${e.code || 'N/A'})</span><br>
+                        <span class="text-xs text-blue-700">${e.dept} • ${e.designation || 'N/A'}</span>
+                    </button>`).join('');
+            } catch (error) { resDiv.innerHTML = '<p class="text-red-600">Error searching.</p>'; }
         }
-
         async function selectRegEmployee(id) {
             try {
                 const docSnap = await window.fb.getDoc(window.fb.doc(window.fb.db, 'employees', id));
@@ -795,58 +944,36 @@
                 document.getElementById('reg-found-room').textContent = emp.room || 'Not assigned';
                 document.getElementById('reg-step-1').classList.add('hidden');
                 document.getElementById('reg-step-2').classList.remove('hidden');
-            } catch (error) { console.error(error); }
+            } catch (error) {}
         }
-
         async function completeRegistration() {
             const email = document.getElementById('reg-email').value.trim();
             const pass = document.getElementById('reg-password').value;
             const pass2 = document.getElementById('reg-password2').value;
             const btn = document.getElementById('reg-submit-btn');
-
             if (!email || !pass) { alert('Please fill all fields'); return; }
             if (pass.length < 6) { alert('Password must be 6+ characters'); return; }
             if (pass !== pass2) { alert('Passwords do not match'); return; }
-
-            btn.innerHTML = '<span class="loading"></span>';
             btn.disabled = true;
-
             try {
                 const userCred = await window.fb.createUserWithEmailAndPassword(window.fb.auth, email, pass);
-                const uid = userCred.user.uid;
-
                 await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', regSearchEmpId), {
-                    uid: uid,
-                    email: email,
-                    registered: true,
-                    loginEnabled: true,
-                    status: 'pending'
+                    uid: userCred.user.uid, email, registered: true, loginEnabled: true, status: 'pending'
                 });
-
                 await window.fb.signOut(window.fb.auth);
                 closeCreateProfile();
                 alert('✓ Profile created! Please login with your new email and password.');
             } catch (error) {
-                console.error(error);
                 let msg = 'Registration failed.';
                 if (error.code === 'auth/email-already-in-use') msg = 'Email already registered.';
                 else if (error.code === 'auth/weak-password') msg = 'Password too weak.';
                 alert(msg);
-            } finally {
-                btn.innerHTML = 'Create Profile & Activate';
-                btn.disabled = false;
-            }
+            } finally { btn.disabled = false; }
         }
 
         // ===== FORGOT PASSWORD =====
-        function openForgotPassword() {
-            document.getElementById('forgot-password-modal').classList.add('show');
-            document.getElementById('fp-success').classList.add('hidden');
-            document.getElementById('fp-input').value = '';
-        }
-        function closeForgotPassword() {
-            document.getElementById('forgot-password-modal').classList.remove('show');
-        }
+        function openForgotPassword() { document.getElementById('forgot-password-modal').classList.add('show'); document.getElementById('fp-success').classList.add('hidden'); document.getElementById('fp-input').value=''; }
+        function closeForgotPassword() { document.getElementById('forgot-password-modal').classList.remove('show'); }
         async function submitForgotPassword() {
             const email = document.getElementById('fp-input').value.trim();
             if (!email) { alert('Please enter email'); return; }
@@ -854,25 +981,16 @@
                 await window.fb.sendPasswordResetEmail(window.fb.auth, email);
                 document.getElementById('fp-success').classList.remove('hidden');
                 setTimeout(() => closeForgotPassword(), 3000);
-            } catch (error) {
-                alert('Error: ' + error.message);
-            }
+            } catch (error) { alert('Error: ' + error.message); }
         }
 
         // ===== EMPLOYEE NAV =====
         function showEmpSection(section) {
-            ['checkin', 'checkout', 'mod', 'changeroom'].forEach(s => 
-                document.getElementById('emp-' + s).classList.add('hidden'));
+            ['checkin','checkout','mod','changeroom'].forEach(s => document.getElementById('emp-' + s).classList.add('hidden'));
             document.getElementById('emp-' + section).classList.remove('hidden');
-            if (section === 'checkin') initAllSignaturePads();
-            if (section === 'mod') { 
-                setTimeout(() => { 
-                    initSignaturePad('mod-ci'); 
-                    initSignaturePad('mod-co'); 
-                    loadMODAssignment(); 
-                }, 100); 
-            }
-            if (section === 'checkout') { setTimeout(() => initSignaturePad('co'), 100); }
+            if (section === 'checkin') { initAllSignaturePads(); renderAmenitiesTable(); }
+            if (section === 'checkout') { setTimeout(() => { initSignaturePad('co'); renderCheckoutChecklist(); }, 100); }
+            if (section === 'mod') { setTimeout(() => { initSignaturePad('mod-ci'); initSignaturePad('mod-co'); loadMODAssignment(); }, 100); }
         }
 
         function prefillCheckInForm(emp) {
@@ -883,19 +1001,18 @@
             form.designation.value = emp.designation || '';
             form.email.value = emp.email || '';
             form.gender.value = emp.gender || 'Male';
-            
             const missing = !emp.mobile || !emp.dob || !emp.govt_id;
             document.getElementById('missing-data-alert').classList.toggle('hidden', !missing);
         }
 
-        // ===== MULTI-STEP FORM =====
+        // ===== MULTI-STEP =====
         function goToStep(step) {
             if (step === 2 && !validateStep1()) return;
             if (step === 3 && !validateStep2()) return;
-            [1, 2, 3].forEach(s => {
+            [1,2,3].forEach(s => {
                 document.getElementById('step-' + s).classList.add('hidden');
                 const ind = document.getElementById('step-' + s + '-indicator');
-                ind.classList.remove('step-active', 'step-done', 'step-pending');
+                ind.classList.remove('step-active','step-done','step-pending');
                 if (s < step) ind.classList.add('step-done');
                 else if (s === step) ind.classList.add('step-active');
                 else ind.classList.add('step-pending');
@@ -903,10 +1020,9 @@
             document.getElementById('step-' + step).classList.remove('hidden');
             if (step > 1) document.getElementById('step-1-bar').style.width = '100%';
             if (step > 2) document.getElementById('step-2-bar').style.width = '100%';
-            if (step === 2) initSignaturePad(2);
+            if (step === 2) { initSignaturePad(2); renderAmenitiesTable(); }
             if (step === 3) initSignaturePad(3);
         }
-
         function validateStep1() {
             const form = document.getElementById('checkin-form');
             if (!form.name.value || !form.code.value || !form.checkin_date.value) { alert('Please fill required fields'); return false; }
@@ -922,14 +1038,12 @@
 
         // ===== SIGNATURE =====
         let canvases = {}, contexts = {};
-        function initAllSignaturePads() { [1, 2, 3].forEach(i => initSignaturePad(i)); }
+        function initAllSignaturePads() { [1,2,3].forEach(i => initSignaturePad(i)); }
         function initSignaturePad(i) {
-            const id = typeof i === 'string' ? 'signature-canvas-' + i : 'signature-canvas-' + i;
-            const canvas = document.getElementById(id);
+            const canvas = document.getElementById('signature-canvas-' + i);
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
+            canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
             ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#1e3a8a';
             canvases[i] = canvas; contexts[i] = ctx;
             let drawing = false;
@@ -959,17 +1073,76 @@
             return false;
         }
 
-        // ===== AMENITIES =====
+        // ===== AMENITIES (CHECK-IN) with SHARED-ROOM LOGIC =====
+        function getMyRoom() { return roomsData.find(r => r.number === (currentUser && currentUser.room)); }
+
         function renderAmenitiesTable() {
             const tbody = document.getElementById('amenities-table-body');
-            tbody.innerHTML = amenitiesList.map((a, i) => `
+            const note = document.getElementById('shared-checklist-note');
+            if (!tbody) return;
+            const room = getMyRoom();
+            let items = [], shared = false, sharedBy = '';
+
+            if (room && room.currentChecklist && room.currentChecklist.items && room.currentChecklist.items.length) {
+                items = room.currentChecklist.items; shared = true; sharedBy = room.currentChecklist.by || 'previous occupant';
+            } else if (room && room.inventory && room.inventory.length) {
+                items = room.inventory.map(it => ({ name: it.name, present: it.available !== false, remarks: '' }));
+            } else {
+                items = amenitiesList.map(n => ({ name: n, present: false, remarks: '' }));
+            }
+            checkinItems = items;
+
+            if (shared) {
+                note.classList.remove('hidden');
+                note.innerHTML = `🔗 Shared room: this checklist was signed by <strong>${sharedBy}</strong>. The same list applies to you — verify and sign below.`;
+            } else note.classList.add('hidden');
+
+            tbody.innerHTML = items.map((it, i) => `
                 <tr>
-                    <td class="p-2 border text-center">${i + 1}</td>
-                    <td class="p-2 border">${a}</td>
-                    <td class="p-2 border text-center"><input type="checkbox" class="amenity-check"></td>
-                    <td class="p-2 border"><input type="text" class="w-full px-2 py-1 border rounded text-sm" placeholder="Remarks"></td>
-                </tr>
-            `).join('');
+                    <td class="p-2 border text-center">${i+1}</td>
+                    <td class="p-2 border">${it.name}</td>
+                    <td class="p-2 border text-center"><input type="checkbox" class="amenity-check" data-idx="${i}" ${it.present ? 'checked' : ''} ${shared ? 'disabled' : ''}></td>
+                    <td class="p-2 border"><input type="text" class="w-full px-2 py-1 border rounded text-sm amenity-remark" data-idx="${i}" value="${(it.remarks||'').replace(/"/g,'&quot;')}" placeholder="Remarks" ${shared ? 'disabled' : ''}></td>
+                </tr>`).join('');
+        }
+
+        function readCheckinChecklist() {
+            const room = getMyRoom();
+            const shared = room && room.currentChecklist && room.currentChecklist.items && room.currentChecklist.items.length;
+            if (shared) return checkinItems.map(it => ({ ...it }));
+            const checks = document.querySelectorAll('.amenity-check');
+            const remarks = document.querySelectorAll('.amenity-remark');
+            return checkinItems.map((it, i) => ({
+                name: it.name,
+                present: checks[i] ? checks[i].checked : false,
+                remarks: remarks[i] ? remarks[i].value : ''
+            }));
+        }
+
+        // ===== CHECK-OUT CHECKLIST =====
+        function renderCheckoutChecklist() {
+            const wrap = document.getElementById('co-checklist-wrap');
+            const tbody = document.getElementById('co-checklist-body');
+            const note = document.getElementById('co-checklist-note');
+            const room = getMyRoom();
+            if (!room) { wrap.classList.add('hidden'); checkoutItems = []; return; }
+            let items = (room.currentChecklist && room.currentChecklist.items) ||
+                        (room.inventory || []).map(it => ({ name: it.name, present: it.available !== false, remarks: '' }));
+            if (!items.length) { wrap.classList.add('hidden'); checkoutItems = []; return; }
+            checkoutItems = items;
+            wrap.classList.remove('hidden');
+            const lastOccupant = (room.occupants || []).length <= 1;
+            checkoutEditable = lastOccupant;
+            note.innerHTML = lastOccupant
+                ? 'You are the <strong>last occupant</strong>. Update each item\'s condition — room inventory will be updated on submit.'
+                : 'Shared room: this verification is recorded for you only. The checklist <strong>remains unchanged</strong> for the remaining occupant.';
+            tbody.innerHTML = items.map((it, i) => `
+                <tr>
+                    <td class="p-2 border">${it.name}</td>
+                    <td class="p-2 border text-center">${it.present ? '✓' : '✗'}</td>
+                    <td class="p-2 border"><select class="co-condition w-full px-2 py-1 border rounded text-sm" data-idx="${i}" ${lastOccupant ? '' : 'disabled'}><option>OK</option><option>Damaged</option><option>Missing</option></select></td>
+                    <td class="p-2 border"><input type="text" class="co-remark w-full px-2 py-1 border rounded text-sm" data-idx="${i}" ${lastOccupant ? '' : 'disabled'} placeholder="Remarks"></td>
+                </tr>`).join('');
         }
 
         // ===== SUBMIT CHECK-IN =====
@@ -978,10 +1151,10 @@
             if (!document.getElementById('rules-agree').checked) { alert('Please agree to rules'); return; }
             const sig = document.getElementById('typed-signature-3').value;
             if (!sig && !hasSignature(3)) { alert('Please provide signature on rules page'); return; }
-
             const form = document.getElementById('checkin-form');
             const data = Object.fromEntries(new FormData(form).entries());
-            
+            const checklist = readCheckinChecklist();
+
             let signatureUrl = '';
             if (canvases[3]) {
                 try {
@@ -989,54 +1162,76 @@
                     const sigRef = window.fb.ref(window.fb.storage, `signatures/${currentUser.id}/${Date.now()}.png`);
                     await window.fb.uploadString(sigRef, sigData, 'data_url');
                     signatureUrl = await window.fb.getDownloadURL(sigRef);
-                } catch(e) { console.warn('Signature upload failed:', e); }
+                } catch(e) {}
             }
 
             try {
                 await window.fb.addDoc(window.fb.collection(window.fb.db, 'checkins'), {
-                    employeeId: currentUser.id,
-                    employeeName: currentUser.name,
-                    ...data,
-                    signatureUrl: signatureUrl,
+                    employeeId: currentUser.id, employeeName: currentUser.name,
+                    ...data, checklist, signatureUrl,
                     typedSignature: sig || '[Drawn]',
                     timestamp: new Date().toISOString()
                 });
 
-                await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', currentUser.id), {
-                    status: 'active',
-                    lastCheckIn: new Date().toISOString()
-                });
-
+                const room = getMyRoom();
+                const updates = { status: 'active', lastCheckIn: new Date().toISOString() };
+                if (room) {
+                    const occ = [...(room.occupants || [])];
+                    if (!occ.includes(currentUser.name) && occ.length < (room.capacity || 1)) occ.push(currentUser.name);
+                    const roomUpdates = { occupants: occ };
+                    // First check-in sets the shared room checklist
+                    if (!room.currentChecklist || !(room.currentChecklist.items && room.currentChecklist.items.length)) {
+                        roomUpdates.currentChecklist = { items: checklist, by: currentUser.name, date: new Date().toISOString() };
+                    }
+                    await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.number), roomUpdates);
+                }
+                await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', currentUser.id), updates);
                 alert('✓ Check-in submitted successfully!');
-            } catch (error) {
-                console.error(error);
-                alert('Error submitting check-in: ' + error.message);
-            }
+            } catch (error) { alert('Error submitting check-in: ' + error.message); }
         }
 
+        // ===== SUBMIT CHECK-OUT =====
         async function submitCheckOut() {
             const sig = document.getElementById('typed-signature-co').value;
             if (!sig && !hasSignature('co')) { alert('Please provide signature'); return; }
-            
+            const conditions = document.querySelectorAll('.co-condition');
+            const remarks = document.querySelectorAll('.co-remark');
+            const verification = checkoutItems.map((it, i) => ({
+                name: it.name, atCheckIn: !!it.present,
+                condition: conditions[i] ? conditions[i].value : 'OK',
+                remarks: remarks[i] ? remarks[i].value : ''
+            }));
+
             if (!currentUser.isMOD) {
                 if (!confirm('Your login will be DISABLED after check-out. Continue?')) return;
                 try {
                     await window.fb.addDoc(window.fb.collection(window.fb.db, 'checkouts'), {
-                        employeeId: currentUser.id,
-                        employeeName: currentUser.name,
+                        employeeId: currentUser.id, employeeName: currentUser.name,
                         date: document.getElementById('co-date').value,
                         reason: document.getElementById('co-reason').value,
-                        timestamp: new Date().toISOString()
+                        verification, timestamp: new Date().toISOString()
                     });
-                    await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', currentUser.id), {
-                        loginEnabled: false,
-                        status: 'disabled'
-                    });
+
+                    const room = getMyRoom();
+                    if (room) {
+                        let occ = (room.occupants || []).filter(n => n !== currentUser.name);
+                        const roomUpdates = { occupants: occ };
+                        if (occ.length === 0) {
+                            // Last occupant left: update inventory from conditions & clear shared checklist
+                            const newInv = (room.inventory && room.inventory.length ? room.inventory : checkoutItems.map(it => ({ name: it.name, qty: 1 })))
+                                .map(item => {
+                                    const v = verification.find(x => x.name === item.name);
+                                    return { ...item, available: v ? (v.condition !== 'Missing') : (item.available !== false) };
+                                });
+                            roomUpdates.inventory = newInv;
+                            roomUpdates.currentChecklist = null;
+                        }
+                        await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.number), roomUpdates);
+                    }
+                    await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', currentUser.id), { loginEnabled: false, status: 'disabled' });
                     alert('✓ Check-out submitted. Login disabled.');
                     setTimeout(logout, 1500);
-                } catch (error) {
-                    alert('Error: ' + error.message);
-                }
+                } catch (error) { alert('Error: ' + error.message); }
             } else {
                 alert('✓ MOD Check-out submitted. Login remains active.');
             }
@@ -1044,7 +1239,7 @@
 
         // ===== MOD =====
         function showMODTab(tab) {
-            ['checkin', 'checkout', 'history'].forEach(t => {
+            ['checkin','checkout','history'].forEach(t => {
                 document.getElementById('mod-' + t).classList.add('hidden');
                 document.getElementById('mod-tab-' + t).classList.remove('tab-active');
                 document.getElementById('mod-tab-' + t).classList.add('text-gray-500');
@@ -1053,26 +1248,18 @@
             document.getElementById('mod-tab-' + tab).classList.add('tab-active');
             document.getElementById('mod-tab-' + tab).classList.remove('text-gray-500');
         }
-
         function loadMODRoomDropdown() {
             const sel = document.getElementById('mod-room');
-            const vacantRooms = roomsData.filter(r => r.occupants.length < r.capacity);
+            const vacant = roomsData.filter(r => (r.occupants?.length || 0) < (r.capacity || 0));
             sel.innerHTML = '<option value="">-- Select or wait for admin --</option>' +
-                vacantRooms.map(r => `<option value="${r.number}">${r.number} (Block ${r.block})</option>`).join('');
+                vacant.map(r => `<option value="${r.number}">${r.number} (Block ${r.block})</option>`).join('');
         }
-
         function loadMODAssignment() {
             const assigned = modAssignments.find(a => a.empId === currentUser.id);
             const div = document.getElementById('mod-admin-assigned');
-            if (assigned) { 
-                div.textContent = `✓ Admin assigned: ${assigned.room}`; 
-                div.classList.remove('hidden'); 
-                document.getElementById('mod-room').value = assigned.room; 
-            } else {
-                div.classList.add('hidden');
-            }
+            if (assigned) { div.textContent = `✓ Admin assigned: ${assigned.room}`; div.classList.remove('hidden'); document.getElementById('mod-room').value = assigned.room; }
+            else div.classList.add('hidden');
         }
-
         async function submitMODCheckIn() {
             const room = document.getElementById('mod-room').value;
             const ci = document.getElementById('mod-ci-date').value;
@@ -1081,22 +1268,15 @@
             const sig = document.getElementById('typed-signature-mod-ci').value;
             if (!room || !ci || !co) { alert('Please fill all fields'); return; }
             if (!sig && !hasSignature('mod-ci')) { alert('Please provide signature'); return; }
-            
             try {
                 await window.fb.addDoc(window.fb.collection(window.fb.db, 'modstays'), {
-                    employeeId: currentUser.id,
-                    employeeName: currentUser.name,
+                    employeeId: currentUser.id, employeeName: currentUser.name,
                     room, checkIn: ci, checkOut: co, purpose,
-                    typedSignature: sig || '[Drawn]',
-                    status: 'active',
-                    timestamp: new Date().toISOString()
+                    typedSignature: sig || '[Drawn]', status: 'active', timestamp: new Date().toISOString()
                 });
                 alert(`✓ MOD Check-In submitted for room ${room}`);
-            } catch (error) {
-                alert('Error: ' + error.message);
-            }
+            } catch (error) { alert('Error: ' + error.message); }
         }
-
         async function submitMODCheckOut() {
             const date = document.getElementById('mod-co-date-out').value;
             const sig = document.getElementById('typed-signature-mod-co').value;
@@ -1107,77 +1287,165 @@
 
         // ===== ADMIN UPLOAD =====
         async function uploadRoomStructure(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+            const file = event.target.files[0]; if (!file) return;
             const reader = new FileReader();
             reader.onload = async (e) => {
                 const lines = e.target.result.split('\n').filter(l => l.trim());
                 const startIdx = lines[0].toLowerCase().includes('block') ? 1 : 0;
                 let count = 0;
                 const statusDiv = document.getElementById('room-upload-status');
-                statusDiv.innerHTML = '<span class="loading"></span> Uploading...';
-
+                statusDiv.innerHTML = 'Uploading...';
                 try {
                     for (let i = startIdx; i < lines.length; i++) {
-                        const parts = lines[i].split(',').map(s => s.trim());
-                        if (parts.length >= 5) {
-                            const [block, cabin, roomNo, roomType, beds] = parts;
+                        const p = lines[i].split(',').map(s => s.trim());
+                        if (p.length >= 5) {
+                            const [block, cabin, roomNo, roomType, beds] = p;
                             await window.fb.setDoc(window.fb.doc(window.fb.db, 'rooms', roomNo), {
                                 number: roomNo, block, cabin, type: roomType,
-                                capacity: parseInt(beds) || 1, occupants: [],
-                                amenities: [], createdAt: new Date().toISOString()
-                            });
+                                capacity: parseInt(beds) || 1, occupants: [], inventory: [],
+                                createdAt: new Date().toISOString()
+                            }, { merge: true });
                             count++;
                         }
                     }
                     statusDiv.innerHTML = `<span class="text-green-600">✓ ${count} rooms uploaded!</span>`;
-                } catch (error) {
-                    console.error(error);
-                    statusDiv.innerHTML = `<span class="text-red-600">Error: ${error.message}</span>`;
-                }
+                } catch (error) { statusDiv.innerHTML = `<span class="text-red-600">Error: ${error.message}</span>`; }
             };
             reader.readAsText(file);
         }
 
         async function uploadEmployeeList(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+            const file = event.target.files[0]; if (!file) return;
             const reader = new FileReader();
             reader.onload = async (e) => {
                 const lines = e.target.result.split('\n').filter(l => l.trim());
                 const startIdx = lines[0].toLowerCase().includes('name') ? 1 : 0;
                 let count = 0;
                 const statusDiv = document.getElementById('emp-upload-status');
-                statusDiv.innerHTML = '<span class="loading"></span> Uploading...';
-
+                statusDiv.innerHTML = 'Uploading...';
                 try {
                     for (let i = startIdx; i < lines.length; i++) {
-                        const parts = lines[i].split(',').map(s => s.trim());
-                        if (parts.length >= 4) {
-                            const [name, designation, dept, roomNo] = parts;
-                            const code = 'EMP' + String(Date.now()).slice(-6) + i;
+                        const p = lines[i].split(',').map(s => s.trim());
+                        if (p.length >= 4) {
+                            const [name, designation, dept, roomNo] = p;
                             await window.fb.addDoc(window.fb.collection(window.fb.db, 'employees'), {
-                                name, code, dept, designation, room: roomNo,
-                                gender: 'Male', email: '', uid: '',
-                                status: 'pending', isMOD: false,
-                                loginEnabled: false, registered: false,
-                                createdAt: new Date().toISOString()
+                                name, code: 'EMP' + String(Date.now()).slice(-6) + i, dept, designation, room: roomNo,
+                                gender: 'Male', email: '', uid: '', status: 'pending', isMOD: false,
+                                loginEnabled: false, registered: false, createdAt: new Date().toISOString()
                             });
                             count++;
                         }
                     }
                     statusDiv.innerHTML = `<span class="text-green-600">✓ ${count} employees uploaded!</span>`;
-                } catch (error) {
-                    console.error(error);
-                    statusDiv.innerHTML = `<span class="text-red-600">Error: ${error.message}</span>`;
+                } catch (error) { statusDiv.innerHTML = `<span class="text-red-600">Error: ${error.message}</span>`; }
+            };
+            reader.readAsText(file);
+        }
+
+        // ===== INVENTORY MANAGEMENT =====
+        function populateInventoryDropdowns() {
+            const bSel = document.getElementById('inv-block');
+            if (!bSel) return;
+            const blocks = [...new Set(roomsData.map(r => r.block))].filter(Boolean).sort();
+            const curB = bSel.value;
+            bSel.innerHTML = '<option value="">-- Block --</option>' + blocks.map(b => `<option value="${b}">${b}</option>`).join('');
+            if (curB) bSel.value = curB;
+        }
+        function onInvBlockChange() {
+            const b = document.getElementById('inv-block').value;
+            const cSel = document.getElementById('inv-cabin');
+            const cabins = [...new Set(roomsData.filter(r => r.block === b).map(r => r.cabin))].filter(Boolean).sort();
+            cSel.innerHTML = '<option value="">-- Cabin --</option>' + cabins.map(c => `<option value="${c}">${c}</option>`).join('');
+            document.getElementById('inv-room').innerHTML = '<option value="">-- Room --</option>';
+            document.getElementById('inv-list-wrap').classList.add('hidden');
+            document.getElementById('inv-empty').classList.remove('hidden');
+        }
+        function onInvCabinChange() {
+            const b = document.getElementById('inv-block').value;
+            const c = document.getElementById('inv-cabin').value;
+            const rSel = document.getElementById('inv-room');
+            const rooms = roomsData.filter(r => r.block === b && r.cabin === c);
+            rSel.innerHTML = '<option value="">-- Room --</option>' + rooms.map(r => `<option value="${r.number}">${r.number} (${r.type})</option>`).join('');
+            document.getElementById('inv-list-wrap').classList.add('hidden');
+            document.getElementById('inv-empty').classList.remove('hidden');
+        }
+        function loadRoomInventory() {
+            const roomNo = document.getElementById('inv-room').value;
+            invSelectedRoom = roomNo || null;
+            const room = roomsData.find(r => r.number === roomNo);
+            if (!room) { document.getElementById('inv-list-wrap').classList.add('hidden'); document.getElementById('inv-empty').classList.remove('hidden'); return; }
+            invEditList = (room.inventory || []).map(it => ({ ...it }));
+            document.getElementById('inv-room-label').textContent = `${room.number} (Block ${room.block}, ${room.cabin || '-'}, ${room.type})`;
+            document.getElementById('inv-empty').classList.add('hidden');
+            document.getElementById('inv-list-wrap').classList.remove('hidden');
+            renderInvTable();
+        }
+        function renderInvTable() {
+            const tbody = document.getElementById('inv-table-body');
+            if (!invEditList.length) { tbody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-gray-500 italic">No items yet. Add manually or upload CSV.</td></tr>'; return; }
+            tbody.innerHTML = invEditList.map((it, i) => `
+                <tr>
+                    <td class="p-2 border text-center">${i+1}</td>
+                    <td class="p-2 border">${it.name}</td>
+                    <td class="p-2 border text-center">${it.qty || 1}</td>
+                    <td class="p-2 border text-center"><input type="checkbox" class="w-4 h-4" ${it.available !== false ? 'checked' : ''} onchange="invEditList[${i}].available=this.checked"></td>
+                    <td class="p-2 border text-center"><button onclick="invEditList.splice(${i},1);renderInvTable();" class="text-red-500 text-sm">✕</button></td>
+                </tr>`).join('');
+        }
+        function addInventoryItem() {
+            if (!invSelectedRoom) { alert('Select a room first'); return; }
+            const name = document.getElementById('inv-item-name').value.trim();
+            if (!name) { alert('Enter item name'); return; }
+            invEditList.push({
+                name,
+                qty: parseInt(document.getElementById('inv-item-qty').value) || 1,
+                available: document.getElementById('inv-item-avail').checked
+            });
+            document.getElementById('inv-item-name').value = '';
+            document.getElementById('inv-item-qty').value = 1;
+            document.getElementById('inv-item-avail').checked = true;
+            renderInvTable();
+        }
+        async function saveRoomInventory() {
+            if (!invSelectedRoom) return;
+            try {
+                await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', invSelectedRoom), { inventory: invEditList });
+                alert('✓ Inventory saved!');
+            } catch (e) { alert('Error: ' + e.message); }
+        }
+        async function uploadInventoryCSV(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const lines = e.target.result.split('\n').filter(l => l.trim());
+                const startIdx = lines[0].toLowerCase().includes('block') ? 1 : 0;
+                const byRoom = {};
+                for (let i = startIdx; i < lines.length; i++) {
+                    const p = lines[i].split(',').map(s => s.trim());
+                    if (p.length >= 3) {
+                        const [block, roomNo, itemName, avail, qty] = p;
+                        if (!byRoom[roomNo]) byRoom[roomNo] = [];
+                        byRoom[roomNo].push({ name: itemName, available: (avail || 'yes').toLowerCase().startsWith('y'), qty: parseInt(qty) || 1 });
+                    }
                 }
+                let count = 0;
+                try {
+                    for (const roomNo in byRoom) {
+                        const room = roomsData.find(r => r.number === roomNo);
+                        const existing = (room && room.inventory) || [];
+                        await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', roomNo), { inventory: [...existing, ...byRoom[roomNo]] });
+                        count += byRoom[roomNo].length;
+                    }
+                    alert(`✓ ${count} inventory items uploaded!`);
+                    if (invSelectedRoom) loadRoomInventory();
+                } catch (err) { alert('Error: ' + err.message); }
             };
             reader.readAsText(file);
         }
 
         // ===== ADMIN NAV =====
         function showAdminSection(section) {
-            ['upload', 'layout', 'employees', 'modguest', 'branding'].forEach(s => {
+            ['upload','layout','inventory','employees','modguest','branding'].forEach(s => {
                 document.getElementById('admin-' + s).classList.add('hidden');
                 document.getElementById('tab-' + s).classList.remove('tab-active');
                 document.getElementById('tab-' + s).classList.add('text-gray-500');
@@ -1185,10 +1453,11 @@
             document.getElementById('admin-' + section).classList.remove('hidden');
             document.getElementById('tab-' + section).classList.add('tab-active');
             document.getElementById('tab-' + section).classList.remove('text-gray-500');
+            if (section === 'inventory') populateInventoryDropdowns();
+            if (section === 'branding') loadBrandingIntoForm();
         }
-
         function showMODGuestTab(tab) {
-            ['mod', 'assign'].forEach(t => {
+            ['mod','assign'].forEach(t => {
                 document.getElementById('mg-' + t).classList.add('hidden');
                 document.getElementById('mg-tab-' + t).classList.remove('tab-active');
                 document.getElementById('mg-tab-' + t).classList.add('text-gray-500');
@@ -1202,242 +1471,162 @@
         // ===== ADMIN CREATE PROFILE =====
         function openAdminCreateProfile() {
             document.getElementById('admin-create-profile-modal').classList.add('show');
-            const sel = document.getElementById('admin-room-select');
-            sel.innerHTML = '<option value="">-- Select Room --</option>' + 
+            document.getElementById('admin-room-select').innerHTML = '<option value="">-- Select Room --</option>' +
                 roomsData.map(r => `<option value="${r.number}">${r.number} (${r.block}, ${r.type}, ${r.capacity} beds)</option>`).join('');
         }
-        function closeAdminCreateProfile() {
-            document.getElementById('admin-create-profile-modal').classList.remove('show');
-            document.getElementById('admin-create-form').reset();
-        }
+        function closeAdminCreateProfile() { document.getElementById('admin-create-profile-modal').classList.remove('show'); document.getElementById('admin-create-form').reset(); }
         async function saveAdminProfile() {
             const form = document.getElementById('admin-create-form');
             const data = Object.fromEntries(new FormData(form).entries());
             if (!data.name || !data.code || !data.dept) { alert('Please fill required fields'); return; }
-            
             try {
-                const username = data.name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z.]/g, '');
                 await window.fb.addDoc(window.fb.collection(window.fb.db, 'employees'), {
                     name: data.name, code: data.code, dept: data.dept,
                     designation: data.designation || '', gender: data.gender || 'Male',
                     email: '', uid: '', room: data.room || '',
                     block: data.room ? data.room.split('-')[0] : '',
                     status: 'pending', isMOD: document.getElementById('admin-is-mod').checked,
-                    loginEnabled: true, registered: false,
-                    createdAt: new Date().toISOString()
+                    loginEnabled: true, registered: false, createdAt: new Date().toISOString()
                 });
                 closeAdminCreateProfile();
-                alert(`✓ Profile created!\nEmployee can now register on login page.`);
-            } catch (error) {
-                alert('Error: ' + error.message);
-            }
+                alert('✓ Profile created! Employee can now register on login page.');
+            } catch (error) { alert('Error: ' + error.message); }
         }
 
-        // ===== TOGGLE LOGIN =====
         async function toggleLogin(empId) {
             const emp = employeesData.find(e => e.id === empId);
             if (!emp) return;
-            try {
-                await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', empId), {
-                    loginEnabled: !emp.loginEnabled
-                });
-            } catch (error) {
-                alert('Error: ' + error.message);
-            }
+            try { await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', empId), { loginEnabled: !emp.loginEnabled }); }
+            catch (error) { alert('Error: ' + error.message); }
         }
 
-        // ===== BLOCK FILTER =====
+        // ===== BLOCK / ROOMS RENDER =====
         function filterBlock(block) {
             currentBlock = block;
             document.querySelectorAll('.block-tab').forEach(t => t.classList.remove('active'));
             document.getElementById('block-' + block).classList.add('active');
             renderRooms();
         }
-
         function renderBlockTabs() {
             const blocks = [...new Set(roomsData.map(r => r.block))].filter(b => b).sort();
             const container = document.getElementById('block-tabs-container');
-            if (blocks.length === 0) {
-                container.innerHTML = '<p class="text-sm text-gray-500 italic">No rooms uploaded yet. Go to Upload Data tab.</p>';
-                return;
-            }
-            container.innerHTML = `<button onclick="filterBlock('ALL')" class="block-tab ${currentBlock === 'ALL' ? 'active' : ''}" id="block-ALL">All</button>` +
-                blocks.map(b => `<button onclick="filterBlock('${b}')" class="block-tab ${currentBlock === b ? 'active' : ''}" id="block-${b}">${b}</button>`).join('');
+            if (!blocks.length) { container.innerHTML = '<p class="text-sm text-gray-500 italic">No rooms uploaded yet.</p>'; return; }
+            container.innerHTML = `<button onclick="filterBlock('ALL')" class="block-tab ${currentBlock==='ALL'?'active':''}" id="block-ALL">All</button>` +
+                blocks.map(b => `<button onclick="filterBlock('${b}')" class="block-tab ${currentBlock===b?'active':''}" id="block-${b}">${b}</button>`).join('');
         }
-
         function renderBlockSummary() {
             const blocks = [...new Set(roomsData.map(r => r.block))].filter(b => b).sort();
-            const summary = document.getElementById('block-summary');
-            summary.innerHTML = blocks.map(b => {
+            document.getElementById('block-summary').innerHTML = blocks.map(b => {
                 const rooms = roomsData.filter(r => r.block === b);
-                const cap = rooms.reduce((s, r) => s + (r.capacity || 0), 0);
-                const occ = rooms.reduce((s, r) => s + (r.occupants?.length || 0), 0);
+                const cap = rooms.reduce((s,r)=>s+(r.capacity||0),0);
+                const occ = rooms.reduce((s,r)=>s+(r.occupants?.length||0),0);
                 return `<div class="bg-blue-50 p-2 rounded border text-center"><strong>Block ${b}</strong><br>${occ}/${cap}</div>`;
             }).join('');
         }
-
-        // ===== ROOMS =====
         function renderRooms() {
             const grid = document.getElementById('room-grid');
-            if (roomsData.length === 0) {
-                grid.innerHTML = '<p class="col-span-full text-center text-gray-500 italic py-8">No rooms uploaded yet. Go to Upload Data tab to upload room structure CSV.</p>';
-                return;
-            }
+            if (!roomsData.length) { grid.innerHTML = '<p class="col-span-full text-center text-gray-500 italic py-8">No rooms uploaded yet.</p>'; return; }
             const filtered = currentBlock === 'ALL' ? roomsData : roomsData.filter(r => r.block === currentBlock);
             grid.innerHTML = filtered.map(room => {
-                const occ = room.occupants?.length || 0;
-                const cap = room.capacity || 0;
+                const occ = room.occupants?.length || 0, cap = room.capacity || 0;
                 let cls = 'room-vacant';
-                if (occ >= cap) cls = 'room-occupied';
-                else if (occ > 0) cls = 'room-partial';
-                
+                if (occ >= cap) cls = 'room-occupied'; else if (occ > 0) cls = 'room-partial';
                 let bedDisplay = '';
                 if (cap > 1) {
-                    bedDisplay = `<div class="flex gap-1 mt-2 flex-wrap">${Array(cap).fill(0).map((_, i) => {
-                        const occupant = room.occupants?.[i];
-                        return `<div class="flex-1 min-w-[40px] text-xs p-1 rounded text-center ${occupant ? 'bed-occupied' : 'bed-vacant'}" title="${occupant || 'Vacant'}">${occupant ? occupant.split(' ')[0] : 'Empty'}</div>`;
+                    bedDisplay = `<div class="flex gap-1 mt-2 flex-wrap">${Array(cap).fill(0).map((_,i)=>{
+                        const o = room.occupants?.[i];
+                        return `<div class="flex-1 min-w-[40px] text-xs p-1 rounded text-center ${o?'bed-occupied':'bed-vacant'}">${o?o.split(' ')[0]:'Empty'}</div>`;
                     }).join('')}</div>`;
                 } else {
-                    const occupant = room.occupants?.[0];
-                    bedDisplay = `<div class="mt-2 text-xs ${occupant ? 'text-red-700' : 'text-green-700'}">${occupant || 'Vacant'}</div>`;
+                    const o = room.occupants?.[0];
+                    bedDisplay = `<div class="mt-2 text-xs ${o?'text-red-700':'text-green-700'}">${o||'Vacant'}</div>`;
                 }
-
-                return `
-                    <div onclick="openRoomModal('${room.number}')" class="room-card p-3 rounded-lg border-2 ${cls} cursor-pointer">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="font-bold text-sm">${room.number}</span>
-                            <span class="text-xs px-1.5 py-0.5 bg-white rounded border">${room.type}</span>
-                        </div>
-                        <p class="text-xs text-gray-600">${room.block} • ${room.cabin || ''} • ${occ}/${cap}</p>
-                        ${bedDisplay}
-                    </div>
-                `;
+                return `<div onclick="openRoomModal('${room.number}')" class="room-card p-3 rounded-lg border-2 ${cls} cursor-pointer">
+                    <div class="flex justify-between items-center mb-1"><span class="font-bold text-sm">${room.number}</span><span class="text-xs px-1.5 py-0.5 bg-white rounded border">${room.type}</span></div>
+                    <p class="text-xs text-gray-600">${room.block} • ${room.cabin||''} • ${occ}/${cap}</p>${bedDisplay}</div>`;
             }).join('');
         }
 
         function renderEmpTable() {
             const tbody = document.getElementById('emp-table-body');
-            if (employeesData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-gray-500 italic">No employees uploaded yet.</td></tr>';
-                return;
-            }
+            if (!employeesData.length) { tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-gray-500 italic">No employees uploaded yet.</td></tr>'; return; }
             tbody.innerHTML = employeesData.map(emp => `
                 <tr class="border-b hover:bg-gray-50">
-                    <td class="p-3 font-medium">${emp.name} ${emp.isMOD ? '<span class="text-xs bg-orange-100 text-orange-700 px-1 rounded ml-1">MOD</span>' : ''}</td>
-                    <td class="p-3 text-xs"><code>${emp.username || emp.email || '-'}</code></td>
-                    <td class="p-3">${emp.dept}</td>
-                    <td class="p-3">${emp.designation || '-'}</td>
-                    <td class="p-3">${emp.room || '-'}</td>
-                    <td class="p-3"><span class="text-xs px-2 py-1 rounded ${emp.registered ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${emp.registered ? 'Registered' : 'Pending'}</span></td>
-                    <td class="p-3">
-                        <label class="toggle-switch">
-                            <input type="checkbox" ${emp.loginEnabled ? 'checked' : ''} onchange="toggleLogin('${emp.id}')">
-                            <span class="slider"></span>
-                        </label>
-                    </td>
-                </tr>
-            `).join('');
+                    <td class="p-3 font-medium">${emp.name} ${emp.isMOD?'<span class="text-xs bg-orange-100 text-orange-700 px-1 rounded ml-1">MOD</span>':''}</td>
+                    <td class="p-3 text-xs"><code>${emp.username||emp.email||'-'}</code></td>
+                    <td class="p-3">${emp.dept}</td><td class="p-3">${emp.designation||'-'}</td><td class="p-3">${emp.room||'-'}</td>
+                    <td class="p-3"><span class="text-xs px-2 py-1 rounded ${emp.registered?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${emp.registered?'Registered':'Pending'}</span></td>
+                    <td class="p-3"><label class="toggle-switch"><input type="checkbox" ${emp.loginEnabled?'checked':''} onchange="toggleLogin('${emp.id}')"><span class="slider"></span></label></td>
+                </tr>`).join('');
         }
-
         function filterEmployees(type, value) {
-            let filtered = employeesData;
-            if (type === 'gender' && value) filtered = filtered.filter(e => e.gender === value);
-            if (type === 'reg' && value === 'registered') filtered = filtered.filter(e => e.registered);
-            if (type === 'reg' && value === 'pending') filtered = filtered.filter(e => !e.registered);
-            
+            let f = employeesData;
+            if (type==='gender' && value) f = f.filter(e=>e.gender===value);
+            if (type==='reg' && value==='registered') f = f.filter(e=>e.registered);
+            if (type==='reg' && value==='pending') f = f.filter(e=>!e.registered);
             const tbody = document.getElementById('emp-table-body');
-            tbody.innerHTML = filtered.map(emp => `
+            tbody.innerHTML = f.map(emp => `
                 <tr class="border-b hover:bg-gray-50">
-                    <td class="p-3">${emp.name}</td>
-                    <td class="p-3 text-xs"><code>${emp.username || emp.email || '-'}</code></td>
-                    <td class="p-3">${emp.dept}</td>
-                    <td class="p-3">${emp.designation || '-'}</td>
-                    <td class="p-3">${emp.room || '-'}</td>
-                    <td class="p-3"><span class="text-xs px-2 py-1 rounded ${emp.registered ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${emp.registered ? 'Registered' : 'Pending'}</span></td>
-                    <td class="p-3"><label class="toggle-switch"><input type="checkbox" ${emp.loginEnabled ? 'checked' : ''} onchange="toggleLogin('${emp.id}')"><span class="slider"></span></label></td>
-                </tr>
-            `).join('');
+                    <td class="p-3">${emp.name}</td><td class="p-3 text-xs"><code>${emp.username||emp.email||'-'}</code></td>
+                    <td class="p-3">${emp.dept}</td><td class="p-3">${emp.designation||'-'}</td><td class="p-3">${emp.room||'-'}</td>
+                    <td class="p-3"><span class="text-xs px-2 py-1 rounded ${emp.registered?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${emp.registered?'Registered':'Pending'}</span></td>
+                    <td class="p-3"><label class="toggle-switch"><input type="checkbox" ${emp.loginEnabled?'checked':''} onchange="toggleLogin('${emp.id}')"><span class="slider"></span></label></td>
+                </tr>`).join('');
         }
 
         // ===== MOD ASSIGN =====
         function populateMODAssignDropdowns() {
             const modEmps = employeesData.filter(e => e.isMOD && e.registered);
-            document.getElementById('assign-emp').innerHTML = '<option value="">-- Select MOD Employee --</option>' + 
-                modEmps.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
-            const vacantRooms = roomsData.filter(r => (r.occupants?.length || 0) < (r.capacity || 0));
-            document.getElementById('assign-room').innerHTML = '<option value="">-- Select Room --</option>' + 
-                vacantRooms.map(r => `<option value="${r.number}">${r.number} (${(r.capacity || 0) - (r.occupants?.length || 0)} beds free)</option>`).join('');
+            document.getElementById('assign-emp').innerHTML = '<option value="">-- Select MOD Employee --</option>' + modEmps.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+            const vacant = roomsData.filter(r => (r.occupants?.length||0) < (r.capacity||0));
+            document.getElementById('assign-room').innerHTML = '<option value="">-- Select Room --</option>' + vacant.map(r=>`<option value="${r.number}">${r.number} (${(r.capacity||0)-(r.occupants?.length||0)} free)</option>`).join('');
         }
         async function assignMODRoom() {
             const empId = document.getElementById('assign-emp').value;
             const room = document.getElementById('assign-room').value;
             if (!empId || !room) { alert('Please select both'); return; }
-            
             try {
-                await window.fb.addDoc(window.fb.collection(window.fb.db, 'modAssignments'), {
-                    empId, room, assignedAt: new Date().toISOString()
-                });
+                await window.fb.addDoc(window.fb.collection(window.fb.db, 'modAssignments'), { empId, room, assignedAt: new Date().toISOString() });
                 alert('✓ Room assigned to MOD employee.');
-            } catch (error) {
-                alert('Error: ' + error.message);
-            }
+            } catch (error) { alert('Error: ' + error.message); }
         }
 
         // ===== ROOM MODAL =====
         function openRoomModal(roomNum) {
             const room = roomsData.find(r => r.number === roomNum);
             if (!room) return;
-            document.getElementById('modal-room-title').textContent = `Room ${room.number} (${room.block}, ${room.cabin || ''})`;
-            const content = document.getElementById('room-detail-content');
+            document.getElementById('modal-room-title').textContent = `Room ${room.number} (${room.block}, ${room.cabin||''})`;
             const cap = room.capacity || 0;
-            let html = `<div class="mb-4"><p class="text-sm"><strong>Type:</strong> ${room.type} | <strong>Beds:</strong> ${cap}</p></div>`;
-            html += `<h4 class="font-semibold mb-2">Occupants</h4>`;
-            html += `<div class="space-y-2">`;
-            for (let i = 0; i < cap; i++) {
-                const occ = room.occupants?.[i];
-                html += `<div class="p-3 border rounded flex justify-between items-center">
-                    <span><strong>Bed ${i+1}:</strong> ${occ || '<span class="text-green-600">Vacant</span>'}</span>
-                    ${occ ? '<button class="text-red-500 text-sm">Check-Out</button>' : '<button class="text-blue-500 text-sm">Allocate</button>'}
-                </div>`;
+            let html = `<div class="mb-4"><p class="text-sm"><strong>Type:</strong> ${room.type} | <strong>Beds:</strong> ${cap}</p></div><h4 class="font-semibold mb-2">Occupants</h4><div class="space-y-2">`;
+            for (let i=0;i<cap;i++){
+                const o = room.occupants?.[i];
+                html += `<div class="p-3 border rounded flex justify-between items-center"><span><strong>Bed ${i+1}:</strong> ${o||'<span class="text-green-600">Vacant</span>'}</span>${o?'<button class="text-red-500 text-sm">Check-Out</button>':'<button class="text-blue-500 text-sm">Allocate</button>'}</div>`;
             }
             html += `</div>`;
-            content.innerHTML = html;
+            if (room.inventory && room.inventory.length) {
+                html += `<h4 class="font-semibold mt-4 mb-2">Inventory</h4><ul class="list-disc pl-5 text-sm text-gray-600">${room.inventory.map(it=>`<li>${it.name} × ${it.qty||1} ${it.available===false?'<span class="text-red-500">(not available)</span>':''}</li>`).join('')}</ul>`;
+            }
+            document.getElementById('room-detail-content').innerHTML = html;
             document.getElementById('room-modal').classList.add('show');
         }
         function closeModal() { document.getElementById('room-modal').classList.remove('show'); }
 
-        function applyBranding() {
-            const title = document.getElementById('brand-title-input').value;
-            document.getElementById('brand-title').textContent = title;
-            document.getElementById('emp-brand-title').textContent = title;
-            alert('✓ Applied!');
-        }
-
+        // ===== STATS / PREVIEW =====
         function updateStats() {
             document.getElementById('stat-rooms').textContent = roomsData.length;
-            const cap = roomsData.reduce((s, r) => s + (r.capacity || 0), 0);
-            const occ = roomsData.reduce((s, r) => s + (r.occupants?.length || 0), 0);
+            const cap = roomsData.reduce((s,r)=>s+(r.capacity||0),0);
+            const occ = roomsData.reduce((s,r)=>s+(r.occupants?.length||0),0);
             document.getElementById('stat-cap').textContent = cap;
             document.getElementById('stat-occ').textContent = occ;
-            document.getElementById('stat-vac').textContent = cap - occ;
+            document.getElementById('stat-vac').textContent = cap-occ;
             document.getElementById('stat-emp').textContent = employeesData.length;
-            document.getElementById('stat-pend').textContent = employeesData.filter(e => !e.registered).length;
+            document.getElementById('stat-pend').textContent = employeesData.filter(e=>!e.registered).length;
         }
-
         function renderUploadPreview() {
             document.getElementById('room-count').textContent = roomsData.length;
             document.getElementById('emp-count').textContent = employeesData.length;
-            document.getElementById('preview-rooms').innerHTML = roomsData.length === 0 
-                ? '<tr><td colspan="5" class="p-3 text-center text-gray-500 italic">No rooms uploaded</td></tr>'
-                : roomsData.map(r => `
-                    <tr class="border-b"><td class="p-2">${r.block}</td><td class="p-2">${r.cabin || '-'}</td><td class="p-2">${r.number}</td><td class="p-2">${r.type}</td><td class="p-2">${r.capacity}</td></tr>
-                `).join('');
-            document.getElementById('preview-emps').innerHTML = employeesData.length === 0
-                ? '<tr><td colspan="4" class="p-3 text-center text-gray-500 italic">No employees uploaded</td></tr>'
-                : employeesData.map(e => `
-                    <tr class="border-b"><td class="p-2">${e.name}</td><td class="p-2">${e.dept}</td><td class="p-2">${e.room || '-'}</td>
-                    <td class="p-2"><span class="px-2 py-0.5 rounded text-xs ${e.registered ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${e.registered ? 'Registered' : 'Pending'}</span></td></tr>
-                `).join('');
+            document.getElementById('preview-rooms').innerHTML = roomsData.length ? roomsData.map(r=>`<tr class="border-b"><td class="p-2">${r.block}</td><td class="p-2">${r.cabin||'-'}</td><td class="p-2">${r.number}</td><td class="p-2">${r.type}</td><td class="p-2">${r.capacity}</td></tr>`).join('') : '<tr><td colspan="5" class="p-3 text-center text-gray-500 italic">No rooms uploaded</td></tr>';
+            document.getElementById('preview-emps').innerHTML = employeesData.length ? employeesData.map(e=>`<tr class="border-b"><td class="p-2">${e.name}</td><td class="p-2">${e.dept}</td><td class="p-2">${e.room||'-'}</td><td class="p-2"><span class="px-2 py-0.5 rounded text-xs ${e.registered?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${e.registered?'Registered':'Pending'}</span></td></tr>`).join('') : '<tr><td colspan="4" class="p-3 text-center text-gray-500 italic">No employees uploaded</td></tr>';
         }
 
         // ===== REALTIME LISTENERS =====
@@ -1445,25 +1634,22 @@
             window.fb.onSnapshot(window.fb.collection(window.fb.db, 'rooms'), (snapshot) => {
                 roomsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                 if (currentUser?.role === 'admin') {
-                    renderBlockTabs();
-                    renderBlockSummary();
-                    renderRooms();
-                    renderUploadPreview();
-                    updateStats();
+                    renderBlockTabs(); renderBlockSummary(); renderRooms(); renderUploadPreview(); updateStats(); populateInventoryDropdowns();
+                } else if (currentUser?.role === 'employee') {
+                    loadMODRoomDropdown();
+                    if (!document.getElementById('emp-checkin').classList.contains('hidden')) renderAmenitiesTable();
+                    if (!document.getElementById('emp-checkout').classList.contains('hidden')) renderCheckoutChecklist();
                 }
             });
-
             window.fb.onSnapshot(window.fb.collection(window.fb.db, 'employees'), (snapshot) => {
                 employeesData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                if (currentUser?.role === 'admin') {
-                    renderEmpTable();
-                    renderUploadPreview();
-                    updateStats();
-                }
+                if (currentUser?.role === 'admin') { renderEmpTable(); renderUploadPreview(); updateStats(); }
             });
-
             window.fb.onSnapshot(window.fb.collection(window.fb.db, 'modAssignments'), (snapshot) => {
                 modAssignments = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            });
+            window.fb.onSnapshot(window.fb.doc(window.fb.db, 'settings', 'branding'), (snap) => {
+                if (snap.exists()) applyBrandSettings(snap.data());
             });
         }
     </script>
