@@ -328,7 +328,8 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div><label class="block text-sm font-medium mb-1">Full Name</label><input type="text" name="name" class="w-full px-3 py-2 border rounded bg-gray-50" readonly></div>
                             <div><label class="block text-sm font-medium mb-1">Employee Code</label><input type="text" name="code" class="w-full px-3 py-2 border rounded bg-gray-50" readonly></div>
-                            <div><label class="block text-sm font-medium mb-1">Department</label><input type="text" name="dept" class="w-full px-3 py-2 border rounded bg-gray-50" readonly></div>
+                            <!-- DEPARTMENT DROPDOWN (employee selectable) -->
+                            <div><label class="block text-sm font-medium mb-1">Department</label><select name="dept" id="checkin-dept" class="w-full px-3 py-2 border rounded"></select></div>
                             <div><label class="block text-sm font-medium mb-1">Designation</label><input type="text" name="designation" class="w-full px-3 py-2 border rounded bg-gray-50"></div>
                             <div><label class="block text-sm font-medium mb-1">Date of Joining</label><input type="date" name="doj" class="w-full px-3 py-2 border rounded"></div>
                             <div><label class="block text-sm font-medium mb-1">Check-In Date *</label><input type="date" name="checkin_date" class="w-full px-3 py-2 border rounded" required></div>
@@ -549,8 +550,8 @@
                         </div>
                         <div class="bg-green-50 p-5 rounded-lg border border-green-200 mb-6">
                             <h4 class="font-bold text-green-900 mb-2">Step 2: Upload Employee List</h4>
-                            <p class="text-sm text-green-800 mb-1">CSV: <code class="bg-white px-2 py-0.5 rounded">Name, Designation, Department, RoomNo</code></p>
-                            <p class="text-xs text-green-700 mb-3">ℹ RoomNo = full room ID (e.g. <strong>K-17-A</strong>).</p>
+                            <p class="text-sm text-green-800 mb-1">CSV: <code class="bg-white px-2 py-0.5 rounded">Name, Designation, Department, RoomNo [, EmploymentType]</code></p>
+                            <p class="text-xs text-green-700 mb-3">ℹ RoomNo = full room ID (e.g. <strong>K-17-A</strong>). Optional 5th column: <strong>Onroll</strong> or <strong>Casual</strong>.</p>
                             <input type="file" id="emp-list-csv" accept=".csv" class="hidden" onchange="uploadEmployeeList(event)">
                             <div class="flex gap-2 flex-wrap">
                                 <button onclick="document.getElementById('emp-list-csv').click()" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">📤 Upload Employee CSV</button>
@@ -628,9 +629,10 @@
                         <div class="flex gap-2 mb-4 flex-wrap">
                             <select onchange="filterEmployees('gender', this.value)" class="px-3 py-2 border rounded text-sm"><option value="">All Genders</option><option>Male</option><option>Female</option></select>
                             <select onchange="filterEmployees('reg', this.value)" class="px-3 py-2 border rounded text-sm"><option value="">All Status</option><option value="registered">Registered</option><option value="pending">Pending Registration</option></select>
+                            <select onchange="filterEmployees('type', this.value)" class="px-3 py-2 border rounded text-sm"><option value="">All Types</option><option value="Onroll">Onroll</option><option value="Casual">Casual</option></select>
                         </div>
                         <div class="overflow-x-auto"><table class="w-full text-sm text-left">
-                            <thead class="bg-gray-50 text-gray-600 uppercase text-xs"><tr><th class="p-3">Name</th><th class="p-3">Username</th><th class="p-3">Department</th><th class="p-3">Designation</th><th class="p-3">Room</th><th class="p-3">Status</th><th class="p-3">Login</th></tr></thead>
+                            <thead class="bg-gray-50 text-gray-600 uppercase text-xs"><tr><th class="p-3">Name</th><th class="p-3">Username</th><th class="p-3">Department</th><th class="p-3">Designation</th><th class="p-3">Room</th><th class="p-3">Type</th><th class="p-3">Status</th><th class="p-3">Login</th></tr></thead>
                             <tbody id="emp-table-body"></tbody></table></div>
                     </div>
 
@@ -702,11 +704,12 @@
                 <form id="admin-create-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div><label class="block text-sm font-medium mb-1">Full Name</label><input type="text" name="name" class="w-full px-3 py-2 border rounded"></div>
                     <div><label class="block text-sm font-medium mb-1">Employee Code</label><input type="text" name="code" class="w-full px-3 py-2 border rounded"></div>
-                    <div><label class="block text-sm font-medium mb-1">Department</label><input type="text" name="dept" class="w-full px-3 py-2 border rounded"></div>
+                    <div><label class="block text-sm font-medium mb-1">Department</label><select name="dept" id="admin-create-dept" class="w-full px-3 py-2 border rounded"></select></div>
                     <div><label class="block text-sm font-medium mb-1">Designation</label><input type="text" name="designation" class="w-full px-3 py-2 border rounded"></div>
                     <div><label class="block text-sm font-medium mb-1">Assigned Room</label><select name="room" class="w-full px-3 py-2 border rounded" id="admin-room-select"></select></div>
                     <div><label class="block text-sm font-medium mb-1">Gender</label><select name="gender" class="w-full px-3 py-2 border rounded"><option>Male</option><option>Female</option><option>Other</option></select></div>
-                    <div class="md:col-span-2 flex items-center gap-2 mt-2">
+                    <div><label class="block text-sm font-medium mb-1">Employment Type <span class="text-xs text-gray-500">(admin reference only)</span></label><select name="employmentType" class="w-full px-3 py-2 border rounded"><option value="">--</option><option>Onroll</option><option>Casual</option></select></div>
+                    <div class="flex items-end gap-2 pb-2">
                         <input type="checkbox" id="admin-is-mod" class="w-4 h-4"><label for="admin-is-mod" class="text-sm">Mark as MOD employee</label>
                     </div>
                 </form>
@@ -738,9 +741,10 @@
                     <form id="alloc-new-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div><label class="block text-sm font-medium mb-1">Full Name</label><input type="text" name="name" class="w-full px-3 py-2 border rounded"></div>
                         <div><label class="block text-sm font-medium mb-1">Employee Code</label><input type="text" name="code" class="w-full px-3 py-2 border rounded"></div>
-                        <div><label class="block text-sm font-medium mb-1">Department</label><input type="text" name="dept" class="w-full px-3 py-2 border rounded"></div>
+                        <div><label class="block text-sm font-medium mb-1">Department</label><select name="dept" id="alloc-dept" class="w-full px-3 py-2 border rounded"></select></div>
                         <div><label class="block text-sm font-medium mb-1">Designation</label><input type="text" name="designation" class="w-full px-3 py-2 border rounded"></div>
                         <div><label class="block text-sm font-medium mb-1">Gender</label><select name="gender" class="w-full px-3 py-2 border rounded"><option>Male</option><option>Female</option><option>Other</option></select></div>
+                        <div><label class="block text-sm font-medium mb-1">Employment Type</label><select name="employmentType" class="w-full px-3 py-2 border rounded"><option value="">--</option><option>Onroll</option><option>Casual</option></select></div>
                         <div class="flex items-center gap-2"><input type="checkbox" id="alloc-is-mod" class="w-4 h-4"><label for="alloc-is-mod" class="text-sm">MOD employee</label></div>
                     </form>
                     <button onclick="allocateNewEmployee()" class="mt-4 px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700">Create & Allocate</button>
@@ -787,9 +791,26 @@
         let currentLoginTab = 'employee';
         let currentModalRoom = null;
         let allocateTargetRoom = null;
-        let registering = false;   // guards auth-listener during self-registration
+        let registering = false;
         let guestSession = null;
         const amenitiesList = ["Single Bed", "Mattress", "Pillow", "Blanket", "Wardrobe", "Study Table", "Chair", "AC", "Fan", "Light", "Mirror", "Curtains"];
+
+        // ===== PRE-LOADED DEPARTMENT LIST =====
+        const departmentList = [
+            "IT", "Front Office", "Kitchen", "F&B Service", "Spa", "Stewarding",
+            "Finance", "Engineering", "Landscaping", "Security", "Sales and Marketing",
+            "Human Resources", "Housekeeping & Laundry", "Executive Office", "Reservations",
+            "Purchasing", "Sustainability", "Pest Control"
+        ];
+
+        function fillDeptSelect(sel, selected) {
+            if (!sel) return;
+            const opts = [...departmentList];
+            if (selected && !opts.includes(selected)) opts.unshift(selected);
+            sel.innerHTML = '<option value="">-- Select Department --</option>' +
+                opts.map(d => `<option value="${d}" ${d === selected ? 'selected' : ''}>${d}</option>`).join('');
+        }
+
         const defaultRulesHtml = `<ol class="list-decimal pl-5 space-y-2">
             <li>Rooms are allocated as per company policy based on designation and availability.</li>
             <li>Maintain cleanliness and hygiene in your room and common areas.</li>
@@ -849,7 +870,6 @@
             if(d){ d.textContent = s.description || 'Secure Employee Housing Portal'; }
             const di=document.getElementById('brand-desc-input'); if(di) di.value = s.description || '';
             if (s.color) { applyBrandColor(s.color); const ci=document.getElementById('brand-color-input'); if(ci) ci.value=s.color; }
-            // LOGO: show everywhere (above title on login + letterheads + navs)
             if (s.logoUrl) {
                 document.querySelectorAll('[data-brand-logo]').forEach(img => { img.src = s.logoUrl; img.classList.remove('hidden'); });
                 const wrap=document.getElementById('logo-wrap'); if(wrap) wrap.classList.add('hidden');
@@ -949,7 +969,7 @@
         function downloadSampleCSV(type) {
             let csv = '', filename = '';
             if (type === 'rooms') { csv = 'BlockNo,CabinNo,RoomNo,RoomType,Beds\nK,17,A,Sharing,2\nK,17,B,Sharing,2\nK,18,A,Sharing,2\nK,18,B,Single,1\n'; filename = 'sample_rooms.csv'; }
-            else if (type === 'employees') { csv = 'Name,Designation,Department,RoomNo\nJohn Doe,Manager,Engineering,K-17-A\nJane Smith,Executive,HR,K-17-B\n'; filename = 'sample_employees.csv'; }
+            else if (type === 'employees') { csv = 'Name,Designation,Department,RoomNo,EmploymentType\nJohn Doe,Manager,Engineering,K-17-A,Onroll\nJane Smith,Executive,Front Office,K-17-B,Casual\n'; filename = 'sample_employees.csv'; }
             else { csv = 'BlockNo,RoomNo,ItemName,Available,Qty\nK,K-17-A,Single Bed,Yes,2\nK,K-17-A,Wardrobe,Yes,1\n'; filename = 'sample_inventory.csv'; }
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
@@ -973,7 +993,7 @@
                     clearInterval(checkFirebase);
                     loadBrandingOnce();
                     window.fb.onAuthStateChanged(window.fb.auth, async (user) => {
-                        if (registering) return;   // ignore auth events during self-registration
+                        if (registering) return;
                         document.getElementById('loading-screen').classList.add('hidden');
                         if (user) { await loadUserProfile(user); }
                         else { document.getElementById('login-screen').classList.remove('hidden'); }
@@ -1078,7 +1098,7 @@
             switchLoginTab('employee');
         }
 
-        // ===== SELF REGISTRATION (race-fixed) =====
+        // ===== SELF REGISTRATION =====
         function openCreateProfile() { document.getElementById('create-profile-modal').classList.add('show'); resetRegistration(); }
         function closeCreateProfile() { document.getElementById('create-profile-modal').classList.remove('show'); }
         function resetRegistration() {
@@ -1126,7 +1146,7 @@
             if (pass.length < 6) { alert('Password must be 6+ characters'); return; }
             if (pass !== pass2) { alert('Passwords do not match'); return; }
             btn.disabled = true;
-            registering = true;   // suppress auth-listener redirect while we link the profile
+            registering = true;
             try {
                 const userCred = await window.fb.createUserWithEmailAndPassword(window.fb.auth, email, pass);
                 await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', regSearchEmpId), {
@@ -1169,11 +1189,12 @@
             if (section === 'checkout') { setTimeout(() => { initSignaturePad('co'); renderCheckoutChecklist(); }, 100); }
             if (section === 'mod') { setTimeout(() => { initSignaturePad('mod-ci'); initSignaturePad('mod-co'); loadMODAssignment(); }, 100); }
         }
+
         function prefillCheckInForm(emp) {
             const form = document.getElementById('checkin-form');
             form.name.value = emp.name || '';
             form.code.value = emp.code || '';
-            form.dept.value = emp.dept || '';
+            fillDeptSelect(document.getElementById('checkin-dept'), emp.dept || '');
             form.designation.value = emp.designation || '';
             form.email.value = emp.email || '';
             form.gender.value = emp.gender || 'Male';
@@ -1333,7 +1354,7 @@
                     }
                     await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.number), roomUpdates);
                 }
-                await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', currentUser.id), { status: 'active', lastCheckIn: new Date().toISOString() });
+                await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', currentUser.id), { status: 'active', lastCheckIn: new Date().toISOString(), dept: data.dept || '' });
                 alert('✓ Check-in submitted successfully!');
             } catch (error) {
                 let msg = 'Error submitting check-in: ' + error.message;
@@ -1565,12 +1586,13 @@
                     for (let i = startIdx; i < lines.length; i++) {
                         const p = lines[i].split(',').map(s => s.trim());
                         if (p.length >= 4) {
-                            const [name, designation, dept, roomInput] = p;
+                            const [name, designation, dept, roomInput, empType] = p;
                             const roomNo = resolveRoomNo(roomInput);
                             const room = roomsData.find(r => r.number === roomNo);
                             await window.fb.addDoc(window.fb.collection(window.fb.db, 'employees'), {
                                 name, code: 'EMP' + String(Date.now()).slice(-6) + i, dept, designation, room: roomNo,
                                 block: room ? room.block : '', gender: 'Male', email: '', uid: '',
+                                employmentType: (empType || '').trim(),
                                 status: 'pending', isMOD: false, loginEnabled: false, registered: false,
                                 createdAt: new Date().toISOString()
                             });
@@ -1727,10 +1749,11 @@
             } catch (e) { alert('Error: ' + e.message); }
         }
 
-        // ===== ADMIN CREATE PROFILE (no mandatory fields) =====
+        // ===== ADMIN CREATE PROFILE =====
         function openAdminCreateProfile() {
             document.getElementById('admin-create-profile-modal').classList.add('show');
             document.getElementById('admin-room-select').innerHTML = '<option value="">-- Select Room --</option>' + roomsData.map(r => `<option value="${r.number}">${r.number} (${r.block}, ${r.type}, ${r.capacity} beds)</option>`).join('');
+            fillDeptSelect(document.getElementById('admin-create-dept'), '');
         }
         function closeAdminCreateProfile() { document.getElementById('admin-create-profile-modal').classList.remove('show'); document.getElementById('admin-create-form').reset(); }
         async function saveAdminProfile() {
@@ -1742,6 +1765,7 @@
                 await window.fb.addDoc(window.fb.collection(window.fb.db, 'employees'), {
                     name: data.name || '', code: data.code || '', dept: data.dept || '',
                     designation: data.designation || '', gender: data.gender || 'Male',
+                    employmentType: data.employmentType || '',
                     email: '', uid: '', room: roomNo, block: room ? room.block : '',
                     status: 'pending', isMOD: document.getElementById('admin-is-mod').checked,
                     loginEnabled: true, registered: false, createdAt: new Date().toISOString()
@@ -1756,6 +1780,7 @@
             allocateTargetRoom = roomNumber;
             document.getElementById('allocate-room-label').textContent = roomNumber;
             document.getElementById('allocate-modal').classList.add('show');
+            fillDeptSelect(document.getElementById('alloc-dept'), '');
             switchAllocateType('existing');
             renderAllocSearch('');
         }
@@ -1770,8 +1795,7 @@
         }
         function renderAllocSearch(q) {
             const div = document.getElementById('alloc-search-results');
-            const list = employeesData.filter(e => !e.room || e.room === '').concat(employeesData.filter(e => e.room));
-            const filtered = q ? list.filter(e => (e.name||'').toLowerCase().includes(q.toLowerCase()) || (e.code||'').toLowerCase().includes(q.toLowerCase())) : list.slice(0, 15);
+            const filtered = q ? employeesData.filter(e => (e.name||'').toLowerCase().includes(q.toLowerCase()) || (e.code||'').toLowerCase().includes(q.toLowerCase())) : employeesData.slice(0, 15);
             div.innerHTML = filtered.map(e => `
                 <button onclick="allocateExisting('${e.id}')" class="w-full text-left p-2 bg-gray-50 hover:bg-blue-50 border rounded text-sm">
                     <strong>${e.name || '(no name)'}</strong> ${e.code ? `<span class="text-xs text-gray-500">(${e.code})</span>` : ''} — ${e.dept || '-'} ${e.room ? `<span class="text-xs text-orange-600">currently ${e.room}</span>` : '<span class="text-xs text-green-600">no room</span>'}
@@ -1802,7 +1826,8 @@
             try {
                 const docRef = await window.fb.addDoc(window.fb.collection(window.fb.db, 'employees'), {
                     name, code: data.code || '', dept: data.dept || '', designation: data.designation || '',
-                    gender: data.gender || 'Male', email: '', uid: '', room: allocateTargetRoom,
+                    gender: data.gender || 'Male', employmentType: data.employmentType || '',
+                    email: '', uid: '', room: allocateTargetRoom,
                     block: allocateTargetRoom ? allocateTargetRoom.split('-')[0] : '',
                     status: 'active', isMOD: document.getElementById('alloc-is-mod').checked,
                     loginEnabled: true, registered: false, createdAt: new Date().toISOString()
@@ -1811,6 +1836,12 @@
                 closeAllocateModal(); closeModal();
                 alert(`✓ New employee created & allocated to ${allocateTargetRoom}. They can register on the login page.`);
             } catch (e) { alert('Error: ' + e.message); }
+        }
+
+        // ===== EMPLOYMENT TYPE (admin-only) =====
+        async function setEmpType(empId, val) {
+            try { await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', empId), { employmentType: val }); }
+            catch (e) { alert('Error: ' + e.message); }
         }
 
         async function toggleLogin(empId) {
@@ -1865,14 +1896,24 @@
                     <p class="text-xs text-gray-600">Block ${room.block} • Cabin ${room.cabin||''} • ${occ}/${cap}</p>${bedDisplay}</div>`;
             }).join('');
         }
+
+        function empTypeSelect(emp) {
+            return `<select onchange="setEmpType('${emp.id}', this.value)" class="px-2 py-1 border rounded text-xs">
+                <option value="" ${!emp.employmentType ? 'selected' : ''}>--</option>
+                <option value="Onroll" ${emp.employmentType === 'Onroll' ? 'selected' : ''}>Onroll</option>
+                <option value="Casual" ${emp.employmentType === 'Casual' ? 'selected' : ''}>Casual</option>
+            </select>`;
+        }
+
         function renderEmpTable() {
             const tbody = document.getElementById('emp-table-body');
-            if (!employeesData.length) { tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-gray-500 italic">No employees uploaded yet.</td></tr>'; return; }
+            if (!employeesData.length) { tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-gray-500 italic">No employees uploaded yet.</td></tr>'; return; }
             tbody.innerHTML = employeesData.map(emp => `
                 <tr class="border-b hover:bg-gray-50">
                     <td class="p-3 font-medium">${emp.name} ${emp.isMOD?'<span class="text-xs bg-orange-100 text-orange-700 px-1 rounded ml-1">MOD</span>':''}</td>
                     <td class="p-3 text-xs"><code>${emp.username||emp.email||'-'}</code></td>
                     <td class="p-3">${emp.dept}</td><td class="p-3">${emp.designation||'-'}</td><td class="p-3">${emp.room||'-'}</td>
+                    <td class="p-3">${empTypeSelect(emp)}</td>
                     <td class="p-3"><span class="text-xs px-2 py-1 rounded ${emp.registered?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${emp.registered?'Registered':'Pending'}</span></td>
                     <td class="p-3"><label class="toggle-switch"><input type="checkbox" ${emp.loginEnabled?'checked':''} onchange="toggleLogin('${emp.id}')"><span class="slider"></span></label></td>
                 </tr>`).join('');
@@ -1882,11 +1923,13 @@
             if (type==='gender' && value) f = f.filter(e=>e.gender===value);
             if (type==='reg' && value==='registered') f = f.filter(e=>e.registered);
             if (type==='reg' && value==='pending') f = f.filter(e=>!e.registered);
+            if (type==='type' && value) f = f.filter(e=>e.employmentType===value);
             const tbody = document.getElementById('emp-table-body');
             tbody.innerHTML = f.map(emp => `
                 <tr class="border-b hover:bg-gray-50">
                     <td class="p-3">${emp.name}</td><td class="p-3 text-xs"><code>${emp.username||emp.email||'-'}</code></td>
                     <td class="p-3">${emp.dept}</td><td class="p-3">${emp.designation||'-'}</td><td class="p-3">${emp.room||'-'}</td>
+                    <td class="p-3">${empTypeSelect(emp)}</td>
                     <td class="p-3"><span class="text-xs px-2 py-1 rounded ${emp.registered?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${emp.registered?'Registered':'Pending'}</span></td>
                     <td class="p-3"><label class="toggle-switch"><input type="checkbox" ${emp.loginEnabled?'checked':''} onchange="toggleLogin('${emp.id}')"><span class="slider"></span></label></td>
                 </tr>`).join('');
