@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- BUILD v2026-10-16.8 : pdf-room+disclaimer+rules-pages + checkout-crosscheck + combined-pdf + alerts-sync -->
+<!-- BUILD v2026-10-16.9 : inventory-management+record-keeping tabs + custom excel + room-type field -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -323,7 +323,6 @@ Enter your details below. Your profile will be sent to <strong>admin for approva
 <h3 class="font-bold text-lg text-gray-800">📖 Rules</h3><p class="text-sm text-gray-500 mt-1">View & download accommodation rules.</p>
 </button>
 </div>
-
 <div id="emp-checkin" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
 <div class="flex items-center gap-3 mb-4 pb-3 border-b">
 <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
@@ -357,6 +356,7 @@ Enter your details below. Your profile will be sent to <strong>admin for approva
 <div><label class="block text-sm font-medium mb-1">Employee Code</label><input type="text" name="code" class="w-full px-3 py-2 border rounded bg-gray-50" readonly></div>
 <div><label class="block text-sm font-medium mb-1">Department</label><select name="dept" id="checkin-dept" class="w-full px-3 py-2 border rounded"></select></div>
 <div><label class="block text-sm font-medium mb-1">Designation</label><input type="text" name="designation" class="w-full px-3 py-2 border rounded bg-gray-50"></div>
+<div><label class="block text-sm font-medium mb-1">Room Type</label><select name="room_type" class="w-full px-3 py-2 border rounded"><option value="">--</option><option>Single</option><option>Sharing</option></select></div>
 <div><label class="block text-sm font-medium mb-1">Date of Joining</label><input type="date" name="doj" class="w-full px-3 py-2 border rounded"></div>
 <div><label class="block text-sm font-medium mb-1">Check-In Date *</label><input type="date" name="checkin_date" class="w-full px-3 py-2 border rounded" required></div>
 <div><label class="block text-sm font-medium mb-1">Govt ID Number</label><input type="text" name="govt_id" class="w-full px-3 py-2 border rounded"></div>
@@ -430,7 +430,6 @@ I have read and agree to abide by all accommodation rules.
 </form>
 </div>
 </div>
-
 <!-- CHECK-OUT (cross-check design) -->
 <div id="emp-checkout" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
 <div class="flex items-center gap-3 mb-4 pb-3 border-b">
@@ -462,7 +461,7 @@ I have read and agree to abide by all accommodation rules.
 <tbody id="co-checkin-table"></tbody></table></div>
 </div>
 <div class="mt-4">
-<h4 class="font-semibold mb-2"> Check-Out Checklist (record condition vs check-in)</h4>
+<h4 class="font-semibold mb-2">Check-Out Checklist (record condition vs check-in)</h4>
 <div class="overflow-x-auto"><table class="w-full text-sm border">
 <thead class="bg-gray-100"><tr><th class="p-2 border w-12">#</th><th class="p-2 border text-left">Amenity</th><th class="p-2 border w-24">At Check-In</th><th class="p-2 border w-32">Condition</th><th class="p-2 border text-left">Remarks</th></tr></thead>
 <tbody id="co-checklist-body"></tbody></table></div>
@@ -478,7 +477,6 @@ I have read and agree to abide by all accommodation rules.
 <button onclick="submitCheckOut()" class="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">Submit Check-Out</button>
 </div>
 </div>
-
 <div id="emp-mod" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
 <div class="flex items-center gap-3 mb-4 pb-3 border-b">
 <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
@@ -535,7 +533,6 @@ I have read and agree to abide by all accommodation rules.
 </table>
 </div>
 </div>
-
 <div id="emp-changeroom" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
 <h3 class="text-xl font-bold mb-4">Change Room</h3>
 <p class="text-sm text-gray-600 mb-3">Current Room: <strong id="current-room-display">Not assigned</strong></p>
@@ -558,7 +555,6 @@ I have read and agree to abide by all accommodation rules.
 </div>
 </main>
 </div>
-
 <!-- ================= ADMIN DASHBOARD ================= -->
 <div id="admin-dashboard" class="hidden min-h-screen bg-gray-100">
 <nav class="bg-white shadow-sm border-b">
@@ -677,9 +673,15 @@ I have read and agree to abide by all accommodation rules.
 <div id="block-summary" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 mb-4 text-xs"></div>
 <div id="room-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
 </div>
-<!-- INVENTORY (MULTI-BLOCK) -->
+<!-- INVENTORY (2 TABS: MANAGEMENT + RECORD KEEPING) -->
 <div id="admin-inventory" class="hidden fade-in">
 <h3 class="text-lg font-bold mb-4">📦 Room Amenities / Inventory Management</h3>
+<div class="flex border-b mb-4 overflow-x-auto">
+<button onclick="showInvTab('manage')" id="invtab-manage" class="px-4 py-2 text-sm font-medium whitespace-nowrap tab-active">📦 Inventory Management (bulk assign)</button>
+<button onclick="showInvTab('records')" id="invtab-records" class="px-4 py-2 text-sm font-medium whitespace-nowrap text-gray-500">🗂 Record Keeping (view / edit per room + reports)</button>
+</div>
+<!-- TAB 1: MANAGEMENT -->
+<div id="inv-manage" class="fade-in">
 <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
 <h4 class="font-semibold mb-2">1️⃣ Select Blocks & Rooms (bulk or individual)</h4>
 <label class="text-xs font-semibold text-gray-600">Blocks (multi-select):</label>
@@ -726,6 +728,27 @@ I have read and agree to abide by all accommodation rules.
 </div>
 </div>
 </div>
+<!-- TAB 2: RECORD KEEPING -->
+<div id="inv-records" class="hidden fade-in">
+<div class="flex flex-wrap gap-3 mb-3 items-end">
+<div><label class="block text-xs font-semibold mb-1">Block</label><select id="rec-block" onchange="onRecBlockChange()" class="px-3 py-2 border rounded text-sm"><option value="">All Blocks</option></select></div>
+<div><label class="block text-xs font-semibold mb-1">Cabin</label><select id="rec-cabin" onchange="renderRecTable()" class="px-3 py-2 border rounded text-sm"><option value="">All Cabins</option></select></div>
+<div><label class="block text-xs font-semibold mb-1">Room Type</label><select id="rec-type" onchange="renderRecTable()" class="px-3 py-2 border rounded text-sm"><option value="">All Types</option><option value="single">Single</option><option value="sharing">Sharing</option></select></div>
+<div><label class="block text-xs font-semibold mb-1">Room search</label><input id="rec-room-search" oninput="renderRecTable()" placeholder="e.g. I-7" class="px-3 py-2 border rounded text-sm"></div>
+<div><label class="block text-xs font-semibold mb-1">Employee name search</label><input id="rec-emp-search" oninput="renderRecTable()" placeholder="e.g. Ravindra" class="px-3 py-2 border rounded text-sm"></div>
+<div class="flex gap-2">
+<button onclick="openInvExport()" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700"> Excel Report (customisable)</button>
+</div>
+</div>
+<p id="rec-count" class="text-xs text-gray-500 mb-2"></p>
+<div class="overflow-x-auto bg-white border rounded">
+<table class="w-full text-sm text-left">
+<thead class="bg-gray-50 text-xs uppercase text-gray-600"><tr><th class="p-2">Room</th><th class="p-2">Block</th><th class="p-2">Cabin</th><th class="p-2">Type</th><th class="p-2">Occupants</th><th class="p-2">Items</th><th class="p-2">Action</th></tr></thead>
+<tbody id="rec-room-body"><tr><td colspan="7" class="p-4 text-center text-gray-500 italic">No rooms</td></tr></tbody>
+</table>
+</div>
+</div>
+</div>
 <!-- EMPLOYEES -->
 <div id="admin-employees" class="hidden fade-in">
 <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
@@ -769,8 +792,8 @@ I have read and agree to abide by all accommodation rules.
 </div>
 <div class="overflow-x-auto bg-white border rounded">
 <table class="w-full text-sm text-left">
-<thead class="bg-gray-50 text-xs uppercase text-gray-600"><tr><th class="p-2">Employee</th><th class="p-2">Type</th><th class="p-2">Room</th><th class="p-2">Check-In Date</th><th class="p-2">Submitted</th><th class="p-2">Sig</th><th class="p-2">Actions</th></tr></thead>
-<tbody id="forms-body"><tr><td colspan="7" class="p-4 text-center text-gray-500 italic">No forms loaded</td></tr></tbody>
+<thead class="bg-gray-50 text-xs uppercase text-gray-600"><tr><th class="p-2">Employee</th><th class="p-2">Type</th><th class="p-2">Room</th><th class="p-2">Room Type</th><th class="p-2">Check-In Date</th><th class="p-2">Submitted</th><th class="p-2">Sig</th><th class="p-2">Actions</th></tr></thead>
+<tbody id="forms-body"><tr><td colspan="8" class="p-4 text-center text-gray-500 italic">No forms loaded</td></tr></tbody>
 </table>
 </div>
 </div>
@@ -998,6 +1021,7 @@ Linked login UID: <code id="edit-uid-info" class="text-gray-800"></code><br>
 <form id="checkin-edit-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
 <div><label class="block text-sm font-medium mb-1">Check-In Date</label><input type="date" id="cke-date" class="w-full px-3 py-2 border rounded"></div>
 <div><label class="block text-sm font-medium mb-1">Date of Joining</label><input type="date" id="cke-doj" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Room Type</label><select id="cke-roomtype" class="w-full px-3 py-2 border rounded"><option value="">--</option><option>Single</option><option>Sharing</option></select></div>
 <div><label class="block text-sm font-medium mb-1">Govt ID Number</label><input type="text" id="cke-govtid" class="w-full px-3 py-2 border rounded"></div>
 <div><label class="block text-sm font-medium mb-1">ID Expiry Date</label><input type="date" id="cke-idexpiry" class="w-full px-3 py-2 border rounded"></div>
 <div><label class="block text-sm font-medium mb-1">Gender</label><select id="cke-gender" class="w-full px-3 py-2 border rounded"><option>Male</option><option>Female</option><option>Other</option></select></div>
@@ -1018,6 +1042,55 @@ Linked login UID: <code id="edit-uid-info" class="text-gray-800"></code><br>
 <button onclick="document.getElementById('checkin-edit-modal').classList.remove('show')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Cancel</button>
 <button onclick="saveCheckInEdit()" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold">Save Changes</button>
 </div>
+</div>
+</div>
+</div>
+<!-- ================= RECORD KEEPING: ROOM INVENTORY EDIT MODAL ================= -->
+<div id="invroom-edit-modal" class="modal">
+<div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+<div class="p-6 border-b flex justify-between items-center sticky top-0 bg-white">
+<h3 class="text-xl font-bold">Room Inventory — <span id="rec-room-label" class="text-blue-700"></span></h3>
+<button onclick="document.getElementById('invroom-edit-modal').classList.remove('show')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+</div>
+<div class="p-6">
+<div class="overflow-x-auto"><table class="w-full text-sm border">
+<thead class="bg-gray-100"><tr><th class="p-2 border w-12">#</th><th class="p-2 border text-left">Item Name</th><th class="p-2 border w-24">Qty</th><th class="p-2 border w-28">Available</th><th class="p-2 border text-left">Remarks</th><th class="p-2 border w-16"></th></tr></thead>
+<tbody id="rec-edit-body"></tbody>
+</table></div>
+<div class="flex gap-2 mt-3 flex-wrap">
+<button onclick="recAddRow()" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">+ Add Row</button>
+<button onclick="saveRecRoom()" class="px-5 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">💾 Save Inventory</button>
+<button onclick="document.getElementById('invroom-edit-modal').classList.remove('show')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">Cancel</button>
+</div>
+</div>
+</div>
+</div>
+<!-- ================= RECORD KEEPING: EXCEL EXPORT OPTIONS MODAL ================= -->
+<div id="inv-export-modal" class="modal">
+<div class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+<div class="p-6 border-b flex justify-between items-center sticky top-0 bg-white">
+<h3 class="text-xl font-bold">Customise Excel Report</h3>
+<button onclick="document.getElementById('inv-export-modal').classList.remove('show')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+</div>
+<div class="p-6 space-y-3 text-sm">
+<div><label class="font-medium">Scope:</label>
+<select id="exp-scope" class="ml-2 border rounded px-2 py-1"><option value="filtered">Current filtered rooms</option><option value="all">All rooms</option></select></div>
+<div><label class="font-medium">Layout:</label>
+<select id="exp-layout" class="ml-2 border rounded px-2 py-1"><option value="items">One row per inventory item</option><option value="rooms">One row per room</option></select></div>
+<div class="font-medium">Columns:</div>
+<div class="grid grid-cols-2 gap-2">
+<label><input type="checkbox" id="exp-col-room" checked class="mr-1">Room</label>
+<label><input type="checkbox" id="exp-col-block" checked class="mr-1">Block</label>
+<label><input type="checkbox" id="exp-col-cabin" checked class="mr-1">Cabin</label>
+<label><input type="checkbox" id="exp-col-type" checked class="mr-1">Room Type</label>
+<label><input type="checkbox" id="exp-col-beds" class="mr-1">Beds</label>
+<label><input type="checkbox" id="exp-col-names" checked class="mr-1">Occupants</label>
+<label><input type="checkbox" id="exp-col-item" checked class="mr-1">Item Name</label>
+<label><input type="checkbox" id="exp-col-qty" checked class="mr-1">Qty</label>
+<label><input type="checkbox" id="exp-col-avail" checked class="mr-1">Available</label>
+<label><input type="checkbox" id="exp-col-remarks" checked class="mr-1">Remarks</label>
+</div>
+<button onclick="runInvExport()" class="w-full bg-green-600 text-white rounded py-2 hover:bg-green-700"> Export Excel</button>
 </div>
 </div>
 </div>
@@ -1068,7 +1141,6 @@ Linked login UID: <code id="edit-uid-info" class="text-gray-800"></code><br>
 </div>
 </div>
 </div>
-
 <script>
 // ===== GLOBAL STATE =====
 let roomsData = [];
@@ -1081,6 +1153,9 @@ let myCheckOut = null;
 let checkoutFreezeItems = [];
 let editingCheckInId = null;
 let formsTab = 'onroll';
+let invTab = 'manage';
+let editingRecRoom = null;
+let recEditList = [];
 let currentBlock = 'ALL';
 let currentUser = null;
 let regSearchEmpId = null;
@@ -1245,10 +1320,12 @@ if (sigDataUrl) { try { doc.addImage(sigDataUrl, 'PNG', 140, y, 54, 19); } catch
 doc.setFontSize(8); doc.setFont(undefined, 'normal');
 doc.text('Employee Signature' + (typed && typed !== '[Drawn]' ? ' (typed: ' + typed + ')' : ''), 140, y + 23);
 }
-// ===== CHECK-IN PDF BUILDER (details + disclaimer + amenities + REAL rules pages + sig each page) =====
+// ===== CHECK-IN PDF BUILDER (details incl. ROOM TYPE + disclaimer + amenities + REAL rules pages + sig each page) =====
 async function writeCheckInPages(doc, ci, first) {
 const emp = employeesData.find(e => e.id === ci.employeeId) || employeesData.find(e => e.name === ci.employeeName) || {};
 const roomNo = ci.roomNo || emp.room || ((currentUser && currentUser.role === 'employee') ? currentUser.room : '') || '';
+const roomObj = roomsData.find(r => r.number === roomNo);
+const roomType = ci.room_type || (roomObj && roomObj.type) || emp.roomType || '';
 const logo = (brandSettings.logoUrl || '').startsWith('data:') ? brandSettings.logoUrl : null;
 const sig = (ci.signatureUrl || '').startsWith('data:') ? ci.signatureUrl : null;
 if (!first) doc.addPage();
@@ -1262,7 +1339,8 @@ doc.text('Submitted: ' + String(ci.timestamp || '').slice(0, 16).replace('T', ' 
 doc.autoTable({ startY: y + 16, theme: 'grid', styles: { fontSize: 9 }, body: [
 ['Full Name', ci.name || emp.name || ''], ['Employee Code', ci.code || emp.code || ''],
 ['Department', ci.dept || ''], ['Designation', ci.designation || ''],
-['Room No.', roomNo], ['Date of Joining', ci.doj || ''],
+['Room No.', roomNo], ['Room Type', roomType],
+['Date of Joining', ci.doj || ''],
 ['Check-In Date', ci.checkin_date || ''], ['Govt ID Number', ci.govt_id || ''],
 ['ID Expiry Date', ci.id_expiry || ''], ['Gender', ci.gender || ''],
 ['Country', ci.country || ''], ['Date of Birth', ci.dob || ''],
@@ -1273,7 +1351,7 @@ addSigBlock(doc, sig, ci.typedSignature, doc.lastAutoTable.finalY + 6);
 // PAGE 2 — disclaimer + amenities
 doc.addPage();
 doc.setFontSize(13); doc.setFont(undefined, 'bold');
-doc.text('Room Amenities Checklist (Inventory) — Room ' + roomNo, 14, 14);
+doc.text('Room Amenities Checklist (Inventory) — Room ' + roomNo + (roomType ? ' (' + roomType + ')' : ''), 14, 14);
 doc.setFont(undefined, 'normal'); doc.setFontSize(8);
 const disc = doc.splitTextToSize('Check list — I hereby agree that I have taken charge of the following items in working and fit condition as per inventory placed in my room no. ' + roomNo + '. I hereby agree to pay charges as deemed appropriate by the resort for any unfair wear & tear, breakage or loss of these items. I also take personal responsibility to hand over full inventory back to the hotel as per the list of items mentioned below in event of my leaving the job or accommodation at the ' + (brandSettings.title || 'Host Accommodation') + ' Host accommodation.', 180);
 doc.text(disc, 14, 20);
@@ -1330,7 +1408,7 @@ await writeCheckInPages(doc, ci, true);
 doc.save(`checkin-${(ci.employeeName || 'form').replace(/\s+/g, '_')}-${(ci.checkin_date || '').slice(0, 10)}.pdf`);
 }
 async function downloadMyCheckInPdf() { if (myCheckIn) await downloadCheckInPdf(myCheckIn); else alert('No submitted check-in found.'); }
-// ===== CHECK-OUT PDF PAGES (combined with check-in) =====
+// ===== CHECK-OUT PDF PAGES =====
 function appendCheckOutPages(doc, co, ci) {
 const sig = (co.signatureUrl || '').startsWith('data:') ? co.signatureUrl : null;
 doc.addPage();
@@ -1618,7 +1696,7 @@ return o;
 }
 // ===== INIT =====
 window.addEventListener('DOMContentLoaded', () => {
-console.log('%cHOST APP BUILD v2026-10-16.8', 'background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold');
+console.log('%cHOST APP BUILD v2026-10-16.9', 'background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold');
 const checkFirebase = setInterval(() => {
 if (window.fb && window.fb.onAuthStateChanged) {
 clearInterval(checkFirebase);
@@ -1755,6 +1833,7 @@ await loadMyCheckIn();
 await loadMyCheckOut();
 initAllSignaturePads();
 prefillCheckInForm(empData);
+prefillRoomType();
 loadMODRoomDropdown();
 startRealtimeListeners();
 } catch (error) { console.error(error); alert('Error loading profile: ' + error.message); }
@@ -1933,23 +2012,31 @@ setTimeout(() => closeForgotPassword(), 3000);
 function showEmpSection(section) {
 ['checkin','checkout','mod','changeroom','rules'].forEach(s => document.getElementById('emp-' + s).classList.add('hidden'));
 document.getElementById('emp-' + section).classList.remove('hidden');
-if (section === 'checkin') { initAllSignaturePads(); renderCheckInMode(); renderRulesDisplays(); }
+if (section === 'checkin') { initAllSignaturePads(); prefillRoomType(); renderCheckInMode(); renderRulesDisplays(); }
 if (section === 'checkout') { setTimeout(() => { initSignaturePad('co'); renderCheckoutMode(); }, 100); }
 if (section === 'mod') { setTimeout(() => { initSignaturePad('mod-ci'); initSignaturePad('mod-co'); loadMODAssignment(); }, 100); }
 if (section === 'rules') { renderEmpRules(); }
+}
+function prefillRoomType() {
+const form = document.getElementById('checkin-form');
+if (!form || !form.room_type) return;
+if (!form.room_type.value) {
+const rt = (getMyRoom() || {}).type;
+if (rt) form.room_type.value = rt;
+}
 }
 function renderCheckInMode() {
 const view = document.getElementById('checkin-view');
 const edit = document.getElementById('checkin-edit-wrap');
 if (!view || !edit) return;
 if (myCheckIn) { view.classList.remove('hidden'); edit.classList.add('hidden'); renderCheckInView(); }
-else { view.classList.add('hidden'); edit.classList.remove('hidden'); }
+else { view.classList.add('hidden'); edit.classList.remove('hidden'); prefillRoomType(); }
 }
 function renderCheckInView() {
 const ci = myCheckIn; const body = document.getElementById('checkin-view-body');
 if (!body || !ci) return;
 const rows = [['Full Name', ci.name], ['Employee Code', ci.code], ['Department', ci.dept], ['Designation', ci.designation],
-['Room No.', ci.roomNo || (currentUser && currentUser.room)], ['Check-In Date', ci.checkin_date], ['Date of Joining', ci.doj],
+['Room No.', ci.roomNo || (currentUser && currentUser.room)], ['Room Type', ci.room_type || ((getMyRoom() || {}).type) || ''], ['Check-In Date', ci.checkin_date], ['Date of Joining', ci.doj],
 ['Govt ID Number', ci.govt_id], ['ID Expiry Date', ci.id_expiry], ['Gender', ci.gender], ['Country', ci.country],
 ['Date of Birth', ci.dob], ['Mobile', ci.mobile], ['Email', ci.email],
 ['Emergency Contact', (ci.emerg_name || '') + ' / ' + (ci.emerg_num || '')]];
@@ -2129,6 +2216,7 @@ await window.fb.addDoc(window.fb.collection(window.fb.db, 'checkins'), {
 employeeId: currentUser.id, employeeName: currentUser.name,
 ...data, checklist, signatureUrl, typedSignature: sig || '[Drawn]',
 roomNo: currentUser.room || '', blockNo: room ? room.block : '', cabinNo: room ? room.cabin : '',
+roomType: data.room_type || (room ? room.type : '') || '',
 timestamp: new Date().toISOString()
 });
 if (room) {
@@ -2480,7 +2568,20 @@ el.innerHTML = `<span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full te
 <span class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">Unassigned: ${roomsData.length - male - female}</span>`;
 }
 function refreshSectionUI() { populateSectionDropdowns(); renderSecChecklist(); }
-// ===== INVENTORY (MULTI-BLOCK + TEMPLATES) =====
+// ===== INVENTORY: TAB SWITCH =====
+function showInvTab(tab) {
+invTab = tab;
+['manage','records'].forEach(t => {
+document.getElementById('inv-' + t).classList.add('hidden');
+const b = document.getElementById('invtab-' + t);
+b.classList.remove('tab-active'); b.classList.add('text-gray-500');
+});
+document.getElementById('inv-' + tab).classList.remove('hidden');
+const bt = document.getElementById('invtab-' + tab);
+bt.classList.add('tab-active'); bt.classList.remove('text-gray-500');
+if (tab === 'records') { populateRecFilters(); renderRecTable(); }
+}
+// ===== INVENTORY MANAGEMENT (MULTI-BLOCK + TEMPLATES) =====
 function renderInvBlockChecklist() {
 const el = document.getElementById('inv-block-checklist');
 if (!el) return;
@@ -2650,6 +2751,139 @@ alert(`✓ ${count} inventory items uploaded across ${Object.keys(byRoom).length
 };
 reader.readAsText(file);
 }
+// ===== RECORD KEEPING (per-room inventory view/edit + custom excel) =====
+function populateRecFilters() {
+const bSel = document.getElementById('rec-block');
+if (!bSel) return;
+const blocks = [...new Set(roomsData.map(r => r.block))].filter(Boolean).sort(natCompare);
+const cur = bSel.value;
+bSel.innerHTML = '<option value="">All Blocks</option>' + blocks.map(b => `<option value="${b}">${b}</option>`).join('');
+if (cur && blocks.includes(cur)) bSel.value = cur;
+onRecBlockChange(true);
+}
+function onRecBlockChange(silent) {
+const b = document.getElementById('rec-block').value;
+const cabins = [...new Set(roomsData.filter(r => !b || r.block === b).map(r => r.cabin))].filter(Boolean).sort(natCompare);
+const cSel = document.getElementById('rec-cabin');
+const curC = cSel.value;
+cSel.innerHTML = '<option value="">All Cabins</option>' + cabins.map(c => `<option value="${c}">${c}</option>`).join('');
+if (curC && cabins.includes(curC)) cSel.value = curC;
+if (!silent) renderRecTable();
+}
+function recFilteredRooms() {
+const b = document.getElementById('rec-block')?.value || '';
+const c = document.getElementById('rec-cabin')?.value || '';
+const t = (document.getElementById('rec-type')?.value || '').toLowerCase();
+const q = (document.getElementById('rec-room-search')?.value || '').trim().toLowerCase();
+const eq = (document.getElementById('rec-emp-search')?.value || '').trim().toLowerCase();
+let list = roomsData.filter(r => (!b || r.block === b) && (!c || r.cabin === c) && (!t || (r.type || '').toLowerCase() === t));
+if (q) list = list.filter(r => r.number.toLowerCase().includes(q));
+if (eq) list = list.filter(r => (r.occupants || []).some(n => n.toLowerCase().includes(eq)));
+return sortRooms(list);
+}
+function renderRecTable() {
+const tbody = document.getElementById('rec-room-body');
+if (!tbody) return;
+const list = recFilteredRooms();
+const cnt = document.getElementById('rec-count');
+if (cnt) cnt.textContent = list.length + ' room(s) listed';
+tbody.innerHTML = list.length ? list.map(r => `
+<tr class="border-b hover:bg-gray-50">
+<td class="p-2 font-medium">${r.number}</td>
+<td class="p-2">${r.block}</td>
+<td class="p-2">${r.cabin || '-'}</td>
+<td class="p-2">${r.type}</td>
+<td class="p-2 text-xs">${(r.occupants || []).join(', ') || '—'}</td>
+<td class="p-2 text-center">${(r.inventory || []).length}</td>
+<td class="p-2"><button onclick="openRecRoomEdit('${r.number}')" class="text-blue-600 text-xs font-semibold hover:underline">✏️ Edit Amenities</button></td>
+</tr>`).join('') : '<tr><td colspan="7" class="p-4 text-center text-gray-500 italic">No rooms match the filters.</td></tr>';
+}
+function openRecRoomEdit(roomNo) {
+const room = roomsData.find(r => r.number === roomNo);
+if (!room) return;
+editingRecRoom = roomNo;
+recEditList = (room.inventory || []).map(it => ({ ...it }));
+document.getElementById('rec-room-label').textContent = `${room.number} — Block ${room.block}, Cabin ${room.cabin || '-'}, ${room.type} | Occupants: ${(room.occupants || []).join(', ') || 'none'}`;
+renderRecEditTable();
+document.getElementById('invroom-edit-modal').classList.add('show');
+}
+function renderRecEditTable() {
+const tbody = document.getElementById('rec-edit-body');
+if (!tbody) return;
+tbody.innerHTML = recEditList.length ? recEditList.map((it, i) => `
+<tr>
+<td class="p-2 border text-center">${i+1}</td>
+<td class="p-2 border"><input class="w-full px-2 py-1 border rounded text-sm" value="${(it.name||'').replace(/"/g,'&quot;')}" oninput="recEditList[${i}].name=this.value"></td>
+<td class="p-2 border"><input type="number" min="1" class="w-full px-2 py-1 border rounded text-sm" value="${it.qty||1}" oninput="recEditList[${i}].qty=this.value"></td>
+<td class="p-2 border text-center"><input type="checkbox" class="w-4 h-4" ${it.available!==false?'checked':''} onchange="recEditList[${i}].available=this.checked"></td>
+<td class="p-2 border"><input class="w-full px-2 py-1 border rounded text-sm" value="${(it.remarks||'').replace(/"/g,'&quot;')}" oninput="recEditList[${i}].remarks=this.value"></td>
+<td class="p-2 border text-center"><button onclick="recEditList.splice(${i},1);renderRecEditTable();" class="text-red-500 text-sm">✕</button></td>
+</tr>`).join('') : '<tr><td colspan="6" class="p-3 text-center text-gray-500 italic">No items yet — add rows below.</td></tr>';
+}
+function recAddRow() { recEditList.push({ name: '', qty: 1, available: true, remarks: '' }); renderRecEditTable(); }
+async function saveRecRoom() {
+if (!editingRecRoom) return;
+const room = roomsData.find(r => r.number === editingRecRoom);
+if (!room) return;
+const clean = recEditList.filter(x => (x.name || '').trim()).map(x => ({ name: x.name.trim(), qty: parseInt(x.qty) || 1, available: x.available !== false, remarks: x.remarks || '' }));
+try {
+await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.number), { inventory: clean });
+document.getElementById('invroom-edit-modal').classList.remove('show');
+renderRecTable();
+alert('✓ Inventory saved for ' + room.number);
+} catch (e) { alert('Error: ' + e.message); }
+}
+function openInvExport() { document.getElementById('inv-export-modal').classList.add('show'); }
+function runInvExport() {
+const scope = document.getElementById('exp-scope').value;
+const layout = document.getElementById('exp-layout').value;
+const cols = {
+room: document.getElementById('exp-col-room').checked,
+block: document.getElementById('exp-col-block').checked,
+cabin: document.getElementById('exp-col-cabin').checked,
+type: document.getElementById('exp-col-type').checked,
+beds: document.getElementById('exp-col-beds').checked,
+names: document.getElementById('exp-col-names').checked,
+item: document.getElementById('exp-col-item').checked,
+qty: document.getElementById('exp-col-qty').checked,
+avail: document.getElementById('exp-col-avail').checked,
+remarks: document.getElementById('exp-col-remarks').checked
+};
+const list = scope === 'all' ? sortRooms(roomsData.slice()) : recFilteredRooms();
+const rows = [];
+const roomCols = (row, r) => {
+if (cols.room) row.Room = r.number;
+if (cols.block) row.Block = r.block;
+if (cols.cabin) row.Cabin = r.cabin || '';
+if (cols.type) row['Room Type'] = r.type;
+if (cols.beds) row.Beds = r.capacity || '';
+if (cols.names) row.Occupants = (r.occupants || []).join('; ');
+};
+if (layout === 'items') {
+list.forEach(r => {
+const inv = r.inventory || [];
+if (!inv.length) { const row = {}; roomCols(row, r); if (cols.item) row.Item = '(no items)'; rows.push(row); return; }
+inv.forEach(it => {
+const row = {}; roomCols(row, r);
+if (cols.item) row.Item = it.name;
+if (cols.qty) row.Qty = it.qty || 1;
+if (cols.avail) row.Available = it.available !== false ? 'Yes' : 'No';
+if (cols.remarks) row.Remarks = it.remarks || '';
+rows.push(row);
+});
+});
+} else {
+list.forEach(r => {
+const row = {}; roomCols(row, r);
+row['Item Count'] = (r.inventory || []).length;
+row.Items = (r.inventory || []).map(i => `${i.name}${cols.qty ? ' ×' + (i.qty || 1) : ''}${cols.avail ? (i.available !== false ? '' : ' (N/A)') : ''}`).join('; ');
+rows.push(row);
+});
+}
+if (!rows.length) { alert('No data to export for current selection.'); return; }
+exportRowsXlsx(`inventory-records-${new Date().toISOString().slice(0, 10)}.xlsx`, rows, 'Inventory');
+document.getElementById('inv-export-modal').classList.remove('show');
+}
 // ===== ADMIN NAV =====
 function showAdminSection(section) {
 ['upload','layout','inventory','employees','forms','modguest','alerts','reports','backup','branding'].forEach(s => {
@@ -2664,6 +2898,7 @@ if (section === 'inventory') {
 populateInventoryDropdowns();
 loadInvTemplatesFromDb();
 if (!invEditList.length) { addInvRow(); addInvRow(); addInvRow(); } else renderInvTable();
+showInvTab(invTab);
 }
 if (section === 'layout') refreshSectionUI();
 if (section === 'branding') loadBrandingIntoForm();
@@ -2688,6 +2923,7 @@ if (tab === 'guests') renderGuestControls();
 function ciEmp(ci) { return employeesData.find(e => e.id === ci.employeeId) || employeesData.find(e => e.name === ci.employeeName) || {}; }
 function ciRoomNo(ci) { return ci.roomNo || ciEmp(ci).room || ''; }
 function ciType(ci) { return ciEmp(ci).employmentType || 'Onroll'; }
+function ciRoomType(ci) { return ci.room_type || ci.roomType || ((roomsData.find(r => r.number === ciRoomNo(ci)) || {}).type) || ''; }
 function setFormsTab(tab) {
 formsTab = tab;
 ['onroll','casual'].forEach(t => document.getElementById('formtab-' + t).classList.toggle('active', t === tab));
@@ -2766,12 +3002,13 @@ function renderFormsTable() {
 const tbody = document.getElementById('forms-body');
 if (!tbody) return;
 const list = formsFiltered();
-if (!list.length) { tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-gray-500 italic">No submitted forms match the filters.</td></tr>'; return; }
+if (!list.length) { tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-gray-500 italic">No submitted forms match the filters.</td></tr>'; return; }
 tbody.innerHTML = list.map(ci => `
 <tr class="border-b hover:bg-gray-50">
 <td class="p-2 font-medium">${escapeHtml(ci.employeeName || '')}</td>
 <td class="p-2 text-xs">${ciType(ci)}</td>
 <td class="p-2">${escapeHtml(ciRoomNo(ci))}</td>
+<td class="p-2 text-xs">${escapeHtml(ciRoomType(ci))}</td>
 <td class="p-2">${escapeHtml(ci.checkin_date || '')}</td>
 <td class="p-2 text-xs">${String(ci.timestamp || '').slice(0, 16).replace('T', ' ')}</td>
 <td class="p-2">${ci.signatureUrl ? '✓' : '—'}</td>
@@ -2789,7 +3026,7 @@ function viewCheckIn(id) {
 const ci = checkinsData.find(x => x.id === id); if (!ci) return;
 document.getElementById('ckv-name').textContent = ci.employeeName || '';
 const rows = [['Full Name', ci.name], ['Employee Code', ci.code], ['Department', ci.dept], ['Designation', ci.designation],
-['Room No.', ciRoomNo(ci)], ['Check-In Date', ci.checkin_date], ['Date of Joining', ci.doj], ['Govt ID Number', ci.govt_id],
+['Room No.', ciRoomNo(ci)], ['Room Type', ciRoomType(ci)], ['Check-In Date', ci.checkin_date], ['Date of Joining', ci.doj], ['Govt ID Number', ci.govt_id],
 ['ID Expiry Date', ci.id_expiry], ['Gender', ci.gender], ['Country', ci.country], ['Date of Birth', ci.dob],
 ['Mobile', ci.mobile], ['Email', ci.email], ['Emergency Contact', (ci.emerg_name || '') + ' / ' + (ci.emerg_num || '')]];
 document.getElementById('checkin-admin-view-body').innerHTML = `
@@ -2809,6 +3046,7 @@ editingCheckInId = id;
 document.getElementById('cke-name').textContent = ci.employeeName || '';
 document.getElementById('cke-date').value = ci.checkin_date || '';
 document.getElementById('cke-doj').value = ci.doj || '';
+document.getElementById('cke-roomtype').value = ci.room_type || ciRoomType(ci) || '';
 document.getElementById('cke-govtid').value = ci.govt_id || '';
 document.getElementById('cke-idexpiry').value = ci.id_expiry || '';
 document.getElementById('cke-gender').value = ci.gender || 'Male';
@@ -2834,6 +3072,7 @@ const checklist = (ci.checklist || []).map((it, i) => ({ ...it, present: checks[
 const updates = {
 checkin_date: document.getElementById('cke-date').value,
 doj: document.getElementById('cke-doj').value,
+room_type: document.getElementById('cke-roomtype').value,
 govt_id: document.getElementById('cke-govtid').value,
 id_expiry: document.getElementById('cke-idexpiry').value,
 gender: document.getElementById('cke-gender').value,
@@ -2872,7 +3111,7 @@ alert('✓ Form deleted. Employee can fill it again.');
 function downloadFormsExcel() {
 const list = formsFiltered();
 exportRowsXlsx(`checkins-${formsTab}-${new Date().toISOString().slice(0, 10)}.xlsx`, list.map(ci => ({
-Employee: ci.employeeName, Type: ciType(ci), Room: ciRoomNo(ci), Block: ci.blockNo || '', Cabin: ci.cabinNo || '',
+Employee: ci.employeeName, Type: ciType(ci), Room: ciRoomNo(ci), 'Room Type': ciRoomType(ci), Block: ci.blockNo || '', Cabin: ci.cabinNo || '',
 'Check-In Date': ci.checkin_date, Submitted: String(ci.timestamp || '').slice(0, 16).replace('T', ' '),
 'Govt ID': ci.govt_id || '', 'ID Expiry': ci.id_expiry || '', Mobile: ci.mobile || '', Department: ci.dept || ''
 })), 'CheckIns');
@@ -3502,61 +3741,4 @@ document.getElementById('stat-cap').textContent = cap;
 document.getElementById('stat-occ').textContent = occ;
 document.getElementById('stat-vac').textContent = cap-occ;
 document.getElementById('stat-emp').textContent = employeesData.length;
-document.getElementById('stat-pend').textContent = employeesData.filter(e=>!e.registered).length + employeesData.filter(e=>e.approvalStatus==='pending').length;
-}
-function renderUploadPreview() {
-document.getElementById('room-count').textContent = roomsData.length;
-document.getElementById('emp-count').textContent = employeesData.length;
-document.getElementById('preview-rooms').innerHTML = roomsData.length ? sortRooms(roomsData).map(r=>`<tr class="border-b"><td class="p-2">${r.block}</td><td class="p-2">${r.cabin||'-'}</td><td class="p-2">${r.number}</td><td class="p-2">${r.type}</td><td class="p-2">${r.capacity}</td></tr>`).join('') : '<tr><td colspan="5" class="p-3 text-center text-gray-500 italic">No rooms uploaded</td></tr>';
-document.getElementById('preview-emps').innerHTML = employeesData.length ? employeesData.map(e=>`<tr class="border-b"><td class="p-2">${e.name}</td><td class="p-2">${e.dept}</td><td class="p-2">${e.room||'-'}</td><td class="p-2"><span class="px-2 py-0.5 rounded text-xs ${e.registered?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${e.registered?'Registered':'Pending'}</span></td></tr>`).join('') : '<tr><td colspan="4" class="p-3 text-center text-gray-500 italic">No employees uploaded</td></tr>';
-}
-// ===== REALTIME LISTENERS =====
-function startRealtimeListeners() {
-window.fb.onSnapshot(window.fb.collection(window.fb.db, 'rooms'), (snapshot) => {
-roomsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-if (currentUser?.role === 'admin') {
-renderBlockTabs(); renderBlockSummary(); renderRooms(); renderUploadPreview(); updateStats(); populateInventoryDropdowns(); renderGuestControls(); refreshSectionUI();
-if (!document.getElementById('admin-alerts').classList.contains('hidden')) renderAlerts();
-if (!document.getElementById('admin-forms').classList.contains('hidden')) { populateFormsFilters(); renderFormsTable(); }
-} else if (currentUser?.role === 'employee') {
-loadMODRoomDropdown();
-if (!document.getElementById('emp-checkin').classList.contains('hidden')) { renderCheckInMode(); }
-if (!document.getElementById('emp-checkout').classList.contains('hidden')) { renderCheckoutMode(); }
-}
-}, (err) => console.warn('rooms listener:', err.message));
-if (currentUser?.role === 'admin') {
-window.fb.onSnapshot(window.fb.collection(window.fb.db, 'employees'), (snapshot) => {
-employeesData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-renderEmpTable(); renderUploadPreview(); updateStats();
-if (!document.getElementById('admin-alerts').classList.contains('hidden')) renderAlerts();
-if (!document.getElementById('admin-forms').classList.contains('hidden')) renderFormsTable();
-}, (err) => console.warn('employees listener:', err.message));
-window.fb.onSnapshot(window.fb.collection(window.fb.db, 'guests'), (snapshot) => {
-guestsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-renderGuestControls();
-}, (err) => console.warn('guests listener:', err.message));
-}
-if (currentUser?.role === 'employee') {
-window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, 'checkins'), window.fb.where('employeeId', '==', currentUser.id)), (snapshot) => {
-const arr = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-arr.sort((a, b) => String(a.timestamp || '').localeCompare(String(b.timestamp || '')));
-myCheckIn = arr.length ? arr[arr.length - 1] : null;
-if (!document.getElementById('emp-checkin').classList.contains('hidden')) renderCheckInMode();
-}, (err) => console.warn('my checkins listener:', err.message));
-window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, 'checkouts'), window.fb.where('employeeId', '==', currentUser.id)), (snapshot) => {
-const arr = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-arr.sort((a, b) => String(a.timestamp || '').localeCompare(String(b.timestamp || '')));
-myCheckOut = arr.length ? arr[arr.length - 1] : null;
-if (!document.getElementById('emp-checkout').classList.contains('hidden')) renderCheckoutMode();
-}, (err) => console.warn('my checkouts listener:', err.message));
-}
-window.fb.onSnapshot(window.fb.collection(window.fb.db, 'modAssignments'), (snapshot) => {
-modAssignments = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-}, (err) => console.warn('modAssignments listener:', err.message));
-window.fb.onSnapshot(window.fb.doc(window.fb.db, 'settings', 'branding'), (snap) => {
-if (snap.exists()) applyBrandSettings(snap.data());
-}, (err) => console.warn('branding listener:', err.message));
-}
-</script>
-</body>
-</html>
+document.getElementById('stat-pend').textContent = employeesData.filter(e=>!
