@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- BUILD v2026-10-16.9 : inventory-management+record-keeping tabs + custom excel + room-type field -->
+<!-- BUILD v2026-10-16.10 : boot-guard + newline-safe strings (fixes infinite loading screen) -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -44,6 +44,27 @@ collection, doc, setDoc, getDoc, getDocs, query, where,
 updateDoc, deleteDoc, onSnapshot, addDoc, orderBy,
 ref, uploadString, getDownloadURL
 };
+</script>
+<script>
+/* ===== BOOT GUARD: never show an endless spinner again ===== */
+window.__bootErrors = [];
+window.__appBooted = false;
+(function () {
+var NL = String.fromCharCode(10);
+window.addEventListener('error', function (e) {
+window.__bootErrors.push((e.message || 'Unknown error') + ' (line ' + e.lineno + ')');
+if (!window.__appBooted) {
+var el = document.getElementById('loading-screen');
+if (el) el.innerHTML = '<div style="margin:16px;padding:20px;max-width:640px;text-align:left;background:#7f1d1d;color:#fff;border-radius:12px;font-family:monospace;font-size:12px;white-space:pre-wrap;">APP START FAILED:' + NL + NL + window.__bootErrors.join(NL) + NL + NL + 'The uploaded index.html is corrupted or outdated.' + NL + 'Re-upload the latest file, hard-refresh (Ctrl+Shift+R), and if this box still appears send a screenshot of it.</div>';
+}
+});
+setTimeout(function () {
+if (!window.__appBooted && window.__bootErrors.length === 0) {
+var el = document.getElementById('loading-screen');
+if (el) el.innerHTML = '<div style="margin:16px;padding:20px;max-width:640px;text-align:left;background:#1e3a8a;color:#fff;border-radius:12px;font-family:monospace;font-size:12px;white-space:pre-wrap;">STILL LOADING AFTER 20 SECONDS.' + NL + 'No JavaScript error was captured, so the script is fine but Firebase could not be reached on this connection.' + NL + 'Try: hard refresh (Ctrl+Shift+R), another network / mobile hotspot, disable VPN or proxy.' + NL + 'Open F12 → Console to see the failing network request.</div>';
+}
+}, 20000);
+})();
 </script>
 <style>
 .signature-pad { border: 2px dashed #cbd5e1; cursor: crosshair; touch-action: none; }
@@ -737,7 +758,7 @@ I have read and agree to abide by all accommodation rules.
 <div><label class="block text-xs font-semibold mb-1">Room search</label><input id="rec-room-search" oninput="renderRecTable()" placeholder="e.g. I-7" class="px-3 py-2 border rounded text-sm"></div>
 <div><label class="block text-xs font-semibold mb-1">Employee name search</label><input id="rec-emp-search" oninput="renderRecTable()" placeholder="e.g. Ravindra" class="px-3 py-2 border rounded text-sm"></div>
 <div class="flex gap-2">
-<button onclick="openInvExport()" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700"> Excel Report (customisable)</button>
+<button onclick="openInvExport()" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">⬇ Excel Report (customisable)</button>
 </div>
 </div>
 <p id="rec-count" class="text-xs text-gray-500 mb-2"></p>
@@ -1141,8 +1162,10 @@ Linked login UID: <code id="edit-uid-info" class="text-gray-800"></code><br>
 </div>
 </div>
 </div>
+
 <script>
 // ===== GLOBAL STATE =====
+const NL = String.fromCharCode(10);   // newline char, copy-proof
 let roomsData = [];
 let employeesData = [];
 let guestsData = [];
@@ -1297,7 +1320,8 @@ async function downloadRulesPdf() {
 const src = await resolveRulesSource();
 if (!src) {
 if (brandSettings.rulesFileName) {
-alert('The rules PDF file itself was never stored (uploaded with an older version).\n\nADMIN FIX (one-time, free): Branding → re-upload "' + brandSettings.rulesFileName + '" (or paste its free GitHub URL) → click "Preview & Apply".');
+alert(`The rules PDF file itself was never stored (uploaded with an older version).
+ADMIN FIX (one-time, free): Branding → re-upload "${brandSettings.rulesFileName}" (or paste its free GitHub URL) → click "Preview & Apply".`);
 } else {
 alert('No rules PDF has been uploaded yet. Admin: upload it in Branding (free — stored in Firestore or via GitHub URL).');
 }
@@ -1320,16 +1344,15 @@ if (sigDataUrl) { try { doc.addImage(sigDataUrl, 'PNG', 140, y, 54, 19); } catch
 doc.setFontSize(8); doc.setFont(undefined, 'normal');
 doc.text('Employee Signature' + (typed && typed !== '[Drawn]' ? ' (typed: ' + typed + ')' : ''), 140, y + 23);
 }
-// ===== CHECK-IN PDF BUILDER (details incl. ROOM TYPE + disclaimer + amenities + REAL rules pages + sig each page) =====
+// ===== CHECK-IN PDF BUILDER =====
 async function writeCheckInPages(doc, ci, first) {
 const emp = employeesData.find(e => e.id === ci.employeeId) || employeesData.find(e => e.name === ci.employeeName) || {};
 const roomNo = ci.roomNo || emp.room || ((currentUser && currentUser.role === 'employee') ? currentUser.room : '') || '';
 const roomObj = roomsData.find(r => r.number === roomNo);
-const roomType = ci.room_type || (roomObj && roomObj.type) || emp.roomType || '';
+const roomType = ci.room_type || (roomObj && roomObj.type) || '';
 const logo = (brandSettings.logoUrl || '').startsWith('data:') ? brandSettings.logoUrl : null;
 const sig = (ci.signatureUrl || '').startsWith('data:') ? ci.signatureUrl : null;
 if (!first) doc.addPage();
-// PAGE 1 — details
 let y = 12;
 if (logo) { try { doc.addImage(logo, 'JPEG', 14, 10, 24, 24); } catch (e) {} }
 doc.setFontSize(14); doc.setFont(undefined, 'bold');
@@ -1348,7 +1371,6 @@ doc.autoTable({ startY: y + 16, theme: 'grid', styles: { fontSize: 9 }, body: [
 ['Emergency Contact', (ci.emerg_name || '') + ' / ' + (ci.emerg_num || '')]
 ], columnStyles: { 0: { fontStyle: 'bold', cellWidth: 45 } } });
 addSigBlock(doc, sig, ci.typedSignature, doc.lastAutoTable.finalY + 6);
-// PAGE 2 — disclaimer + amenities
 doc.addPage();
 doc.setFontSize(13); doc.setFont(undefined, 'bold');
 doc.text('Room Amenities Checklist (Inventory) — Room ' + roomNo + (roomType ? ' (' + roomType + ')' : ''), 14, 14);
@@ -1359,7 +1381,6 @@ const discEnd = 20 + disc.length * 3.6 + 2;
 doc.autoTable({ startY: discEnd, theme: 'grid', styles: { fontSize: 8 }, head: [['#', 'Amenity', 'Present', 'Remarks']],
 body: (ci.checklist || []).map((it, i) => [i + 1, it.name, it.present ? 'Yes' : 'No', it.remarks || '']) });
 addSigBlock(doc, sig, ci.typedSignature, doc.lastAutoTable.finalY + 6);
-// PAGE 3+ — ACCOMMODATION RULES exactly as the uploaded PDF (image pages), signature on each
 const rulesSrc = await resolveRulesSource();
 let rendered = false;
 if (rulesSrc) {
@@ -1391,7 +1412,7 @@ doc.addPage();
 doc.setFontSize(13); doc.setFont(undefined, 'bold');
 doc.text('Accommodation Rules', 14, 14);
 doc.setFont(undefined, 'normal');
-const rulesText = brandSettings.rulesText || defaultRulesPlain.join('\n');
+const rulesText = brandSettings.rulesText || defaultRulesPlain.join(NL);
 const lines = doc.splitTextToSize(rulesText, 180);
 doc.setFontSize(8);
 let ry = 22; const pageH = 278;
@@ -1590,12 +1611,14 @@ const pdf = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
 for (let p = 1; p <= pdf.numPages; p++) {
 const page = await pdf.getPage(p);
 const tc = await page.getTextContent();
-text += tc.items.map(it => it.str).join(' ') + '\n';
+text += tc.items.map(it => it.str).join(' ') + NL;
 }
 } catch (e) { console.warn('text extraction failed:', e.message); }
 const dataUrl = await new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = rej; rd.readAsDataURL(file); });
 if (dataUrl.length > 950000) {
-alert(`PDF is ${Math.round(file.size/1024)} KB — too large to embed in the free database (limit ~700 KB).\n\nFREE alternative: add the PDF to your GitHub repo (e.g. host-accommodation/rules.pdf), commit & push, then paste this URL in the field below:\nhttps://ravindra00737-wq.github.io/host-accommodation/rules.pdf`);
+alert(`PDF is ${Math.round(file.size/1024)} KB — too large to embed in the free database (limit ~700 KB).
+FREE alternative: add the PDF to your GitHub repo (e.g. host-accommodation/rules.pdf), commit & push, then paste this URL in the field below:
+https://ravindra00737-wq.github.io/host-accommodation/rules.pdf`);
 status.textContent = '';
 return;
 }
@@ -1635,7 +1658,10 @@ pendingLogoUrl = null; pendingBgUrl = null; pendingRulesText = null; pendingRule
 document.getElementById('rules-url-input').value = '';
 applyBrandSettings(stored);
 loadBrandingIntoForm();
-alert(`✓ Branding saved & verified!\nLogo: ${stored.logoUrl ? 'saved ✓' : 'NONE'}\nBackground: ${stored.bgUrl ? 'saved ✓' : 'NONE'}\nRules PDF: ${stored.rulesPdfSource ? 'stored ✓ (free — no Storage/subscription used)' : 'NONE'}`);
+alert(`✓ Branding saved & verified!
+Logo: ${stored.logoUrl ? 'saved ✓' : 'NONE'}
+Background: ${stored.bgUrl ? 'saved ✓' : 'NONE'}
+Rules PDF: ${stored.rulesPdfSource ? 'stored ✓ (free — no Storage/subscription used)' : 'NONE'}`);
 } catch (e) {
 console.error(e);
 let msg = 'Error: ' + e.message;
@@ -1643,15 +1669,15 @@ if (e.code === 'permission-denied') msg = 'Permission denied. Publish the Firest
 alert(msg);
 }
 }
-// ===== SAMPLE CSV =====
+// ===== SAMPLE CSV (NL-safe) =====
 function downloadSampleCSV(type) {
-let csv = '', filename = '';
-if (type === 'rooms') { csv = 'BlockNo,CabinNo,RoomNo,RoomType,Beds\nK,17,A,Sharing,2\nK,17,B,Sharing,2\nK,18,A,Sharing,2\nK,18,B,Single,1\n'; filename = 'sample_rooms.csv'; }
-else if (type === 'employees') { csv = 'Name,Designation,Department,RoomNo,EmploymentType\nJohn Doe,Manager,Engineering,K-17-A,Onroll\nJane Smith,Executive,Front Office,K-17-B,Casual\n'; filename = 'sample_employees.csv'; }
-else { csv = 'BlockNo,CabinNo,RoomNo,ItemName,Available,Qty\nK,17,K-17-A,Single Bed,Yes,2\nK,17,ALL,Mattress,Yes,2\nK,17,K-17-B,Wardrobe,Yes,1\nK,18,*,AC,Yes,1\n'; filename = 'sample_inventory.csv'; }
-const blob = new Blob([csv], { type: 'text/csv' });
+let rows = [];
+if (type === 'rooms') rows = ['BlockNo,CabinNo,RoomNo,RoomType,Beds','K,17,A,Sharing,2','K,17,B,Sharing,2','K,18,A,Sharing,2','K,18,B,Single,1'];
+else if (type === 'employees') rows = ['Name,Designation,Department,RoomNo,EmploymentType','John Doe,Manager,Engineering,K-17-A,Onroll','Jane Smith,Executive,Front Office,K-17-B,Casual'];
+else rows = ['BlockNo,CabinNo,RoomNo,ItemName,Available,Qty','K,17,K-17-A,Single Bed,Yes,2','K,17,ALL,Mattress,Yes,2','K,17,K-17-B,Wardrobe,Yes,1','K,18,*,AC,Yes,1'];
+const blob = new Blob([rows.join(NL)], { type: 'text/csv' });
 const url = URL.createObjectURL(blob);
-const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+const a = document.createElement('a'); a.href = url; a.download = 'sample_' + type + '.csv'; a.click();
 URL.revokeObjectURL(url);
 }
 function resolveRoomNo(input) {
@@ -1696,10 +1722,11 @@ return o;
 }
 // ===== INIT =====
 window.addEventListener('DOMContentLoaded', () => {
-console.log('%cHOST APP BUILD v2026-10-16.9', 'background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold');
+console.log('%cHOST APP BUILD v2026-10-16.10', 'background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold');
 const checkFirebase = setInterval(() => {
 if (window.fb && window.fb.onAuthStateChanged) {
 clearInterval(checkFirebase);
+window.__appBooted = true;
 loadBrandingOnce();
 window.fb.onAuthStateChanged(window.fb.auth, async (user) => {
 if (registering) return;
@@ -1809,13 +1836,19 @@ catch (e) { console.warn('Auto-relink failed (rules?):', e.message); }
 }
 }
 if (!empDoc) {
-alert(`Employee profile not linked to this login.\n\nLogin email: ${user.email}\nAuth UID: ${user.uid}\n\nFix options:\n1) Use "New Employee? Create Profile" again with THIS email — it will relink automatically.\n2) Ask admin to open your record (✏️ Edit) and tick "Unlink login", then register again.`);
+alert(`Employee profile not linked to this login.
+Login email: ${user.email}
+Auth UID: ${user.uid}
+Fix options:
+1) Use "New Employee? Create Profile" again with THIS email — it will relink automatically.
+2) Ask admin to open your record (✏️ Edit) and tick "Unlink login", then register again.`);
 await logout();
 return;
 }
 const empData = empDoc.data();
 if (empData.approvalStatus === 'pending') {
-alert('⏳ Your profile is awaiting ADMIN APPROVAL.\nYou will be able to login once an admin approves your profile and assigns a room.');
+alert(`⏳ Your profile is awaiting ADMIN APPROVAL.
+You will be able to login once an admin approves your profile and assigns a room.`);
 await logout();
 return;
 }
@@ -1983,12 +2016,10 @@ createdAt: new Date().toISOString()
 });
 await window.fb.signOut(window.fb.auth);
 closeCreateProfile();
-alert('✓ Submitted for admin approval!\nYou will be able to login once an admin approves your profile and assigns a room.');
+alert(`✓ Submitted for admin approval!
+You will be able to login once an admin approves your profile and assigns a room.`);
 } catch (error) {
-let msg = 'Registration failed.';
-if (error.code === 'auth/weak-password') msg = 'Password too weak.';
-else if (error.code === 'permission-denied') msg = 'Permission denied. Publish the Firestore Rules first.';
-else msg = error.message;
+let msg = 'Registration failed: ' + error.message;
 alert(msg);
 try { await window.fb.signOut(window.fb.auth); } catch(e) {}
 } finally {
@@ -2163,7 +2194,7 @@ const data = contexts[i].getImageData(0, 0, canvas.width, canvas.height).data;
 for (let j = 3; j < data.length; j += 4) { if (data[j] !== 0) return true; }
 return false;
 }
-// ===== AMENITIES (fixed shared-note logic) =====
+// ===== AMENITIES =====
 function getMyRoom() { return roomsData.find(r => r.number === (currentUser && currentUser.room)); }
 function renderAmenitiesTable() {
 const tbody = document.getElementById('amenities-table-body');
@@ -2200,7 +2231,7 @@ const checks = document.querySelectorAll('.amenity-check');
 const remarks = document.querySelectorAll('.amenity-remark');
 return checkinItems.map((it, i) => ({ name: it.name, present: checks[i] ? checks[i].checked : false, remarks: remarks[i] ? remarks[i].value : '' }));
 }
-// ===== SUBMIT CHECK-IN (locks + syncs employee) =====
+// ===== SUBMIT CHECK-IN =====
 async function submitCheckIn() {
 if (!currentUser) return;
 if (!document.getElementById('rules-agree').checked) { alert('Please agree to rules'); return; }
@@ -2245,7 +2276,7 @@ if (error.code === 'permission-denied') msg = 'Permission denied. Publish the Fi
 alert(msg);
 }
 }
-// ===== SUBMIT CHECK-OUT (cross-check + combined pdf) =====
+// ===== SUBMIT CHECK-OUT =====
 async function submitCheckOut() {
 const sig = document.getElementById('typed-signature-co').value;
 if (!sig && !hasSignature('co')) { alert('Please provide signature'); return; }
@@ -2433,12 +2464,12 @@ alert('✓ Guest check-out completed. Thank you!');
 exitGuest();
 } catch (error) { alert('Error: ' + error.message); }
 }
-// ===== ADMIN UPLOAD =====
+// ===== ADMIN UPLOAD (NL-safe splits) =====
 async function uploadRoomStructure(event) {
 const file = event.target.files[0]; if (!file) return;
 const reader = new FileReader();
 reader.onload = async (e) => {
-const lines = e.target.result.split('\n').filter(l => l.trim());
+const lines = e.target.result.split(NL).filter(l => l.trim());
 const startIdx = lines[0].toLowerCase().includes('block') ? 1 : 0;
 let count = 0, skipped = 0;
 const statusDiv = document.getElementById('room-upload-status');
@@ -2466,7 +2497,7 @@ async function uploadEmployeeList(event) {
 const file = event.target.files[0]; if (!file) return;
 const reader = new FileReader();
 reader.onload = async (e) => {
-const lines = e.target.result.split('\n').filter(l => l.trim());
+const lines = e.target.result.split(NL).filter(l => l.trim());
 const startIdx = lines[0].toLowerCase().includes('name') ? 1 : 0;
 let count = 0;
 const statusDiv = document.getElementById('emp-upload-status');
@@ -2722,7 +2753,7 @@ async function uploadInventoryCSV(event) {
 const file = event.target.files[0]; if (!file) return;
 const reader = new FileReader();
 reader.onload = async (e) => {
-const lines = e.target.result.split('\n').filter(l => l.trim());
+const lines = e.target.result.split(NL).filter(l => l.trim());
 const startIdx = lines[0].toLowerCase().includes('block') ? 1 : 0;
 const byRoom = {};
 for (let i = startIdx; i < lines.length; i++) {
@@ -2751,7 +2782,7 @@ alert(`✓ ${count} inventory items uploaded across ${Object.keys(byRoom).length
 };
 reader.readAsText(file);
 }
-// ===== RECORD KEEPING (per-room inventory view/edit + custom excel) =====
+// ===== RECORD KEEPING =====
 function populateRecFilters() {
 const bSel = document.getElementById('rec-block');
 if (!bSel) return;
@@ -2876,7 +2907,7 @@ rows.push(row);
 list.forEach(r => {
 const row = {}; roomCols(row, r);
 row['Item Count'] = (r.inventory || []).length;
-row.Items = (r.inventory || []).map(i => `${i.name}${cols.qty ? ' ×' + (i.qty || 1) : ''}${cols.avail ? (i.available !== false ? '' : ' (N/A)') : ''}`).join('; ');
+row.Items = (r.inventory || []).map(i => i.name + (cols.qty ? ' ×' + (i.qty || 1) : '')).join('; ');
 rows.push(row);
 });
 }
@@ -3101,7 +3132,8 @@ alert('✓ Check-in form updated.');
 }
 async function deleteCheckIn(id) {
 const ci = checkinsData.find(x => x.id === id); if (!ci) return;
-if (!confirm(`Delete the submitted check-in form of ${ci.employeeName}?\nThe employee will see the blank check-in form again and can re-submit.`)) return;
+if (!confirm(`Delete the submitted check-in form of ${ci.employeeName}?
+The employee will see the blank check-in form again and can re-submit.`)) return;
 try {
 await window.fb.deleteDoc(window.fb.doc(window.fb.db, 'checkins', id));
 loadCheckIns();
@@ -3452,7 +3484,8 @@ alert('✓ Employee updated.');
 async function approveEmployee(empId) {
 const emp = employeesData.find(e => e.id === empId);
 if (!emp) return;
-if (!confirm(`Approve ${emp.name} (Casual / Third-party)?\nThey will be able to login once approved. You can still edit room & company name afterwards.`)) return;
+if (!confirm(`Approve ${emp.name} (Casual / Third-party)?
+They will be able to login once approved. You can still edit room & company name afterwards.`)) return;
 try {
 await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', empId), { approvalStatus: 'approved', loginEnabled: true, status: 'active' });
 alert(`✓ ${emp.name} approved. They can now login.`);
@@ -3461,7 +3494,8 @@ alert(`✓ ${emp.name} approved. They can now login.`);
 async function deleteEmployee(empId) {
 const emp = employeesData.find(e => e.id === empId);
 if (!emp) return;
-if (!confirm(`Delete employee "${emp.name || emp.code || empId}" permanently?\nThis also frees their bed. Cannot be undone.`)) return;
+if (!confirm(`Delete employee "${emp.name || emp.code || empId}" permanently?
+This also frees their bed. Cannot be undone.`)) return;
 try {
 if (emp.room) {
 const room = roomsData.find(r => r.number === emp.room);
@@ -3741,4 +3775,62 @@ document.getElementById('stat-cap').textContent = cap;
 document.getElementById('stat-occ').textContent = occ;
 document.getElementById('stat-vac').textContent = cap-occ;
 document.getElementById('stat-emp').textContent = employeesData.length;
-document.getElementById('stat-pend').textContent = employeesData.filter(e=>!
+document.getElementById('stat-pend').textContent = employeesData.filter(e=>!e.registered).length + employeesData.filter(e=>e.approvalStatus==='pending').length;
+}
+function renderUploadPreview() {
+document.getElementById('room-count').textContent = roomsData.length;
+document.getElementById('emp-count').textContent = employeesData.length;
+document.getElementById('preview-rooms').innerHTML = roomsData.length ? sortRooms(roomsData).map(r=>`<tr class="border-b"><td class="p-2">${r.block}</td><td class="p-2">${r.cabin||'-'}</td><td class="p-2">${r.number}</td><td class="p-2">${r.type}</td><td class="p-2">${r.capacity}</td></tr>`).join('') : '<tr><td colspan="5" class="p-3 text-center text-gray-500 italic">No rooms uploaded</td></tr>';
+document.getElementById('preview-emps').innerHTML = employeesData.length ? employeesData.map(e=>`<tr class="border-b"><td class="p-2">${e.name}</td><td class="p-2">${e.dept}</td><td class="p-2">${e.room||'-'}</td><td class="p-2"><span class="px-2 py-0.5 rounded text-xs ${e.registered?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${e.registered?'Registered':'Pending'}</span></td></tr>`).join('') : '<tr><td colspan="4" class="p-3 text-center text-gray-500 italic">No employees uploaded</td></tr>';
+}
+// ===== REALTIME LISTENERS =====
+function startRealtimeListeners() {
+window.fb.onSnapshot(window.fb.collection(window.fb.db, 'rooms'), (snapshot) => {
+roomsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+if (currentUser?.role === 'admin') {
+renderBlockTabs(); renderBlockSummary(); renderRooms(); renderUploadPreview(); updateStats(); populateInventoryDropdowns(); renderGuestControls(); refreshSectionUI();
+if (!document.getElementById('admin-alerts').classList.contains('hidden')) renderAlerts();
+if (!document.getElementById('admin-forms').classList.contains('hidden')) { populateFormsFilters(); renderFormsTable(); }
+if (!document.getElementById('admin-inventory').classList.contains('hidden') && invTab === 'records') renderRecTable();
+} else if (currentUser?.role === 'employee') {
+loadMODRoomDropdown();
+if (!document.getElementById('emp-checkin').classList.contains('hidden')) { renderCheckInMode(); }
+if (!document.getElementById('emp-checkout').classList.contains('hidden')) { renderCheckoutMode(); }
+}
+}, (err) => console.warn('rooms listener:', err.message));
+if (currentUser?.role === 'admin') {
+window.fb.onSnapshot(window.fb.collection(window.fb.db, 'employees'), (snapshot) => {
+employeesData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+renderEmpTable(); renderUploadPreview(); updateStats();
+if (!document.getElementById('admin-alerts').classList.contains('hidden')) renderAlerts();
+if (!document.getElementById('admin-forms').classList.contains('hidden')) renderFormsTable();
+}, (err) => console.warn('employees listener:', err.message));
+window.fb.onSnapshot(window.fb.collection(window.fb.db, 'guests'), (snapshot) => {
+guestsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+renderGuestControls();
+}, (err) => console.warn('guests listener:', err.message));
+}
+if (currentUser?.role === 'employee') {
+window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, 'checkins'), window.fb.where('employeeId', '==', currentUser.id)), (snapshot) => {
+const arr = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+arr.sort((a, b) => String(a.timestamp || '').localeCompare(String(b.timestamp || '')));
+myCheckIn = arr.length ? arr[arr.length - 1] : null;
+if (!document.getElementById('emp-checkin').classList.contains('hidden')) renderCheckInMode();
+}, (err) => console.warn('my checkins listener:', err.message));
+window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, 'checkouts'), window.fb.where('employeeId', '==', currentUser.id)), (snapshot) => {
+const arr = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+arr.sort((a, b) => String(a.timestamp || '').localeCompare(String(b.timestamp || '')));
+myCheckOut = arr.length ? arr[arr.length - 1] : null;
+if (!document.getElementById('emp-checkout').classList.contains('hidden')) renderCheckoutMode();
+}, (err) => console.warn('my checkouts listener:', err.message));
+}
+window.fb.onSnapshot(window.fb.collection(window.fb.db, 'modAssignments'), (snapshot) => {
+modAssignments = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+}, (err) => console.warn('modAssignments listener:', err.message));
+window.fb.onSnapshot(window.fb.doc(window.fb.db, 'settings', 'branding'), (snap) => {
+if (snap.exists()) applyBrandSettings(snap.data());
+}, (err) => console.warn('branding listener:', err.message));
+}
+</script>
+</body>
+</html>
