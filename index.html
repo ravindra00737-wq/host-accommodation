@@ -75,6 +75,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 .loading { display: inline-block; width: 16px; height: 16px; border: 2px solid #fff; border-radius: 50%; border-top-color: transparent; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .rules-text { white-space: pre-wrap; font-size: 0.875rem; }
+.pdf-page { width: 100%; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; margin-bottom: 10px; display: block; }
 </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans">
@@ -168,7 +169,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 </div>
 <div class="mt-4">
 <h4 class="font-semibold mb-2">Accommodation Rules</h4>
-<div id="guest-rules-box" class="bg-gray-50 p-4 rounded-lg border max-h-64 overflow-y-auto rules-text text-gray-700"></div>
+<div id="guest-rules-box" class="bg-gray-50 p-4 rounded-lg border max-h-96 overflow-y-auto rules-text text-gray-700"></div>
 <label class="flex items-center text-sm mt-2"><input type="checkbox" id="guest-rules-agree" class="mr-2"> I agree to the rules.</label>
 </div>
 <div class="mt-4">
@@ -214,11 +215,10 @@ input:checked + .slider:before { transform: translateX(20px); }
 <button onclick="closeCreateProfile()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
 </div>
 <div class="p-6">
-<!-- Type choice -->
 <div id="reg-step-0" class="space-y-3">
 <p class="text-sm text-gray-600 font-semibold">Select your host type:</p>
 <button onclick="chooseRegType('onroll')" class="w-full p-4 border-2 rounded-xl text-left hover:border-blue-500 bg-blue-50">
-<strong class="text-blue-800"> Onroll Host</strong>
+<strong class="text-blue-800">🏢 Onroll Host</strong>
 <span class="block text-xs text-blue-700 mt-1">Already uploaded by admin — search your name, verify details & activate.</span>
 </button>
 <button onclick="chooseRegType('casual')" class="w-full p-4 border-2 rounded-xl text-left hover:border-teal-500 bg-teal-50">
@@ -226,7 +226,6 @@ input:checked + .slider:before { transform: translateX(20px); }
 <span class="block text-xs text-teal-700 mt-1">New registration — submitted to admin for approval.</span>
 </button>
 </div>
-<!-- Onroll flow -->
 <div id="reg-onroll" class="hidden">
 <div class="bg-blue-50 p-3 rounded-lg mb-4 text-sm text-blue-800">
 <strong>Step 1:</strong> Search your name (as uploaded by admin).<br>
@@ -256,7 +255,6 @@ input:checked + .slider:before { transform: translateX(20px); }
 </div>
 <button onclick="backToRegType()" class="mt-3 text-sm text-gray-500 hover:underline">← Back to host type</button>
 </div>
-<!-- Casual flow -->
 <div id="reg-casual" class="hidden">
 <div class="bg-teal-50 p-3 rounded-lg mb-4 text-sm text-teal-800">
 Enter your details below. Your profile will be sent to <strong>admin for approval</strong>. You can log in once approved & a room is assigned.
@@ -307,11 +305,11 @@ Enter your details below. Your profile will be sent to <strong>admin for approva
 </div>
 </nav>
 <main class="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
 <button onclick="showEmpSection('checkin')" class="bg-white p-6 rounded-xl shadow-sm border hover:border-blue-500 text-left transition">
 <h3 class="font-bold text-lg text-gray-800">📝 Check-In</h3><p class="text-sm text-gray-500 mt-1">Full check-in form.</p>
 </button>
-<button onclick="showEmpSection('checkout')" class="bg-white p-6 rounded-xl shadow-sm border hover:border-blue-500 text-left transition">
+<button onclick="showEmpSection('checkout')" id="card-checkout" class="bg-white p-6 rounded-xl shadow-sm border hover:border-blue-500 text-left transition">
 <h3 class="font-bold text-lg text-gray-800">🚪 Check-Out</h3><p class="text-sm text-gray-500 mt-1">Request room release.</p>
 </button>
 <button onclick="showEmpSection('mod')" id="card-mod" class="bg-white p-6 rounded-xl shadow-sm border hover:border-orange-500 text-left transition">
@@ -320,7 +318,11 @@ Enter your details below. Your profile will be sent to <strong>admin for approva
 <button onclick="showEmpSection('changeroom')" id="card-changeroom" class="bg-white p-6 rounded-xl shadow-sm border hover:border-blue-500 text-left transition">
 <h3 class="font-bold text-lg text-gray-800">🔄 Change Room</h3><p class="text-sm text-gray-500 mt-1">Promotion/room change.</p>
 </button>
+<button onclick="showEmpSection('rules')" class="bg-white p-6 rounded-xl shadow-sm border hover:border-purple-500 text-left transition">
+<h3 class="font-bold text-lg text-gray-800">📖 Rules</h3><p class="text-sm text-gray-500 mt-1">View & download accommodation rules.</p>
+</button>
 </div>
+
 <div id="emp-checkin" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
 <div class="flex items-center gap-3 mb-4 pb-3 border-b">
 <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
@@ -328,9 +330,6 @@ Enter your details below. Your profile will be sent to <strong>admin for approva
 <p class="font-bold text-lg" data-brand-name>Host Accommodation</p>
 <p class="text-sm text-gray-600 font-semibold">CHECK-IN FORM</p>
 </div>
-</div>
-<div id="missing-data-alert" class="hidden bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4 text-sm text-yellow-800">
-<strong>⚠ Missing Information:</strong> Please complete the highlighted fields below.
 </div>
 <div class="flex items-center justify-between mb-6">
 <div class="flex items-center flex-1"><div id="step-1-indicator" class="w-8 h-8 rounded-full flex items-center justify-center font-bold step-active">1</div><div class="flex-1 h-1 bg-gray-200 mx-2"><div id="step-1-bar" class="h-full bg-blue-500" style="width:0%"></div></div></div>
@@ -399,7 +398,7 @@ Enter your details below. Your profile will be sent to <strong>admin for approva
 </div>
 <div id="step-3" class="hidden fade-in">
 <h4 class="font-bold text-lg mb-3">Accommodation Rules</h4>
-<div id="rules-display" class="bg-gray-50 p-4 rounded-lg border mb-4 max-h-96 overflow-y-auto rules-text text-gray-700"></div>
+<div id="rules-display" class="bg-gray-50 p-4 rounded-lg border mb-4 max-h-[70vh] overflow-y-auto rules-text text-gray-700"></div>
 <label class="flex items-center text-sm mb-4">
 <input type="checkbox" id="rules-agree" class="mr-2" required>
 I have read and agree to abide by all accommodation rules.
@@ -419,6 +418,7 @@ I have read and agree to abide by all accommodation rules.
 </div>
 </form>
 </div>
+
 <div id="emp-checkout" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
 <div class="flex items-center gap-3 mb-4 pb-3 border-b">
 <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
@@ -452,6 +452,7 @@ I have read and agree to abide by all accommodation rules.
 </div>
 <button onclick="submitCheckOut()" class="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">Submit Check-Out</button>
 </div>
+
 <div id="emp-mod" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
 <div class="flex items-center gap-3 mb-4 pb-3 border-b">
 <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
@@ -508,13 +509,31 @@ I have read and agree to abide by all accommodation rules.
 </table>
 </div>
 </div>
+
 <div id="emp-changeroom" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
 <h3 class="text-xl font-bold mb-4">Change Room</h3>
 <p class="text-sm text-gray-600 mb-3">Current Room: <strong id="current-room-display">Not assigned</strong></p>
 <button onclick="alert('Room change process would start here. Admin must approve.')" class="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600">Start Room Change</button>
 </div>
+
+<!-- NEW: RULES VIEWER -->
+<div id="emp-rules" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
+<div class="flex items-center gap-3 mb-4 pb-3 border-b">
+<img data-brand-logo class="hidden h-12 object-contain" alt="logo">
+<div>
+<p class="font-bold text-lg" data-brand-name>Host Accommodation</p>
+<p class="text-sm text-gray-600 font-semibold">ACCOMMODATION RULES</p>
+</div>
+</div>
+<div class="flex gap-2 mb-3 flex-wrap">
+<button onclick="downloadRulesPdf()" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">⬇ Download Rules PDF</button>
+<span id="emp-rules-filename" class="text-xs text-gray-500 self-center"></span>
+</div>
+<div id="emp-rules-pages" class="max-h-[70vh] overflow-y-auto bg-gray-50 p-3 rounded border rules-text text-gray-700"></div>
+</div>
 </main>
 </div>
+
 <!-- ================= ADMIN DASHBOARD ================= -->
 <div id="admin-dashboard" class="hidden min-h-screen bg-gray-100">
 <nav class="bg-white shadow-sm border-b">
@@ -632,14 +651,15 @@ I have read and agree to abide by all accommodation rules.
 <div id="block-summary" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 mb-4 text-xs"></div>
 <div id="room-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
 </div>
-<!-- INVENTORY -->
+<!-- INVENTORY (MULTI-BLOCK) -->
 <div id="admin-inventory" class="hidden fade-in">
 <h3 class="text-lg font-bold mb-4">📦 Room Amenities / Inventory Management</h3>
 <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
-<h4 class="font-semibold mb-2">1️⃣ Select Rooms (individual or bulk)</h4>
-<div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
-<select id="inv-block" onchange="onInvBlockChange()" class="px-3 py-2 border rounded text-sm"><option value="">-- Block --</option></select>
-<select id="inv-cabin" onchange="onInvCabinChange()" class="px-3 py-2 border rounded text-sm"><option value="">-- Cabin (all if empty) --</option></select>
+<h4 class="font-semibold mb-2">1️⃣ Select Blocks & Rooms (bulk or individual)</h4>
+<label class="text-xs font-semibold text-gray-600">Blocks (multi-select):</label>
+<div id="inv-block-checklist" class="flex flex-wrap gap-2 mb-3 bg-white border rounded p-2"></div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+<select id="inv-cabin" onchange="renderInvRoomChecklist()" class="px-3 py-2 border rounded text-sm"><option value="">-- Cabin (all if empty) --</option></select>
 <select id="inv-type-filter" onchange="renderInvRoomChecklist()" class="px-3 py-2 border rounded text-sm"><option value="">All Room Types</option><option value="single">Single</option><option value="sharing">Sharing</option></select>
 <button onclick="selectAllInvRooms(true)" class="px-3 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">☑ Select All Listed</button>
 <button onclick="selectAllInvRooms(false)" class="px-3 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">✖ Clear Selection</button>
@@ -654,7 +674,7 @@ I have read and agree to abide by all accommodation rules.
 <select id="inv-template-type" onchange="document.getElementById('inv-template-type-label').textContent = this.value === 'single' ? 'Single' : 'Sharing'" class="px-3 py-2 border rounded text-sm"><option value="single">Single Rooms</option><option value="sharing">Sharing Rooms</option></select>
 <button onclick="loadInvTemplate()" class="px-3 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">📥 Load Template</button>
 <button onclick="saveInvTemplate()" class="px-3 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700">💾 Save as Template</button>
-<button onclick="applyInvToAllOfType()" class="px-3 py-2 bg-orange-600 text-white rounded text-sm hover:bg-orange-700">🚀 Apply to ALL <span id="inv-template-type-label">Single</span> rooms (current block/cabin)</button>
+<button onclick="applyInvToAllOfType()" class="px-3 py-2 bg-orange-600 text-white rounded text-sm hover:bg-orange-700">🚀 Apply to ALL <span id="inv-template-type-label">Single</span> rooms (selected blocks)</button>
 </div>
 <div class="overflow-x-auto">
 <table class="w-full text-sm border">
@@ -814,7 +834,7 @@ I have read and agree to abide by all accommodation rules.
 <div>Saved background:<br><img id="brand-bg-current" class="mt-1 h-10 object-cover rounded hidden" alt=""></div>
 <div id="brand-upload-status" class="text-xs text-gray-700"></div>
 </div>
-<div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Accommodation Rules PDF (text extracted & shown in check-in)</label><input type="file" id="rules-pdf-input" accept="application/pdf" class="w-full text-sm" onchange="uploadRulesPdf(event)"><div id="rules-pdf-status" class="text-xs mt-1 text-gray-600"></div></div>
+<div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Accommodation Rules PDF (shown exactly as PDF in check-in & Rules tab, downloadable)</label><input type="file" id="rules-pdf-input" accept="application/pdf" class="w-full text-sm" onchange="uploadRulesPdf(event)"><div id="rules-pdf-status" class="text-xs mt-1 text-gray-600"></div></div>
 </div>
 <div class="mt-6 flex gap-3">
 <button onclick="saveBranding()" class="px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700">💾 Preview & Apply</button>
@@ -844,8 +864,9 @@ I have read and agree to abide by all accommodation rules.
 <div class="flex items-end gap-2 pb-2">
 <input type="checkbox" id="admin-is-mod" class="w-4 h-4"><label for="admin-is-mod" class="text-sm">MOD employee</label>
 </div>
-<div class="md:col-span-2 flex items-center gap-2">
-<input type="checkbox" id="admin-room-change" class="w-4 h-4"><label for="admin-room-change" class="text-sm">Room change enabled (shows Change Room tab for this employee)</label>
+<div class="md:col-span-2 flex flex-wrap gap-4">
+<label class="flex items-center gap-2"><input type="checkbox" id="admin-room-change" class="w-4 h-4"><span class="text-sm">Room change enabled</span></label>
+<label class="flex items-center gap-2"><input type="checkbox" id="admin-checkout-enabled" class="w-4 h-4"><span class="text-sm">Check-out enabled (shows Check-Out tab)</span></label>
 </div>
 </form>
 <div class="flex justify-end gap-3 mt-6">
@@ -877,6 +898,7 @@ I have read and agree to abide by all accommodation rules.
 <div class="flex items-center gap-2"><input type="checkbox" id="edit-is-mod" class="w-4 h-4"><label for="edit-is-mod" class="text-sm">MOD employee</label></div>
 <div class="flex items-center gap-2"><input type="checkbox" id="edit-login-enabled" class="w-4 h-4"><label for="edit-login-enabled" class="text-sm">Login enabled</label></div>
 <div class="flex items-center gap-2"><input type="checkbox" id="edit-room-change" class="w-4 h-4"><label for="edit-room-change" class="text-sm">Room change enabled</label></div>
+<div class="flex items-center gap-2"><input type="checkbox" id="edit-checkout-enabled" class="w-4 h-4"><label for="edit-checkout-enabled" class="text-sm">Check-out enabled</label></div>
 <div class="md:col-span-2 bg-gray-50 border rounded p-3 text-xs text-gray-600">
 Linked login UID: <code id="edit-uid-info" class="text-gray-800"></code><br>
 <label class="flex items-center gap-2 mt-2"><input type="checkbox" id="edit-clear-uid" class="w-4 h-4"> Unlink login (employee can re-register from login page)</label>
@@ -936,6 +958,7 @@ Linked login UID: <code id="edit-uid-info" class="text-gray-800"></code><br>
 </div>
 </div>
 </div>
+
 <script>
 // ===== GLOBAL STATE =====
 let roomsData = [];
@@ -948,6 +971,7 @@ let modAssignments = [];
 let brandSettings = {};
 let invEditList = [];
 let invSelectedRooms = [];
+let invSelectedBlocks = [];
 let invTemplates = { single: [], sharing: [] };
 let secSelectedRooms = [];
 let checkinItems = [];
@@ -956,6 +980,7 @@ let checkoutEditable = false;
 let pendingLogoUrl = null;
 let pendingBgUrl = null;
 let pendingRulesText = null;
+let pendingRulesSource = null;
 let currentLoginTab = 'employee';
 let currentModalRoom = null;
 let allocateTargetRoom = null;
@@ -983,6 +1008,7 @@ natCompare(x.room || x.number || '', y.room || y.number || '') ||
 natCompare(x.number || '', y.number || '')
 );
 }
+function escapeHtml(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 const defaultRulesHtml = `<ol class="list-decimal pl-5 space-y-2">
 <li>Rooms are allocated as per company policy based on designation and availability.</li>
 <li>Maintain cleanliness and hygiene in your room and common areas.</li>
@@ -996,6 +1022,76 @@ const defaultRulesHtml = `<ol class="list-decimal pl-5 space-y-2">
 <li>Check-out must be done 24 hours in advance with admin approval.</li>
 </ol><p class="text-xs text-gray-500 mt-3 italic">(Actual rules PDF can be uploaded by admin in Branding)</p>`;
 if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ===== PDF RENDER / DOWNLOAD =====
+function dataUrlToUint8(dataUrl) {
+const b64 = dataUrl.split(',')[1];
+const bin = atob(b64);
+const u = new Uint8Array(bin.length);
+for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+return u;
+}
+async function renderPdfPages(container, source, maxW) {
+if (!container) return;
+container.innerHTML = '<p class="text-sm text-gray-500 italic">Loading rules…</p>';
+try {
+const param = (typeof source === 'string' && source.startsWith('data:')) ? { data: dataUrlToUint8(source) } : { url: source };
+const pdf = await pdfjsLib.getDocument(param).promise;
+container.innerHTML = '';
+const width = maxW || 900;
+for (let p = 1; p <= pdf.numPages; p++) {
+const page = await pdf.getPage(p);
+const base = await page.getViewport({ scale: 1 });
+const scale = width / base.width;
+const vp = await page.getViewport({ scale });
+const canvas = document.createElement('canvas');
+canvas.width = vp.width; canvas.height = vp.height;
+canvas.className = 'pdf-page';
+container.appendChild(canvas);
+await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+}
+} catch (e) {
+console.warn('PDF render failed:', e.message);
+container.innerHTML = brandSettings.rulesText ? `<div class="rules-text">${escapeHtml(brandSettings.rulesText)}</div>` : defaultRulesHtml;
+}
+}
+function rulesFallbackHtml() {
+return brandSettings.rulesText ? `<div class="rules-text">${escapeHtml(brandSettings.rulesText)}</div>` : defaultRulesHtml;
+}
+function renderRulesDisplays() {
+const src = brandSettings.rulesPdfSource;
+const ids = ['rules-display', 'guest-rules-box'];
+ids.forEach(id => {
+const el = document.getElementById(id);
+if (!el) return;
+if (src) renderPdfPages(el, src, 900);
+else el.innerHTML = rulesFallbackHtml();
+});
+const fn = document.getElementById('emp-rules-filename');
+if (fn) fn.textContent = brandSettings.rulesFileName ? ('File: ' + brandSettings.rulesFileName) : '';
+}
+function renderEmpRules() {
+const el = document.getElementById('emp-rules-pages');
+if (!el) return;
+const src = brandSettings.rulesPdfSource;
+if (src) renderPdfPages(el, src, 900);
+else el.innerHTML = rulesFallbackHtml();
+const fn = document.getElementById('emp-rules-filename');
+if (fn) fn.textContent = brandSettings.rulesFileName ? ('File: ' + brandSettings.rulesFileName) : '';
+}
+async function downloadRulesPdf() {
+const src = brandSettings.rulesPdfSource;
+if (!src) { alert('No rules PDF has been uploaded yet.'); return; }
+try {
+const blob = await (await fetch(src)).blob();
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url; a.download = brandSettings.rulesFileName || 'accommodation-rules.pdf';
+document.body.appendChild(a); a.click(); a.remove();
+URL.revokeObjectURL(url);
+} catch (e) { alert('Download failed: ' + e.message); }
+}
+
 // ===== COLOR / BRANDING =====
 function shadeColor(hex, percent) {
 let h = String(hex).replace('#','');
@@ -1055,11 +1151,6 @@ ls.dataset.bgset = '1';
 } else if (ls) { delete ls.dataset.bgset; }
 renderRulesDisplays();
 }
-function renderRulesDisplays() {
-const html = brandSettings.rulesText ? `<div class="rules-text">${brandSettings.rulesText.replace(/</g,'&lt;')}</div>` : defaultRulesHtml;
-const a=document.getElementById('rules-display'); if(a) a.innerHTML = html;
-const b=document.getElementById('guest-rules-box'); if(b) b.innerHTML = html;
-}
 async function loadBrandingOnce() {
 try {
 const snap = await window.fb.getDoc(window.fb.doc(window.fb.db, 'settings', 'branding'));
@@ -1071,13 +1162,13 @@ const t=document.getElementById('brand-title-input'); if(t) t.value = brandSetti
 const d=document.getElementById('brand-desc-input'); if(d) d.value = brandSettings.description || '';
 const c=document.getElementById('brand-color-input'); if(c) c.value = brandSettings.color || '#2563eb';
 const rs=document.getElementById('rules-pdf-status');
-if(rs) rs.textContent = brandSettings.rulesFileName ? ('Current rules: ' + brandSettings.rulesFileName) : '';
+if(rs) rs.textContent = brandSettings.rulesFileName ? ('Current rules PDF: ' + brandSettings.rulesFileName) : 'No rules PDF saved yet.';
 const cl=document.getElementById('brand-logo-current');
 if(cl){ if(brandSettings.logoUrl){cl.src=brandSettings.logoUrl;cl.classList.remove('hidden');} else cl.classList.add('hidden'); }
 const cb=document.getElementById('brand-bg-current');
 if(cb){ if(brandSettings.bgUrl){cb.src=brandSettings.bgUrl;cb.classList.remove('hidden');} else cb.classList.add('hidden'); }
 const st=document.getElementById('brand-upload-status');
-if(st) st.innerHTML = `In database → Logo: <strong>${brandSettings.logoUrl ? '✓ saved' : '✗ empty'}</strong> | Background: <strong>${brandSettings.bgUrl ? '✓ saved' : '✗ empty'}</strong>${brandSettings.logoUrl ? '' : ' — upload & apply again'}`;
+if(st) st.innerHTML = `In database → Logo: <strong>${brandSettings.logoUrl ? '✓ saved' : '✗ empty'}</strong> | Background: <strong>${brandSettings.bgUrl ? '✓ saved' : '✗ empty'}</strong> | Rules PDF: <strong>${brandSettings.rulesPdfSource ? '✓ saved' : '✗ empty'}</strong>`;
 }
 function fileToCompressedDataUrl(file, maxW, quality) {
 return new Promise((res, rej) => {
@@ -1127,26 +1218,46 @@ alert('Image processing failed: ' + err.message);
 status.textContent = '';
 }
 }
+// Rules PDF: extract text (fallback) + store the PDF itself (Storage preferred, embed if small)
 async function uploadRulesPdf(event) {
 const file = event.target.files[0];
 if (!file) return;
 const status = document.getElementById('rules-pdf-status');
-status.textContent = 'Extracting text...';
+status.textContent = 'Processing PDF...';
 try {
 const buf = await file.arrayBuffer();
-const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
 let text = '';
+try {
+const pdf = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
 for (let p = 1; p <= pdf.numPages; p++) {
 const page = await pdf.getPage(p);
 const tc = await page.getTextContent();
 text += tc.items.map(it => it.str).join(' ') + '\n';
 }
-if (!text.trim()) { alert('No extractable text found in PDF (scanned image?).'); status.textContent = ''; return; }
+} catch (e) { console.warn('text extraction failed', e.message); }
+let source = '';
+try {
+const path = `branding/rules-${Date.now()}.pdf`;
+const r = window.fb.ref(window.fb.storage, path);
+const b64 = await new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = rej; rd.readAsDataURL(file); });
+await window.fb.uploadString(r, b64, 'data_url');
+source = await window.fb.getDownloadURL(r);
+} catch (storageErr) {
+console.warn('Storage upload failed for rules PDF:', storageErr.message);
+if (file.size < 700000) {
+source = await new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = rej; rd.readAsDataURL(file); });
+} else {
+alert('Could not upload PDF to Storage and file is too large to embed (>700KB). Publish Storage rules or use a smaller PDF.');
+status.textContent = '';
+return;
+}
+}
 pendingRulesText = text.trim();
-status.textContent = `✓ Extracted ${text.trim().length} characters from "${file.name}". Click "Preview & Apply" to save.`;
+pendingRulesSource = source;
+status.textContent = `✓ Rules PDF ready (${Math.round(file.size/1024)} KB${text.trim() ? ', text extracted' : ''}). Click "Preview & Apply" to publish.`;
 } catch (err) {
 console.error(err);
-alert('PDF extraction failed: ' + err.message);
+alert('PDF processing failed: ' + err.message);
 status.textContent = '';
 }
 }
@@ -1158,17 +1269,18 @@ color: document.getElementById('brand-color-input').value,
 logoUrl: pendingLogoUrl || brandSettings.logoUrl || '',
 bgUrl: pendingBgUrl || brandSettings.bgUrl || '',
 rulesText: pendingRulesText || brandSettings.rulesText || '',
-rulesFileName: pendingRulesText ? (document.getElementById('rules-pdf-input').files[0]?.name || brandSettings.rulesFileName || '') : (brandSettings.rulesFileName || ''),
+rulesPdfSource: pendingRulesSource || brandSettings.rulesPdfSource || '',
+rulesFileName: pendingRulesSource ? (document.getElementById('rules-pdf-input').files[0]?.name || brandSettings.rulesFileName || '') : (brandSettings.rulesFileName || ''),
 updatedAt: new Date().toISOString()
 };
 try {
 await window.fb.setDoc(window.fb.doc(window.fb.db, 'settings', 'branding'), data, { merge: true });
 const chk = await window.fb.getDoc(window.fb.doc(window.fb.db, 'settings', 'branding'));
 const stored = chk.exists() ? chk.data() : {};
-pendingLogoUrl = null; pendingBgUrl = null; pendingRulesText = null;
+pendingLogoUrl = null; pendingBgUrl = null; pendingRulesText = null; pendingRulesSource = null;
 applyBrandSettings(stored);
 loadBrandingIntoForm();
-alert(`✓ Branding saved & verified!\nLogo: ${stored.logoUrl ? 'saved ✓' : 'NONE'}\nBackground: ${stored.bgUrl ? 'saved ✓' : 'NONE'}\n\nThey now appear on login, employee, admin and guest screens.`);
+alert(`✓ Branding saved & verified!\nLogo: ${stored.logoUrl ? 'saved ✓' : 'NONE'}\nBackground: ${stored.bgUrl ? 'saved ✓' : 'NONE'}\nRules PDF: ${stored.rulesPdfSource ? 'saved ✓' : 'NONE'}`);
 } catch (e) {
 console.error(e);
 let msg = 'Error: ' + e.message;
@@ -1340,6 +1452,7 @@ document.getElementById('emp-role-badge').textContent = empData.isMOD ? 'MOD' : 
 document.getElementById('current-room-display').textContent = empData.room || 'Not assigned';
 document.getElementById('card-mod').style.display = empData.isMOD ? '' : 'none';
 document.getElementById('card-changeroom').style.display = empData.roomChangeEnabled ? '' : 'none';
+document.getElementById('card-checkout').style.display = empData.checkoutEnabled ? '' : 'none';
 initAllSignaturePads();
 prefillCheckInForm(empData);
 loadMODRoomDropdown();
@@ -1457,7 +1570,6 @@ btn.disabled = false;
 setTimeout(() => { registering = false; }, 800);
 }
 }
-// Casual / third-party self registration → admin approval
 async function submitCasualRegistration() {
 const name = document.getElementById('cas-name').value.trim();
 const dept = document.getElementById('cas-dept').value;
@@ -1487,7 +1599,7 @@ code: 'CAS-' + String(Date.now()).slice(-6),
 designation: '', gender: '', employmentType: 'Casual', empStatus: 'active',
 companyName: '', room: '', block: '',
 approvalStatus: 'pending', registered: true, loginEnabled: false,
-status: 'pending', isMOD: false, roomChangeEnabled: false,
+status: 'pending', isMOD: false, roomChangeEnabled: false, checkoutEnabled: false,
 createdAt: new Date().toISOString()
 });
 await window.fb.signOut(window.fb.auth);
@@ -1519,11 +1631,12 @@ setTimeout(() => closeForgotPassword(), 3000);
 }
 // ===== EMPLOYEE NAV =====
 function showEmpSection(section) {
-['checkin','checkout','mod','changeroom'].forEach(s => document.getElementById('emp-' + s).classList.add('hidden'));
+['checkin','checkout','mod','changeroom','rules'].forEach(s => document.getElementById('emp-' + s).classList.add('hidden'));
 document.getElementById('emp-' + section).classList.remove('hidden');
 if (section === 'checkin') { initAllSignaturePads(); renderAmenitiesTable(); renderRulesDisplays(); }
 if (section === 'checkout') { setTimeout(() => { initSignaturePad('co'); renderCheckoutChecklist(); }, 100); }
 if (section === 'mod') { setTimeout(() => { initSignaturePad('mod-ci'); initSignaturePad('mod-co'); loadMODAssignment(); }, 100); }
+if (section === 'rules') { renderEmpRules(); }
 }
 function prefillCheckInForm(emp) {
 const form = document.getElementById('checkin-form');
@@ -1533,8 +1646,6 @@ fillDeptSelect(document.getElementById('checkin-dept'), emp.dept || '');
 form.designation.value = emp.designation || '';
 form.email.value = emp.email || '';
 form.gender.value = emp.gender || 'Male';
-const missing = !emp.mobile || !emp.dob || !emp.govt_id;
-document.getElementById('missing-data-alert').classList.toggle('hidden', !missing);
 }
 // ===== MULTI-STEP =====
 function goToStep(step) {
@@ -1922,7 +2033,8 @@ await window.fb.addDoc(window.fb.collection(window.fb.db, 'employees'), {
 name, code: 'EMP' + String(Date.now()).slice(-6) + i, dept, designation, room: roomNo,
 block: room ? room.block : '', gender: 'Male', email: '', uid: '',
 employmentType: (empType || '').trim(), empStatus: 'active', companyName: '',
-status: 'pending', isMOD: false, roomChangeEnabled: false, loginEnabled: false, registered: false, approvalStatus: 'approved',
+status: 'pending', isMOD: false, roomChangeEnabled: false, checkoutEnabled: false,
+loginEnabled: false, registered: false, approvalStatus: 'approved',
 createdAt: new Date().toISOString()
 });
 count++;
@@ -2007,36 +2119,46 @@ el.innerHTML = `<span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full te
 <span class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">Unassigned: ${roomsData.length - male - female}</span>`;
 }
 function refreshSectionUI() { populateSectionDropdowns(); renderSecChecklist(); }
-// ===== INVENTORY (MULTI-ROOM + TEMPLATES) =====
+// ===== INVENTORY (MULTI-BLOCK + TEMPLATES) =====
 function populateInventoryDropdowns() {
-const bSel = document.getElementById('inv-block');
-if (!bSel) return;
+renderInvBlockChecklist();
+renderInvCabinOptions();
+renderInvRoomChecklist();
+}
+function renderInvBlockChecklist() {
+const el = document.getElementById('inv-block-checklist');
+if (!el) return;
 const blocks = [...new Set(roomsData.map(r => r.block))].filter(Boolean).sort(natCompare);
-const curB = bSel.value;
-bSel.innerHTML = '<option value="">-- Block --</option>' + blocks.map(b => `<option value="${b}">${b}</option>`).join('');
-if (curB && blocks.includes(curB)) bSel.value = curB;
+el.innerHTML = blocks.map(b => `<label class="flex items-center gap-2 text-xs bg-white border rounded px-3 py-1 cursor-pointer ${invSelectedBlocks.includes(b) ? 'border-blue-400 bg-blue-50' : ''}"><input type="checkbox" class="w-4 h-4" ${invSelectedBlocks.includes(b) ? 'checked' : ''} onchange="toggleInvBlock('${b}', this.checked)"> <strong>${b}</strong></label>`).join('') || '<span class="text-xs text-gray-500 italic">No blocks yet</span>';
+}
+function toggleInvBlock(b, on) {
+if (on && !invSelectedBlocks.includes(b)) invSelectedBlocks.push(b);
+if (!on) invSelectedBlocks = invSelectedBlocks.filter(x => x !== b);
+renderInvBlockChecklist();
+renderInvCabinOptions();
+renderInvRoomChecklist();
+}
+function renderInvCabinOptions() {
+const sel = document.getElementById('inv-cabin');
+if (!sel) return;
+const cabins = [...new Set(roomsData.filter(r => invSelectedBlocks.includes(r.block)).map(r => r.cabin))].filter(Boolean).sort(natCompare);
+const cur = sel.value;
+sel.innerHTML = '<option value="">-- Cabin (all if empty) --</option>' + cabins.map(c => `<option value="${c}">${c}</option>`).join('');
+if (cur && cabins.includes(cur)) sel.value = cur;
 }
 function invListedRooms() {
-const b = document.getElementById('inv-block').value;
+if (!invSelectedBlocks.length) return [];
 const c = document.getElementById('inv-cabin').value;
 const t = (document.getElementById('inv-type-filter')?.value || '').toLowerCase();
-let rooms = roomsData.filter(r => r.block === b && (!c || r.cabin === c));
+let rooms = roomsData.filter(r => invSelectedBlocks.includes(r.block) && (!c || r.cabin === c));
 if (t) rooms = rooms.filter(r => (r.type || '').toLowerCase() === t);
 return sortRooms(rooms);
 }
-function onInvBlockChange() {
-const b = document.getElementById('inv-block').value;
-const cabins = [...new Set(roomsData.filter(r => r.block === b).map(r => r.cabin))].filter(Boolean).sort(natCompare);
-document.getElementById('inv-cabin').innerHTML = '<option value="">-- Cabin (all if empty) --</option>' + cabins.map(c => `<option value="${c}">${c}</option>`).join('');
-invSelectedRooms = [];
-renderInvRoomChecklist();
-}
-function onInvCabinChange() { invSelectedRooms = []; renderInvRoomChecklist(); }
 function renderInvRoomChecklist() {
 const el = document.getElementById('inv-room-checklist');
 if (!el) return;
 const rooms = invListedRooms();
-el.innerHTML = rooms.map(r => `<label class="flex items-center gap-2 text-xs bg-gray-50 border rounded px-2 py-1 cursor-pointer"><input type="checkbox" class="w-4 h-4" ${invSelectedRooms.includes(r.number) ? 'checked' : ''} onchange="toggleInvRoom('${r.number}', this.checked)"> ${r.number} <span class="text-gray-400">(${r.type})</span></label>`).join('') || '<p class="text-xs text-gray-500 italic">Select a block first</p>';
+el.innerHTML = rooms.map(r => `<label class="flex items-center gap-2 text-xs bg-gray-50 border rounded px-2 py-1 cursor-pointer"><input type="checkbox" class="w-4 h-4" ${invSelectedRooms.includes(r.number) ? 'checked' : ''} onchange="toggleInvRoom('${r.number}', this.checked)"> ${r.number} <span class="text-gray-400">(${r.type})</span></label>`).join('') || '<p class="text-xs text-gray-500 italic">Select block(s) first</p>';
 renderInvChips();
 }
 function toggleInvRoom(num, on) {
@@ -2053,7 +2175,7 @@ renderInvRoomChecklist();
 function renderInvChips() {
 const el = document.getElementById('inv-selected-chips');
 if (!el) return;
-el.innerHTML = invSelectedRooms.map(n => `<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold flex items-center gap-1">${n}<button onclick="toggleInvRoom('${n}', false);renderInvRoomChecklist();" class="text-blue-700 font-bold">×</button></span>`).join('') || '<span class="text-xs text-gray-500 italic">No rooms selected — pick rooms above</span>';
+el.innerHTML = invSelectedRooms.map(n => `<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold flex items-center gap-1">${n}<button onclick="toggleInvRoom('${n}', false)" class="text-blue-700 font-bold">×</button></span>`).join('') || '<span class="text-xs text-gray-500 italic">No rooms selected — pick rooms above</span>';
 }
 function addInvRow(item) {
 invEditList.push(item || { name: '', qty: 1, available: true, remarks: '' });
@@ -2118,14 +2240,13 @@ alert(`✓ Template saved for ${t === 'single' ? 'SINGLE' : 'SHARING'} rooms.`);
 }
 async function applyInvToAllOfType() {
 const t = document.getElementById('inv-template-type').value;
-const b = document.getElementById('inv-block').value;
-if (!b) { alert('Select a block first (section 1)'); return; }
+if (!invSelectedBlocks.length) { alert('Select at least one block first (section 1)'); return; }
 const c = document.getElementById('inv-cabin').value;
 const clean = cleanInvList();
 if (!clean.length) { alert('Add items to the list first'); return; }
-const targets = roomsData.filter(r => r.block === b && (!c || r.cabin === c) && (r.type || '').toLowerCase() === t);
-if (!targets.length) { alert(`No ${t} rooms found in this block/cabin.`); return; }
-if (!confirm(`Apply the current list to ALL ${targets.length} ${t} room(s) in block ${b}${c ? ' / cabin ' + c : ''}?`)) return;
+const targets = roomsData.filter(r => invSelectedBlocks.includes(r.block) && (!c || r.cabin === c) && (r.type || '').toLowerCase() === t);
+if (!targets.length) { alert(`No ${t} rooms found in the selected block(s).`); return; }
+if (!confirm(`Apply the current list to ALL ${targets.length} ${t} room(s) in the selected block(s)?`)) return;
 let ok = 0;
 try {
 for (const r of targets) {
@@ -2180,7 +2301,6 @@ document.getElementById('tab-' + section).classList.add('tab-active');
 document.getElementById('tab-' + section).classList.remove('text-gray-500');
 if (section === 'inventory') {
 populateInventoryDropdowns();
-renderInvRoomChecklist();
 loadInvTemplatesFromDb();
 if (!invEditList.length) { addInvRow(); addInvRow(); addInvRow(); } else renderInvTable();
 }
@@ -2230,6 +2350,7 @@ return alerts;
 function renderAlerts() {
 const alerts = computeAlerts();
 const summary = document.getElementById('alert-summary');
+if (!summary) return;
 const counts = {};
 alerts.forEach(a => { counts[a.level] = (counts[a.level] || 0) + 1; });
 summary.innerHTML = Object.keys(counts).map(k => `<span class="px-3 py-1 bg-white border rounded-full text-xs font-semibold">${k}: ${counts[k]}</span>`).join('') || '<span class="text-xs text-green-600 font-semibold">✓ No alerts — everything looks good</span>';
@@ -2313,8 +2434,8 @@ document.getElementById('rep-count').textContent = `${lastReportRows.length} rec
 const prev = document.getElementById('rep-preview');
 if (!lastReportRows.length) { prev.innerHTML = '<p class="p-4 text-center text-gray-500 italic">No records match the filters.</p>'; return; }
 const cols = Object.keys(lastReportRows[0]);
-prev.innerHTML = `<table class="w-full text-xs"><thead class="bg-gray-100 sticky top-0"><tr>${cols.map(c => `<th class="p-2 text-left">${c}</th>`).join('')}</tr></thead><tbody>` +
-lastReportRows.slice(0, 50).map(r => `<tr class="border-b">${cols.map(c => `<td class="p-2">${String(r[c] ?? '')}</td>`).join('')}</tr>`).join('') +
+prev.innerHTML = `<table class="w-full text-xs"><thead class="bg-gray-100 sticky top-0"><tr>${cols.map(c => `<th class="p-2 text-left">${escapeHtml(c)}</th>`).join('')}</tr></thead><tbody>` +
+lastReportRows.slice(0, 50).map(r => `<tr class="border-b">${cols.map(c => `<td class="p-2">${escapeHtml(String(r[c] ?? ''))}</td>`).join('')}</tr>`).join('') +
 `</tbody></table>` + (lastReportRows.length > 50 ? `<p class="p-2 text-xs text-gray-500">Showing first 50 of ${lastReportRows.length} rows — export to see all.</p>` : '');
 }
 function exportReportExcel() {
@@ -2415,6 +2536,7 @@ document.getElementById('admin-room-select').innerHTML = '<option value="">-- Se
 fillDeptSelect(document.getElementById('admin-create-dept'), '');
 document.getElementById('admin-is-mod').checked = false;
 document.getElementById('admin-room-change').checked = false;
+document.getElementById('admin-checkout-enabled').checked = false;
 }
 function closeAdminCreateProfile() { document.getElementById('admin-create-profile-modal').classList.remove('show'); document.getElementById('admin-create-form').reset(); }
 async function saveAdminProfile() {
@@ -2429,7 +2551,9 @@ designation: data.designation || '', gender: data.gender || 'Male',
 employmentType: data.employmentType || '', empStatus: 'active', companyName: '',
 email: '', uid: '', room: roomNo, block: room ? room.block : '',
 status: 'pending', isMOD: document.getElementById('admin-is-mod').checked,
-roomChangeEnabled: document.getElementById('admin-room-change').checked, approvalStatus: 'approved',
+roomChangeEnabled: document.getElementById('admin-room-change').checked,
+checkoutEnabled: document.getElementById('admin-checkout-enabled').checked,
+approvalStatus: 'approved',
 loginEnabled: true, registered: false, createdAt: new Date().toISOString()
 });
 closeAdminCreateProfile();
@@ -2454,6 +2578,7 @@ document.getElementById('edit-approval').value = emp.approvalStatus || 'approved
 document.getElementById('edit-is-mod').checked = !!emp.isMOD;
 document.getElementById('edit-login-enabled').checked = emp.loginEnabled !== false;
 document.getElementById('edit-room-change').checked = !!emp.roomChangeEnabled;
+document.getElementById('edit-checkout-enabled').checked = !!emp.checkoutEnabled;
 document.getElementById('edit-uid-info').textContent = emp.uid || '(not linked to any login)';
 document.getElementById('edit-clear-uid').checked = false;
 document.getElementById('edit-emp-modal').classList.add('show');
@@ -2479,6 +2604,7 @@ companyName: document.getElementById('edit-company').value.trim(),
 approvalStatus: approval,
 isMOD: document.getElementById('edit-is-mod').checked,
 roomChangeEnabled: document.getElementById('edit-room-change').checked,
+checkoutEnabled: document.getElementById('edit-checkout-enabled').checked,
 loginEnabled: approval === 'pending' ? false : document.getElementById('edit-login-enabled').checked
 };
 if (document.getElementById('edit-clear-uid').checked) { updates.uid = ''; updates.registered = false; }
@@ -2576,7 +2702,7 @@ name, code: data.code || '', dept: data.dept || '', designation: data.designatio
 gender: data.gender || 'Male', employmentType: data.employmentType || '', empStatus: 'active', companyName: '',
 email: '', uid: '', room: allocateTargetRoom,
 block: allocateTargetRoom ? allocateTargetRoom.split('-')[0] : '',
-status: 'active', isMOD: document.getElementById('alloc-is-mod').checked, roomChangeEnabled: false, approvalStatus: 'approved',
+status: 'active', isMOD: document.getElementById('alloc-is-mod').checked, roomChangeEnabled: false, checkoutEnabled: false, approvalStatus: 'approved',
 loginEnabled: true, registered: false, createdAt: new Date().toISOString()
 });
 await allocateToRoom(allocateTargetRoom, name, docRef.id);
