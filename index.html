@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- BUILD v2026-10-16.4 : rules-pdf-viewer + multiblock-inventory + conditional-checkout + no-missing-banner -->
+<!-- BUILD v2026-10-16.5 : rules-pdf-storage-fix + exact-pdf-view-everywhere -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -323,7 +323,6 @@ Enter your details below. Your profile will be sent to <strong>admin for approva
 <h3 class="font-bold text-lg text-gray-800">📖 Rules</h3><p class="text-sm text-gray-500 mt-1">View & download accommodation rules.</p>
 </button>
 </div>
-
 <div id="emp-checkin" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
 <div class="flex items-center gap-3 mb-4 pb-3 border-b">
 <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
@@ -419,7 +418,6 @@ I have read and agree to abide by all accommodation rules.
 </div>
 </form>
 </div>
-
 <div id="emp-checkout" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
 <div class="flex items-center gap-3 mb-4 pb-3 border-b">
 <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
@@ -453,7 +451,6 @@ I have read and agree to abide by all accommodation rules.
 </div>
 <button onclick="submitCheckOut()" class="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">Submit Check-Out</button>
 </div>
-
 <div id="emp-mod" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
 <div class="flex items-center gap-3 mb-4 pb-3 border-b">
 <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
@@ -510,14 +507,12 @@ I have read and agree to abide by all accommodation rules.
 </table>
 </div>
 </div>
-
 <div id="emp-changeroom" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
 <h3 class="text-xl font-bold mb-4">Change Room</h3>
 <p class="text-sm text-gray-600 mb-3">Current Room: <strong id="current-room-display">Not assigned</strong></p>
 <button onclick="alert('Room change process would start here. Admin must approve.')" class="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600">Start Room Change</button>
 </div>
-
-<!-- NEW: RULES VIEWER -->
+<!-- RULES VIEWER -->
 <div id="emp-rules" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
 <div class="flex items-center gap-3 mb-4 pb-3 border-b">
 <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
@@ -534,7 +529,6 @@ I have read and agree to abide by all accommodation rules.
 </div>
 </main>
 </div>
-
 <!-- ================= ADMIN DASHBOARD ================= -->
 <div id="admin-dashboard" class="hidden min-h-screen bg-gray-100">
 <nav class="bg-white shadow-sm border-b">
@@ -835,7 +829,7 @@ I have read and agree to abide by all accommodation rules.
 <div>Saved background:<br><img id="brand-bg-current" class="mt-1 h-10 object-cover rounded hidden" alt=""></div>
 <div id="brand-upload-status" class="text-xs text-gray-700"></div>
 </div>
-<div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Accommodation Rules PDF (shown page-by-page exactly as PDF + downloadable by employees)</label><input type="file" id="rules-pdf-input" accept="application/pdf" class="w-full text-sm" onchange="uploadRulesPdf(event)"><div id="rules-pdf-status" class="text-xs mt-1 text-gray-600"></div></div>
+<div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Accommodation Rules PDF (stored & shown page-by-page exactly as PDF + downloadable)</label><input type="file" id="rules-pdf-input" accept="application/pdf" class="w-full text-sm" onchange="uploadRulesPdf(event)"><div id="rules-pdf-status" class="text-xs mt-1 text-gray-600"></div></div>
 </div>
 <div class="mt-6 flex gap-3">
 <button onclick="saveBranding()" class="px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700">💾 Preview & Apply</button>
@@ -959,7 +953,6 @@ Linked login UID: <code id="edit-uid-info" class="text-gray-800"></code><br>
 </div>
 </div>
 </div>
-
 <script>
 // ===== GLOBAL STATE =====
 let roomsData = [];
@@ -1023,8 +1016,7 @@ const defaultRulesHtml = `<ol class="list-decimal pl-5 space-y-2">
 <li>Check-out must be done 24 hours in advance with admin approval.</li>
 </ol><p class="text-xs text-gray-500 mt-3 italic">(Actual rules PDF can be uploaded by admin in Branding)</p>`;
 if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
-// ===== PDF RENDER / DOWNLOAD (rules exactly as PDF) =====
+// ===== PDF RENDER / DOWNLOAD (exact PDF pages everywhere) =====
 function dataUrlToUint8(dataUrl) {
 const b64 = dataUrl.split(',')[1];
 const bin = atob(b64);
@@ -1039,7 +1031,7 @@ try {
 const param = (typeof source === 'string' && source.startsWith('data:')) ? { data: dataUrlToUint8(source) } : { url: source };
 const pdf = await pdfjsLib.getDocument(param).promise;
 container.innerHTML = '';
-const width = maxW || 900;
+const width = maxW || 1000;
 for (let p = 1; p <= pdf.numPages; p++) {
 const page = await pdf.getPage(p);
 const base = await page.getViewport({ scale: 1 });
@@ -1056,15 +1048,19 @@ console.warn('PDF render failed:', e.message);
 container.innerHTML = rulesFallbackHtml();
 }
 }
+function rulesNoticeHtml() {
+return `<div class="mb-2 p-2 bg-yellow-50 border-l-4 border-yellow-400 text-xs text-yellow-800">⚠ The rules PDF file itself is not stored yet (it was uploaded with an older version, so only extracted text is available). Admin: re-upload the rules PDF in <strong>Branding → Preview & Apply</strong> once — after that the exact PDF pages will appear here and the Download button will work.</div>`;
+}
 function rulesFallbackHtml() {
-return brandSettings.rulesText ? `<div class="rules-text">${escapeHtml(brandSettings.rulesText)}</div>` : defaultRulesHtml;
+const notice = (brandSettings.rulesFileName && !brandSettings.rulesPdfSource) ? rulesNoticeHtml() : '';
+return notice + (brandSettings.rulesText ? `<div class="rules-text">${escapeHtml(brandSettings.rulesText)}</div>` : defaultRulesHtml);
 }
 function renderRulesDisplays() {
 const src = brandSettings.rulesPdfSource;
 ['rules-display','guest-rules-box'].forEach(id => {
 const el = document.getElementById(id);
 if (!el) return;
-if (src) renderPdfPages(el, src, 900);
+if (src) renderPdfPages(el, src, 1000);
 else el.innerHTML = rulesFallbackHtml();
 });
 }
@@ -1072,14 +1068,21 @@ function renderEmpRules() {
 const el = document.getElementById('emp-rules-pages');
 if (!el) return;
 const src = brandSettings.rulesPdfSource;
-if (src) renderPdfPages(el, src, 900);
+if (src) renderPdfPages(el, src, 1000);
 else el.innerHTML = rulesFallbackHtml();
 const fn = document.getElementById('emp-rules-filename');
 if (fn) fn.textContent = brandSettings.rulesFileName ? ('File: ' + brandSettings.rulesFileName) : '';
 }
 async function downloadRulesPdf() {
 const src = brandSettings.rulesPdfSource;
-if (!src) { alert('No rules PDF has been uploaded yet.'); return; }
+if (!src) {
+if (brandSettings.rulesFileName) {
+alert('The rules PDF file itself was never stored (uploaded with an older version).\n\nADMIN FIX (one-time): Branding → re-upload "' + brandSettings.rulesFileName + '" → click "Preview & Apply".\nAfter that, the exact PDF view & this download button work everywhere.');
+} else {
+alert('No rules PDF has been uploaded yet. Admin: upload it in Branding.');
+}
+return;
+}
 try {
 const blob = await (await fetch(src)).blob();
 const url = URL.createObjectURL(blob);
@@ -1089,7 +1092,6 @@ document.body.appendChild(a); a.click(); a.remove();
 URL.revokeObjectURL(url);
 } catch (e) { alert('Download failed: ' + e.message); }
 }
-
 // ===== COLOR / BRANDING =====
 function shadeColor(hex, percent) {
 let h = String(hex).replace('#','');
@@ -1160,13 +1162,15 @@ const t=document.getElementById('brand-title-input'); if(t) t.value = brandSetti
 const d=document.getElementById('brand-desc-input'); if(d) d.value = brandSettings.description || '';
 const c=document.getElementById('brand-color-input'); if(c) c.value = brandSettings.color || '#2563eb';
 const rs=document.getElementById('rules-pdf-status');
-if(rs) rs.textContent = brandSettings.rulesFileName ? ('Current rules PDF: ' + brandSettings.rulesFileName) : 'No rules PDF saved yet.';
+if(rs) rs.textContent = brandSettings.rulesFileName
+? ('Current rules: ' + brandSettings.rulesFileName + (brandSettings.rulesPdfSource ? ' — PDF stored ✓' : ' — ⚠ PDF file NOT stored: re-upload below & Apply'))
+: 'No rules PDF saved yet.';
 const cl=document.getElementById('brand-logo-current');
 if(cl){ if(brandSettings.logoUrl){cl.src=brandSettings.logoUrl;cl.classList.remove('hidden');} else cl.classList.add('hidden'); }
 const cb=document.getElementById('brand-bg-current');
 if(cb){ if(brandSettings.bgUrl){cb.src=brandSettings.bgUrl;cb.classList.remove('hidden');} else cb.classList.add('hidden'); }
 const st=document.getElementById('brand-upload-status');
-if(st) st.innerHTML = `In database → Logo: <strong>${brandSettings.logoUrl ? '✓ saved' : '✗ empty'}</strong> | Background: <strong>${brandSettings.bgUrl ? '✓ saved' : '✗ empty'}</strong> | Rules PDF: <strong>${brandSettings.rulesPdfSource ? '✓ saved' : '✗ empty'}</strong>`;
+if(st) st.innerHTML = `In database → Logo: <strong>${brandSettings.logoUrl ? '✓ saved' : '✗ empty'}</strong> | Background: <strong>${brandSettings.bgUrl ? '✓ saved' : '✗ empty'}</strong> | Rules PDF: <strong>${brandSettings.rulesPdfSource ? '✓ stored' : '✗ not stored'}</strong>`;
 }
 function fileToCompressedDataUrl(file, maxW, quality) {
 return new Promise((res, rej) => {
@@ -1216,6 +1220,7 @@ alert('Image processing failed: ' + err.message);
 status.textContent = '';
 }
 }
+// FIXED: store the PDF file itself (Storage preferred, embedded fallback) so exact pages + download work
 async function uploadRulesPdf(event) {
 const file = event.target.files[0];
 if (!file) return;
@@ -1233,25 +1238,28 @@ text += tc.items.map(it => it.str).join(' ') + '\n';
 }
 } catch (e) { console.warn('text extraction failed:', e.message); }
 let source = '';
+let where = '';
 try {
 const b64 = await new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = rej; rd.readAsDataURL(file); });
 const path = `branding/rules-${Date.now()}.pdf`;
 const r = window.fb.ref(window.fb.storage, path);
 await window.fb.uploadString(r, b64, 'data_url');
 source = await window.fb.getDownloadURL(r);
+where = 'Firebase Storage';
 } catch (storageErr) {
 console.warn('Storage upload failed for rules PDF:', storageErr.message);
-if (file.size < 700000) {
+if (file.size < 950000) {
 source = await new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = rej; rd.readAsDataURL(file); });
+where = 'embedded in database';
 } else {
-alert('Could not upload PDF to Storage and the file is too large to embed (>700KB). Publish Storage rules or use a smaller PDF.');
+alert('Could not upload the PDF to Firebase Storage and it is too large to embed (>950KB).\n\nFix: publish the Storage rules (Firebase Console → Storage → Rules):\nmatch /branding/{file} { allow read: if true; allow write: if request.auth != null; }\n\nThen retry the upload.');
 status.textContent = '';
 return;
 }
 }
 pendingRulesText = text.trim();
 pendingRulesSource = source;
-status.textContent = `✓ Rules PDF ready (${Math.round(file.size/1024)} KB). Click "Preview & Apply" to publish.`;
+status.textContent = `✓ Rules PDF ready (${Math.round(file.size/1024)} KB, stored in ${where}). Click "Preview & Apply" to publish.`;
 } catch (err) {
 console.error(err);
 alert('PDF processing failed: ' + err.message);
@@ -1277,7 +1285,7 @@ const stored = chk.exists() ? chk.data() : {};
 pendingLogoUrl = null; pendingBgUrl = null; pendingRulesText = null; pendingRulesSource = null;
 applyBrandSettings(stored);
 loadBrandingIntoForm();
-alert(`✓ Branding saved & verified!\nLogo: ${stored.logoUrl ? 'saved ✓' : 'NONE'}\nBackground: ${stored.bgUrl ? 'saved ✓' : 'NONE'}\nRules PDF: ${stored.rulesPdfSource ? 'saved ✓' : 'NONE'}`);
+alert(`✓ Branding saved & verified!\nLogo: ${stored.logoUrl ? 'saved ✓' : 'NONE'}\nBackground: ${stored.bgUrl ? 'saved ✓' : 'NONE'}\nRules PDF: ${stored.rulesPdfSource ? 'stored ✓ (exact PDF view + download enabled)' : 'NONE'}`);
 } catch (e) {
 console.error(e);
 let msg = 'Error: ' + e.message;
@@ -1338,7 +1346,7 @@ return o;
 }
 // ===== INIT =====
 window.addEventListener('DOMContentLoaded', () => {
-console.log('%cHOST APP BUILD v2026-10-16.4', 'background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold');
+console.log('%cHOST APP BUILD v2026-10-16.5', 'background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold');
 const checkFirebase = setInterval(() => {
 if (window.fb && window.fb.onAuthStateChanged) {
 clearInterval(checkFirebase);
@@ -1448,7 +1456,6 @@ document.getElementById('employee-dashboard').classList.remove('hidden');
 document.getElementById('emp-name-display').textContent = empData.name;
 document.getElementById('emp-role-badge').textContent = empData.isMOD ? 'MOD' : (empData.employmentType === 'Casual' ? 'Casual' : 'Employee');
 document.getElementById('current-room-display').textContent = empData.room || 'Not assigned';
-// CONDITIONAL CARDS
 document.getElementById('card-mod').style.display = empData.isMOD ? '' : 'none';
 document.getElementById('card-changeroom').style.display = empData.roomChangeEnabled ? '' : 'none';
 document.getElementById('card-checkout').style.display = empData.checkoutEnabled ? '' : 'none';
