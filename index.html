@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- BUILD v2026-10-16.6 : 100% Storage-free (rules PDF + signatures embedded in Firestore / or free GitHub URL) -->
+<!-- BUILD v2026-10-16.7 : checkin-forms-center + locked-checkin + pdf-export + alerts-sync -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -323,6 +323,7 @@ Enter your details below. Your profile will be sent to <strong>admin for approva
 <h3 class="font-bold text-lg text-gray-800">📖 Rules</h3><p class="text-sm text-gray-500 mt-1">View & download accommodation rules.</p>
 </button>
 </div>
+
 <div id="emp-checkin" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
 <div class="flex items-center gap-3 mb-4 pb-3 border-b">
 <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
@@ -331,6 +332,16 @@ Enter your details below. Your profile will be sent to <strong>admin for approva
 <p class="text-sm text-gray-600 font-semibold">CHECK-IN FORM</p>
 </div>
 </div>
+<!-- VIEW-ONLY MODE (after submission) -->
+<div id="checkin-view" class="hidden">
+<div class="bg-green-50 border-l-4 border-green-500 p-3 mb-4 text-sm text-green-800"><strong>✓ Submitted & locked (view-only).</strong> For any corrections please contact admin.</div>
+<div id="checkin-view-body" class="space-y-4"></div>
+<div class="flex gap-2 mt-4 flex-wrap">
+<button onclick="downloadMyCheckInPdf()" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">⬇ Download Full Check-In PDF (details + amenities + rules + signature)</button>
+</div>
+</div>
+<!-- EDITABLE MODE -->
+<div id="checkin-edit-wrap">
 <div class="flex items-center justify-between mb-6">
 <div class="flex items-center flex-1"><div id="step-1-indicator" class="w-8 h-8 rounded-full flex items-center justify-center font-bold step-active">1</div><div class="flex-1 h-1 bg-gray-200 mx-2"><div id="step-1-bar" class="h-full bg-blue-500" style="width:0%"></div></div></div>
 <div class="flex items-center flex-1"><div id="step-2-indicator" class="w-8 h-8 rounded-full flex items-center justify-center font-bold step-pending">2</div><div class="flex-1 h-1 bg-gray-200 mx-2"><div id="step-2-bar" class="h-full bg-blue-500" style="width:0%"></div></div></div>
@@ -418,6 +429,8 @@ I have read and agree to abide by all accommodation rules.
 </div>
 </form>
 </div>
+</div>
+
 <div id="emp-checkout" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
 <div class="flex items-center gap-3 mb-4 pb-3 border-b">
 <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
@@ -451,6 +464,7 @@ I have read and agree to abide by all accommodation rules.
 </div>
 <button onclick="submitCheckOut()" class="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">Submit Check-Out</button>
 </div>
+
 <div id="emp-mod" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
 <div class="flex items-center gap-3 mb-4 pb-3 border-b">
 <img data-brand-logo class="hidden h-12 object-contain" alt="logo">
@@ -507,6 +521,7 @@ I have read and agree to abide by all accommodation rules.
 </table>
 </div>
 </div>
+
 <div id="emp-changeroom" class="hidden bg-white p-6 rounded-xl shadow-sm border fade-in">
 <h3 class="text-xl font-bold mb-4">Change Room</h3>
 <p class="text-sm text-gray-600 mb-3">Current Room: <strong id="current-room-display">Not assigned</strong></p>
@@ -529,6 +544,7 @@ I have read and agree to abide by all accommodation rules.
 </div>
 </main>
 </div>
+
 <!-- ================= ADMIN DASHBOARD ================= -->
 <div id="admin-dashboard" class="hidden min-h-screen bg-gray-100">
 <nav class="bg-white shadow-sm border-b">
@@ -555,6 +571,7 @@ I have read and agree to abide by all accommodation rules.
 <button onclick="showAdminSection('layout')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-layout">🏠 Layout</button>
 <button onclick="showAdminSection('inventory')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-inventory">📦 Inventory</button>
 <button onclick="showAdminSection('employees')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-employees">👥 Employees</button>
+<button onclick="showAdminSection('forms')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-forms">📋 Forms</button>
 <button onclick="showAdminSection('modguest')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-modguest">⭐ MOD & Guests</button>
 <button onclick="showAdminSection('alerts')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-alerts">🔔 Alerts</button>
 <button onclick="showAdminSection('reports')" class="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-500" id="tab-reports">📊 Reports</button>
@@ -716,6 +733,32 @@ I have read and agree to abide by all accommodation rules.
 <thead class="bg-gray-50 text-gray-600 uppercase text-xs"><tr><th class="p-3">Name</th><th class="p-3">Username</th><th class="p-3">Department</th><th class="p-3">Designation</th><th class="p-3">Room</th><th class="p-3">Type</th><th class="p-3">Emp Status</th><th class="p-3">Registration</th><th class="p-3">Login</th><th class="p-3"></th><th class="p-3"></th></tr></thead>
 <tbody id="emp-table-body"></tbody></table></div>
 </div>
+<!-- FORMS (CHECK-IN RECORDS) -->
+<div id="admin-forms" class="hidden fade-in">
+<h3 class="text-lg font-bold mb-4">📋 Submitted Check-In Forms</h3>
+<div class="flex gap-2 mb-3">
+<button onclick="setFormsTab('onroll')" id="formtab-onroll" class="block-tab active">Onroll</button>
+<button onclick="setFormsTab('casual')" id="formtab-casual" class="block-tab">Casual</button>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-3">
+<select id="frm-block" onchange="onFrmBlockChange()" class="px-3 py-2 border rounded text-sm"><option value="">All Blocks</option></select>
+<select id="frm-cabin" onchange="onFrmCabinChange()" class="px-3 py-2 border rounded text-sm"><option value="">All Cabins</option></select>
+<select id="frm-room" onchange="renderFormsTable()" class="px-3 py-2 border rounded text-sm"><option value="">All Rooms</option></select>
+<input id="frm-room-input" placeholder="Room no. (e.g. I-7-B)" class="px-3 py-2 border rounded text-sm" oninput="renderFormsTable()">
+<input id="frm-emp-search" placeholder="Employee name search" class="px-3 py-2 border rounded text-sm" oninput="renderFormsTable()">
+<div class="flex gap-2 flex-wrap">
+<button onclick="loadCheckIns()" class="px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">🔄</button>
+<button onclick="downloadFormsExcel()" class="px-3 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">⬇ Excel</button>
+<button onclick="downloadFormsCombined()" class="px-3 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700">⬇ PDF (filtered)</button>
+</div>
+</div>
+<div class="overflow-x-auto bg-white border rounded">
+<table class="w-full text-sm text-left">
+<thead class="bg-gray-50 text-xs uppercase text-gray-600"><tr><th class="p-2">Employee</th><th class="p-2">Type</th><th class="p-2">Room</th><th class="p-2">Check-In Date</th><th class="p-2">Submitted</th><th class="p-2">Sig</th><th class="p-2">Actions</th></tr></thead>
+<tbody id="forms-body"><tr><td colspan="7" class="p-4 text-center text-gray-500 italic">No forms loaded</td></tr></tbody>
+</table>
+</div>
+</div>
 <!-- MOD & GUESTS -->
 <div id="admin-modguest" class="hidden fade-in">
 <h3 class="text-lg font-bold mb-4">⭐ MOD & Guest Management</h3>
@@ -763,8 +806,8 @@ I have read and agree to abide by all accommodation rules.
 <div id="alert-summary" class="flex flex-wrap gap-2 mb-3"></div>
 <div class="overflow-x-auto bg-white border rounded">
 <table class="w-full text-sm text-left">
-<thead class="bg-gray-50 text-gray-600 uppercase text-xs"><tr><th class="p-2">Level</th><th class="p-2">Alert</th><th class="p-2">Employee / Room</th><th class="p-2">Department</th><th class="p-2">Govt ID No.</th><th class="p-2">Expiry Date</th><th class="p-2">Room</th><th class="p-2">Detail</th></tr></thead>
-<tbody id="alerts-body"><tr><td colspan="8" class="p-4 text-center text-gray-500 italic">No alerts</td></tr></tbody>
+<thead class="bg-gray-50 text-gray-600 uppercase text-xs"><tr><th class="p-2">Level</th><th class="p-2">Alert</th><th class="p-2">Employee / Room</th><th class="p-2">Department</th><th class="p-2">Govt ID No.</th><th class="p-2">Expiry Date</th><th class="p-2">Room</th><th class="p-2">Detail</th><th class="p-2">Action</th></tr></thead>
+<tbody id="alerts-body"><tr><td colspan="9" class="p-4 text-center text-gray-500 italic">No alerts</td></tr></tbody>
 </table>
 </div>
 </div>
@@ -893,6 +936,14 @@ I have read and agree to abide by all accommodation rules.
 <div><label class="block text-sm font-medium mb-1">Gender</label><select name="gender" id="edit-gender" class="w-full px-3 py-2 border rounded"><option>Male</option><option>Female</option><option>Other</option></select></div>
 <div><label class="block text-sm font-medium mb-1">Employment Type</label><select name="employmentType" id="edit-type" class="w-full px-3 py-2 border rounded"><option value="">--</option><option>Onroll</option><option>Casual</option></select></div>
 <div><label class="block text-sm font-medium mb-1">Employee Status</label><select name="empStatus" id="edit-status" class="w-full px-3 py-2 border rounded"><option value="active">Active</option><option value="resigned">Resigned</option></select></div>
+<div><label class="block text-sm font-medium mb-1">Govt ID Number</label><input type="text" id="edit-govtid" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">ID Expiry Date</label><input type="date" id="edit-idexpiry" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Date of Birth</label><input type="date" id="edit-dob" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Mobile Number</label><input type="tel" id="edit-mobile" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Country</label><input type="text" id="edit-country" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Date of Joining</label><input type="date" id="edit-doj" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Emergency Contact Name</label><input type="text" id="edit-emergname" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Emergency Contact Number</label><input type="tel" id="edit-emergnum" class="w-full px-3 py-2 border rounded"></div>
 <div><label class="block text-sm font-medium mb-1">Company Name <span class="text-xs text-gray-500">(casual / third-party)</span></label><input type="text" id="edit-company" class="w-full px-3 py-2 border rounded"></div>
 <div><label class="block text-sm font-medium mb-1">Approval</label><select id="edit-approval" class="w-full px-3 py-2 border rounded"><option value="approved">Approved</option><option value="pending">Pending Approval</option></select></div>
 <div class="flex items-center gap-2"><input type="checkbox" id="edit-is-mod" class="w-4 h-4"><label for="edit-is-mod" class="text-sm">MOD employee</label></div>
@@ -907,6 +958,50 @@ Linked login UID: <code id="edit-uid-info" class="text-gray-800"></code><br>
 <div class="flex justify-end gap-3 mt-6">
 <button onclick="closeEditEmpModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Cancel</button>
 <button onclick="saveEditEmp()" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold">Save Changes</button>
+</div>
+</div>
+</div>
+</div>
+<!-- ================= CHECK-IN VIEW MODAL (ADMIN) ================= -->
+<div id="checkin-view-modal" class="modal">
+<div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+<div class="p-6 border-b flex justify-between items-center sticky top-0 bg-white">
+<h3 class="text-xl font-bold">Check-In Form — <span id="ckv-name" class="text-blue-700"></span></h3>
+<button onclick="document.getElementById('checkin-view-modal').classList.remove('show')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+</div>
+<div class="p-6" id="checkin-admin-view-body"></div>
+</div>
+</div>
+<!-- ================= CHECK-IN EDIT MODAL (ADMIN) ================= -->
+<div id="checkin-edit-modal" class="modal">
+<div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+<div class="p-6 border-b flex justify-between items-center sticky top-0 bg-white">
+<h3 class="text-xl font-bold">Edit Check-In — <span id="cke-name" class="text-blue-700"></span></h3>
+<button onclick="document.getElementById('checkin-edit-modal').classList.remove('show')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+</div>
+<div class="p-6">
+<form id="checkin-edit-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div><label class="block text-sm font-medium mb-1">Check-In Date</label><input type="date" id="cke-date" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Date of Joining</label><input type="date" id="cke-doj" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Govt ID Number</label><input type="text" id="cke-govtid" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">ID Expiry Date</label><input type="date" id="cke-idexpiry" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Gender</label><select id="cke-gender" class="w-full px-3 py-2 border rounded"><option>Male</option><option>Female</option><option>Other</option></select></div>
+<div><label class="block text-sm font-medium mb-1">Country</label><input type="text" id="cke-country" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Date of Birth</label><input type="date" id="cke-dob" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Mobile Number</label><input type="tel" id="cke-mobile" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Emergency Contact Name</label><input type="text" id="cke-emergname" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Emergency Contact Number</label><input type="tel" id="cke-emergnum" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Department</label><input type="text" id="cke-dept" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Designation</label><input type="text" id="cke-designation" class="w-full px-3 py-2 border rounded"></div>
+</form>
+<h4 class="font-semibold mt-4 mb-2">Amenities Checklist</h4>
+<div class="overflow-x-auto"><table class="w-full text-sm border">
+<thead class="bg-gray-100"><tr><th class="p-2 border w-12">#</th><th class="p-2 border text-left">Amenity</th><th class="p-2 border w-24">Present</th><th class="p-2 border text-left">Remarks</th></tr></thead>
+<tbody id="cke-amenities"></tbody>
+</table></div>
+<div class="flex justify-end gap-3 mt-6">
+<button onclick="document.getElementById('checkin-edit-modal').classList.remove('show')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Cancel</button>
+<button onclick="saveCheckInEdit()" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold">Save Changes</button>
 </div>
 </div>
 </div>
@@ -958,11 +1053,16 @@ Linked login UID: <code id="edit-uid-info" class="text-gray-800"></code><br>
 </div>
 </div>
 </div>
+
 <script>
 // ===== GLOBAL STATE =====
 let roomsData = [];
 let employeesData = [];
 let guestsData = [];
+let checkinsData = [];
+let myCheckIn = null;
+let editingCheckInId = null;
+let formsTab = 'onroll';
 let currentBlock = 'ALL';
 let currentUser = null;
 let regSearchEmpId = null;
@@ -979,8 +1079,8 @@ let checkoutEditable = false;
 let pendingLogoUrl = null;
 let pendingBgUrl = null;
 let pendingRulesText = null;
-let pendingRulesData = null;   // base64 dataURL to store in Firestore (FREE)
-let pendingRulesUrl = null;    // external free URL (e.g., GitHub Pages)
+let pendingRulesData = null;
+let pendingRulesUrl = null;
 let currentLoginTab = 'employee';
 let currentModalRoom = null;
 let allocateTargetRoom = null;
@@ -992,6 +1092,18 @@ let lastReportRows = [];
 let layoutFilters = { single:false, sharing:false, occupied:false, vacant:false, male:false, female:false, onroll:false, casual:false };
 const amenitiesList = ["Single Bed", "Mattress", "Pillow", "Blanket", "Wardrobe", "Study Table", "Chair", "AC", "Fan", "Light", "Mirror", "Curtains"];
 const departmentList = ["IT","Front Office","Kitchen","F&B Service","Spa","Stewarding","Finance","Engineering","Landscaping","Security","Sales and Marketing","Human Resources","Housekeeping & Laundry","Executive Office","Reservations","Purchasing","Sustainability","Pest Control"];
+const defaultRulesPlain = [
+'1. Rooms are allocated as per company policy based on designation and availability.',
+'2. Maintain cleanliness and hygiene in your room and common areas.',
+'3. Do not damage room inventory. Any damage will be charged to the employee.',
+'4. Visitors are not allowed in accommodation premises after 8:00 PM.',
+'5. No smoking or alcohol consumption inside the accommodation.',
+'6. Report any maintenance issues to admin immediately.',
+'7. No cooking inside rooms; use designated kitchen areas only.',
+'8. Keep noise to a minimum, especially between 10 PM and 6 AM.',
+'9. Company reserves the right to inspect rooms at any time.',
+'10. Check-out must be done 24 hours in advance with admin approval.'
+];
 function fillDeptSelect(sel, selected) {
 if (!sel) return;
 const opts = [...departmentList];
@@ -1022,7 +1134,7 @@ const defaultRulesHtml = `<ol class="list-decimal pl-5 space-y-2">
 <li>Check-out must be done 24 hours in advance with admin approval.</li>
 </ol><p class="text-xs text-gray-500 mt-3 italic">(Actual rules PDF can be uploaded by admin in Branding)</p>`;
 if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-// ===== PDF RENDER / DOWNLOAD (exact PDF pages, Storage-free) =====
+// ===== PDF RENDER / DOWNLOAD (rules) =====
 function dataUrlToUint8(dataUrl) {
 const b64 = dataUrl.split(',')[1];
 const bin = atob(b64);
@@ -1030,7 +1142,6 @@ const u = new Uint8Array(bin.length);
 for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
 return u;
 }
-// Resolve where the rules PDF lives: 'db:rulesPdf' → Firestore doc, else URL/dataURL string
 async function resolveRulesSource() {
 const src = brandSettings.rulesPdfSource || '';
 if (!src) return '';
@@ -1110,6 +1221,66 @@ document.body.appendChild(a); a.click(); a.remove();
 URL.revokeObjectURL(url);
 } catch (e) { alert('Download failed: ' + e.message); }
 }
+// ===== CHECK-IN PDF BUILDER (details + amenities + rules + signature on each page) =====
+function writeCheckInPages(doc, ci, first) {
+const emp = employeesData.find(e => e.id === ci.employeeId) || {};
+const roomNo = ci.roomNo || emp.room || '';
+const logo = (brandSettings.logoUrl || '').startsWith('data:') ? brandSettings.logoUrl : null;
+const sig = (ci.signatureUrl || '').startsWith('data:') ? ci.signatureUrl : null;
+const addSig = (y) => {
+if (sig) { try { doc.addImage(sig, 'PNG', 140, y, 55, 20); } catch (e) {} }
+doc.setFontSize(8);
+doc.text('Employee Signature' + (ci.typedSignature && ci.typedSignature !== '[Drawn]' ? ' (typed: ' + ci.typedSignature + ')' : ''), 140, y + 23);
+};
+if (!first) doc.addPage();
+// PAGE 1 — details
+let y = 12;
+if (logo) { try { doc.addImage(logo, 'JPEG', 14, 10, 24, 24); } catch (e) {} }
+doc.setFontSize(14); doc.setFont(undefined, 'bold');
+doc.text((brandSettings.title || 'Host Accommodation') + ' — CHECK-IN FORM', 44, y + 6);
+doc.setFont(undefined, 'normal'); doc.setFontSize(9);
+doc.text('Submitted: ' + String(ci.timestamp || '').slice(0, 16).replace('T', ' '), 44, y + 12);
+doc.autoTable({ startY: y + 16, theme: 'grid', styles: { fontSize: 9 }, body: [
+['Full Name', ci.name || emp.name || ''], ['Employee Code', ci.code || emp.code || ''],
+['Department', ci.dept || ''], ['Designation', ci.designation || ''],
+['Room No.', roomNo], ['Date of Joining', ci.doj || ''],
+['Check-In Date', ci.checkin_date || ''], ['Govt ID Number', ci.govt_id || ''],
+['ID Expiry Date', ci.id_expiry || ''], ['Gender', ci.gender || ''],
+['Country', ci.country || ''], ['Date of Birth', ci.dob || ''],
+['Mobile Number', ci.mobile || ''], ['Email ID', ci.email || ''],
+['Emergency Contact', (ci.emerg_name || '') + ' / ' + (ci.emerg_num || '')]
+], columnStyles: { 0: { fontStyle: 'bold', cellWidth: 45 } } });
+addSig(doc.lastAutoTable.finalY + 6);
+// PAGE 2 — amenities
+doc.addPage();
+doc.setFontSize(13); doc.setFont(undefined, 'bold');
+doc.text('Room Amenities Checklist (Inventory) — Room ' + roomNo, 14, 14);
+doc.setFont(undefined, 'normal'); doc.setFontSize(8);
+doc.text('I hereby agree that I have taken charge of the following items in working and fit condition.', 14, 20);
+doc.autoTable({ startY: 24, theme: 'grid', styles: { fontSize: 8 }, head: [['#', 'Amenity', 'Present', 'Remarks']],
+body: (ci.checklist || []).map((it, i) => [i + 1, it.name, it.present ? 'Yes' : 'No', it.remarks || '']) });
+addSig(doc.lastAutoTable.finalY + 6);
+// PAGE 3+ — rules
+doc.addPage();
+doc.setFontSize(13); doc.setFont(undefined, 'bold');
+doc.text('Accommodation Rules', 14, 14);
+doc.setFont(undefined, 'normal');
+const rulesText = brandSettings.rulesText || defaultRulesPlain.join('\n');
+const lines = doc.splitTextToSize(rulesText, 180);
+doc.setFontSize(8);
+let ry = 22; const pageH = 278;
+for (const ln of lines) {
+if (ry > pageH - 30) { addSig(pageH - 26); doc.addPage(); ry = 16; }
+doc.text(ln, 14, ry); ry += 4.2;
+}
+addSig(Math.min(ry + 4, pageH - 26));
+}
+function downloadCheckInPdf(ci) {
+const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+writeCheckInPages(doc, ci, true);
+doc.save(`checkin-${(ci.employeeName || 'form').replace(/\s+/g, '_')}-${(ci.checkin_date || '').slice(0, 10)}.pdf`);
+}
+function downloadMyCheckInPdf() { if (myCheckIn) downloadCheckInPdf(myCheckIn); else alert('No submitted check-in found.'); }
 // ===== COLOR / BRANDING =====
 function shadeColor(hex, percent) {
 let h = String(hex).replace('#','');
@@ -1238,7 +1409,6 @@ alert('Image processing failed: ' + err.message);
 status.textContent = '';
 }
 }
-// FREE rules PDF: embed into Firestore doc settings/rulesPdf (no Storage, no subscription)
 async function uploadRulesPdf(event) {
 const file = event.target.files[0];
 if (!file) return;
@@ -1358,7 +1528,7 @@ return o;
 }
 // ===== INIT =====
 window.addEventListener('DOMContentLoaded', () => {
-console.log('%cHOST APP BUILD v2026-10-16.6 (Storage-free)', 'background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold');
+console.log('%cHOST APP BUILD v2026-10-16.7', 'background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold');
 const checkFirebase = setInterval(() => {
 if (window.fb && window.fb.onAuthStateChanged) {
 clearInterval(checkFirebase);
@@ -1427,6 +1597,16 @@ else if (error.code === 'auth/invalid-email') msg = 'Invalid email format.';
 errDiv.textContent = msg; errDiv.classList.remove('hidden');
 } finally { btn.innerHTML = 'Sign In'; btn.disabled = false; }
 }
+async function loadMyCheckIn() {
+if (!currentUser || currentUser.role !== 'employee') return;
+try {
+const q = window.fb.query(window.fb.collection(window.fb.db, 'checkins'), window.fb.where('employeeId', '==', currentUser.id));
+const snap = await window.fb.getDocs(q);
+const arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+arr.sort((a, b) => String(a.timestamp || '').localeCompare(String(b.timestamp || '')));
+myCheckIn = arr.length ? arr[arr.length - 1] : null;
+} catch (e) { console.warn('myCheckIn load:', e.message); myCheckIn = null; }
+}
 async function loadUserProfile(user) {
 try {
 if (user.email === 'admin@company.com') {
@@ -1471,6 +1651,7 @@ document.getElementById('current-room-display').textContent = empData.room || 'N
 document.getElementById('card-mod').style.display = empData.isMOD ? '' : 'none';
 document.getElementById('card-changeroom').style.display = empData.roomChangeEnabled ? '' : 'none';
 document.getElementById('card-checkout').style.display = empData.checkoutEnabled ? '' : 'none';
+await loadMyCheckIn();
 initAllSignaturePads();
 prefillCheckInForm(empData);
 loadMODRoomDropdown();
@@ -1479,7 +1660,7 @@ startRealtimeListeners();
 }
 async function logout() {
 try { await window.fb.signOut(window.fb.auth); } catch(e) {}
-currentUser = null;
+currentUser = null; myCheckIn = null;
 document.getElementById('employee-dashboard').classList.add('hidden');
 document.getElementById('admin-dashboard').classList.add('hidden');
 document.getElementById('login-screen').classList.remove('hidden');
@@ -1626,8 +1807,8 @@ alert('✓ Submitted for admin approval!\nYou will be able to login once an admi
 } catch (error) {
 let msg = 'Registration failed.';
 if (error.code === 'auth/weak-password') msg = 'Password too weak.';
-if (error.code === 'permission-denied') msg = 'Permission denied. Publish the Firestore Rules first.';
-else if (msg === 'Registration failed.') msg = error.message;
+else if (error.code === 'permission-denied') msg = 'Permission denied. Publish the Firestore Rules first.';
+else msg = error.message;
 alert(msg);
 try { await window.fb.signOut(window.fb.auth); } catch(e) {}
 } finally {
@@ -1651,10 +1832,33 @@ setTimeout(() => closeForgotPassword(), 3000);
 function showEmpSection(section) {
 ['checkin','checkout','mod','changeroom','rules'].forEach(s => document.getElementById('emp-' + s).classList.add('hidden'));
 document.getElementById('emp-' + section).classList.remove('hidden');
-if (section === 'checkin') { initAllSignaturePads(); renderAmenitiesTable(); renderRulesDisplays(); }
+if (section === 'checkin') { initAllSignaturePads(); renderCheckInMode(); renderRulesDisplays(); }
 if (section === 'checkout') { setTimeout(() => { initSignaturePad('co'); renderCheckoutChecklist(); }, 100); }
 if (section === 'mod') { setTimeout(() => { initSignaturePad('mod-ci'); initSignaturePad('mod-co'); loadMODAssignment(); }, 100); }
 if (section === 'rules') { renderEmpRules(); }
+}
+function renderCheckInMode() {
+const view = document.getElementById('checkin-view');
+const edit = document.getElementById('checkin-edit-wrap');
+if (!view || !edit) return;
+if (myCheckIn) { view.classList.remove('hidden'); edit.classList.add('hidden'); renderCheckInView(); }
+else { view.classList.add('hidden'); edit.classList.remove('hidden'); }
+}
+function renderCheckInView() {
+const ci = myCheckIn; const body = document.getElementById('checkin-view-body');
+if (!body || !ci) return;
+const rows = [['Full Name', ci.name], ['Employee Code', ci.code], ['Department', ci.dept], ['Designation', ci.designation],
+['Room No.', ci.roomNo || (currentUser && currentUser.room)], ['Check-In Date', ci.checkin_date], ['Date of Joining', ci.doj],
+['Govt ID Number', ci.govt_id], ['ID Expiry Date', ci.id_expiry], ['Gender', ci.gender], ['Country', ci.country],
+['Date of Birth', ci.dob], ['Mobile', ci.mobile], ['Email', ci.email],
+['Emergency Contact', (ci.emerg_name || '') + ' / ' + (ci.emerg_num || '')]];
+body.innerHTML = `
+<div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">${rows.map(r => `<div class="bg-gray-50 border rounded p-2"><span class="block text-xs text-gray-500">${r[0]}</span><strong>${escapeHtml(r[1] || '—')}</strong></div>`).join('')}</div>
+<div><h4 class="font-semibold mb-2 mt-4">Amenities Checklist</h4>
+<table class="w-full text-sm border"><thead class="bg-gray-100"><tr><th class="p-2 border w-12">#</th><th class="p-2 border text-left">Amenity</th><th class="p-2 border w-24">Present</th><th class="p-2 border text-left">Remarks</th></tr></thead>
+<tbody>${(ci.checklist || []).map((it, i) => `<tr><td class="p-2 border text-center">${i + 1}</td><td class="p-2 border">${escapeHtml(it.name)}</td><td class="p-2 border text-center">${it.present ? '✓' : '✗'}</td><td class="p-2 border">${escapeHtml(it.remarks || '')}</td></tr>`).join('')}</tbody></table></div>
+<div class="mt-3">${ci.signatureUrl ? `<img src="${ci.signatureUrl}" class="h-24 border rounded bg-white p-1" alt="signature">` : ''}
+<p class="text-xs text-gray-500 mt-1">Signature ${ci.typedSignature && ci.typedSignature !== '[Drawn]' ? '(typed: ' + escapeHtml(ci.typedSignature) + ')' : ''} • Submitted ${String(ci.timestamp || '').slice(0, 16).replace('T', ' ')}</p></div>`;
 }
 function prefillCheckInForm(emp) {
 const form = document.getElementById('checkin-form');
@@ -1731,7 +1935,7 @@ const data = contexts[i].getImageData(0, 0, canvas.width, canvas.height).data;
 for (let j = 3; j < data.length; j += 4) { if (data[j] !== 0) return true; }
 return false;
 }
-// ===== AMENITIES (+ disclaimer auto room) =====
+// ===== AMENITIES (fixed shared-note logic) =====
 function getMyRoom() { return roomsData.find(r => r.number === (currentUser && currentUser.room)); }
 function renderAmenitiesTable() {
 const tbody = document.getElementById('amenities-table-body');
@@ -1743,10 +1947,13 @@ const dh = document.getElementById('disclaimer-hotel');
 if (dh) dh.textContent = (brandSettings.title || 'Host Accommodation') + ' Host accommodation';
 const room = getMyRoom();
 let items = [], shared = false, sharedBy = '';
-if (room && room.currentChecklist && room.currentChecklist.items && room.currentChecklist.items.length) {
-items = room.currentChecklist.items; shared = true; sharedBy = room.currentChecklist.by || 'previous occupant';
+const cl = (room && room.currentChecklist && room.currentChecklist.items && room.currentChecklist.items.length) ? room.currentChecklist : null;
+if (cl && (room.capacity || 1) > 1 && cl.by && cl.by !== currentUser.name) {
+items = cl.items; shared = true; sharedBy = cl.by;
 } else if (room && room.inventory && room.inventory.length) {
 items = room.inventory.map(it => ({ name: it.name, present: it.available !== false, remarks: it.remarks || '' }));
+} else if (cl) {
+items = cl.items;
 } else items = amenitiesList.map(n => ({ name: n, present: false, remarks: '' }));
 checkinItems = items;
 if (shared) { note.classList.remove('hidden'); note.innerHTML = `🔗 Shared room: checklist signed by <strong>${sharedBy}</strong>. Same list applies to you.`; }
@@ -1758,7 +1965,8 @@ tbody.innerHTML = items.map((it, i) => `
 }
 function readCheckinChecklist() {
 const room = getMyRoom();
-const shared = room && room.currentChecklist && room.currentChecklist.items && room.currentChecklist.items.length;
+const cl = (room && room.currentChecklist && room.currentChecklist.items && room.currentChecklist.items.length) ? room.currentChecklist : null;
+const shared = cl && (room.capacity || 1) > 1 && cl.by && cl.by !== currentUser.name;
 if (shared) return checkinItems.map(it => ({ ...it }));
 const checks = document.querySelectorAll('.amenity-check');
 const remarks = document.querySelectorAll('.amenity-remark');
@@ -1783,7 +1991,7 @@ tbody.innerHTML = items.map((it, i) => `
 <td class="p-2 border"><select class="co-condition w-full px-2 py-1 border rounded text-sm" data-idx="${i}" ${lastOccupant ? '' : 'disabled'}><option>OK</option><option>Damaged</option><option>Missing</option></select></td>
 <td class="p-2 border"><input type="text" class="co-remark w-full px-2 py-1 border rounded text-sm" data-idx="${i}" ${lastOccupant ? '' : 'disabled'} placeholder="Remarks"></td></tr>`).join('');
 }
-// ===== SUBMIT CHECK-IN / OUT (signatures embedded FREE in Firestore) =====
+// ===== SUBMIT CHECK-IN (locks form + syncs employee record) =====
 async function submitCheckIn() {
 if (!currentUser) return;
 if (!document.getElementById('rules-agree').checked) { alert('Please agree to rules'); return; }
@@ -1793,13 +2001,14 @@ const form = document.getElementById('checkin-form');
 const data = Object.fromEntries(new FormData(form).entries());
 const checklist = readCheckinChecklist();
 const signatureUrl = canvases[3] ? canvases[3].toDataURL('image/png') : '';
+const room = getMyRoom();
 try {
 await window.fb.addDoc(window.fb.collection(window.fb.db, 'checkins'), {
 employeeId: currentUser.id, employeeName: currentUser.name,
 ...data, checklist, signatureUrl, typedSignature: sig || '[Drawn]',
+roomNo: currentUser.room || '', blockNo: room ? room.block : '', cabinNo: room ? room.cabin : '',
 timestamp: new Date().toISOString()
 });
-const room = getMyRoom();
 if (room) {
 const occ = [...(room.occupants || [])];
 if (!occ.includes(currentUser.name) && occ.length < (room.capacity || 1)) occ.push(currentUser.name);
@@ -1809,8 +2018,18 @@ roomUpdates.currentChecklist = { items: checklist, by: currentUser.name, date: n
 }
 await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.number), roomUpdates);
 }
-await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', currentUser.id), { status: 'active', lastCheckIn: new Date().toISOString(), dept: data.dept || '' });
-alert('✓ Check-in submitted successfully!');
+// sync employee record so Alerts & Reports stay correct
+await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', currentUser.id), {
+status: 'active', lastCheckIn: new Date().toISOString(),
+dept: data.dept || '', designation: data.designation || '',
+govt_id: data.govt_id || '', id_expiry: data.id_expiry || '', dob: data.dob || '',
+mobile: data.mobile || '', country: data.country || '', doj: data.doj || '',
+emerg_name: data.emerg_name || '', emerg_num: data.emerg_num || ''
+});
+myCheckIn = null;
+await loadMyCheckIn();
+renderCheckInMode();
+alert('✓ Check-in submitted successfully! The form is now locked (view-only). You can download it as PDF.');
 } catch (error) {
 let msg = 'Error submitting check-in: ' + error.message;
 if (error.code === 'permission-denied') msg = 'Permission denied. Publish the Firestore Rules first.';
@@ -2301,7 +2520,7 @@ reader.readAsText(file);
 }
 // ===== ADMIN NAV =====
 function showAdminSection(section) {
-['upload','layout','inventory','employees','modguest','alerts','reports','backup','branding'].forEach(s => {
+['upload','layout','inventory','employees','forms','modguest','alerts','reports','backup','branding'].forEach(s => {
 document.getElementById('admin-' + s).classList.add('hidden');
 document.getElementById('tab-' + s).classList.remove('tab-active');
 document.getElementById('tab-' + s).classList.add('text-gray-500');
@@ -2319,6 +2538,7 @@ if (section === 'branding') loadBrandingIntoForm();
 if (section === 'modguest') renderGuestControls();
 if (section === 'alerts') renderAlerts();
 if (section === 'reports') populateReportFilters();
+if (section === 'forms') { populateFormsFilters(); loadCheckIns(); }
 }
 function showMODGuestTab(tab) {
 ['mod','assign','guests'].forEach(t => {
@@ -2332,6 +2552,188 @@ document.getElementById('mg-tab-' + tab).classList.remove('text-gray-500');
 if (tab === 'assign') populateMODAssignDropdowns();
 if (tab === 'guests') renderGuestControls();
 }
+// ===== CHECK-IN FORMS CENTER (ADMIN) =====
+function ciEmp(ci) { return employeesData.find(e => e.id === ci.employeeId) || employeesData.find(e => e.name === ci.employeeName) || {}; }
+function ciRoomNo(ci) { return ci.roomNo || ciEmp(ci).room || ''; }
+function ciType(ci) { return ciEmp(ci).employmentType || 'Onroll'; }
+function setFormsTab(tab) {
+formsTab = tab;
+['onroll','casual'].forEach(t => document.getElementById('formtab-' + t).classList.toggle('active', t === tab));
+renderFormsTable();
+}
+function populateFormsFilters() {
+const bSel = document.getElementById('frm-block');
+if (!bSel) return;
+const blocks = [...new Set(roomsData.map(r => r.block))].filter(Boolean).sort(natCompare);
+const cur = bSel.value;
+bSel.innerHTML = '<option value="">All Blocks</option>' + blocks.map(b => `<option value="${b}">${b}</option>`).join('');
+if (cur && blocks.includes(cur)) bSel.value = cur;
+onFrmBlockChange(true);
+}
+function onFrmBlockChange(silent) {
+const b = document.getElementById('frm-block').value;
+const cabins = [...new Set(roomsData.filter(r => !b || r.block === b).map(r => r.cabin))].filter(Boolean).sort(natCompare);
+const cSel = document.getElementById('frm-cabin');
+const curC = cSel.value;
+cSel.innerHTML = '<option value="">All Cabins</option>' + cabins.map(c => `<option value="${c}">${c}</option>`).join('');
+if (curC && cabins.includes(curC)) cSel.value = curC;
+onFrmCabinChange(silent);
+}
+function onFrmCabinChange(silent) {
+const b = document.getElementById('frm-block').value;
+const c = document.getElementById('frm-cabin').value;
+const rooms = sortRooms(roomsData.filter(r => (!b || r.block === b) && (!c || r.cabin === c)));
+const rSel = document.getElementById('frm-room');
+const curR = rSel.value;
+rSel.innerHTML = '<option value="">All Rooms</option>' + rooms.map(r => `<option value="${r.number}">${r.number}</option>`).join('');
+if (curR && rooms.some(r => r.number === curR)) rSel.value = curR;
+if (!silent) renderFormsTable();
+}
+async function loadCheckIns() {
+try {
+const snap = await window.fb.getDocs(window.fb.collection(window.fb.db, 'checkins'));
+checkinsData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+checkinsData.sort((a, b) => String(b.timestamp || '').localeCompare(String(a.timestamp || '')));
+renderFormsTable();
+} catch (e) { console.warn('checkins load:', e.message); }
+}
+function formsFiltered() {
+let list = checkinsData.slice();
+list = list.filter(ci => formsTab === 'casual' ? ciType(ci) === 'Casual' : ciType(ci) !== 'Casual');
+const b = document.getElementById('frm-block')?.value;
+const c = document.getElementById('frm-cabin')?.value;
+const r = document.getElementById('frm-room')?.value;
+const roomInput = (document.getElementById('frm-room-input')?.value || '').trim().toUpperCase();
+const q = (document.getElementById('frm-emp-search')?.value || '').trim().toLowerCase();
+if (b) list = list.filter(ci => { const rm = roomsData.find(x => x.number === ciRoomNo(ci)); return rm && rm.block === b; });
+if (c) list = list.filter(ci => { const rm = roomsData.find(x => x.number === ciRoomNo(ci)); return rm && rm.cabin === c; });
+if (r) list = list.filter(ci => ciRoomNo(ci) === r);
+if (roomInput) list = list.filter(ci => ciRoomNo(ci).toUpperCase() === roomInput);
+if (q) list = list.filter(ci => (ci.employeeName || '').toLowerCase().includes(q));
+return list;
+}
+function renderFormsTable() {
+const tbody = document.getElementById('forms-body');
+if (!tbody) return;
+const list = formsFiltered();
+if (!list.length) { tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-gray-500 italic">No submitted forms match the filters.</td></tr>'; return; }
+tbody.innerHTML = list.map(ci => `
+<tr class="border-b hover:bg-gray-50">
+<td class="p-2 font-medium">${escapeHtml(ci.employeeName || '')}</td>
+<td class="p-2 text-xs">${ciType(ci)}</td>
+<td class="p-2">${escapeHtml(ciRoomNo(ci))}</td>
+<td class="p-2">${escapeHtml(ci.checkin_date || '')}</td>
+<td class="p-2 text-xs">${String(ci.timestamp || '').slice(0, 16).replace('T', ' ')}</td>
+<td class="p-2">${ci.signatureUrl ? '✓' : '—'}</td>
+<td class="p-2"><div class="flex gap-2 flex-wrap">
+<button onclick="viewCheckIn('${ci.id}')" class="text-blue-600 text-xs font-semibold hover:underline">👁 View</button>
+<button onclick="downloadCheckInPdfById('${ci.id}')" class="text-green-600 text-xs font-semibold hover:underline">⬇ PDF</button>
+<button onclick="openCheckInEdit('${ci.id}')" class="text-indigo-600 text-xs font-semibold hover:underline">✏️ Edit</button>
+<button onclick="deleteCheckIn('${ci.id}')" class="text-red-600 text-xs font-semibold hover:underline">🗑 Delete</button>
+</div></td>
+</tr>`).join('');
+}
+function downloadCheckInPdfById(id) { const ci = checkinsData.find(x => x.id === id); if (ci) downloadCheckInPdf(ci); }
+function viewCheckIn(id) {
+const ci = checkinsData.find(x => x.id === id); if (!ci) return;
+document.getElementById('ckv-name').textContent = ci.employeeName || '';
+const rows = [['Full Name', ci.name], ['Employee Code', ci.code], ['Department', ci.dept], ['Designation', ci.designation],
+['Room No.', ciRoomNo(ci)], ['Check-In Date', ci.checkin_date], ['Date of Joining', ci.doj], ['Govt ID Number', ci.govt_id],
+['ID Expiry Date', ci.id_expiry], ['Gender', ci.gender], ['Country', ci.country], ['Date of Birth', ci.dob],
+['Mobile', ci.mobile], ['Email', ci.email], ['Emergency Contact', (ci.emerg_name || '') + ' / ' + (ci.emerg_num || '')]];
+document.getElementById('checkin-admin-view-body').innerHTML = `
+<div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">${rows.map(r => `<div class="bg-gray-50 border rounded p-2"><span class="block text-xs text-gray-500">${r[0]}</span><strong>${escapeHtml(r[1] || '—')}</strong></div>`).join('')}</div>
+<h4 class="font-semibold mt-4 mb-2">Amenities Checklist</h4>
+<table class="w-full text-sm border"><thead class="bg-gray-100"><tr><th class="p-2 border w-12">#</th><th class="p-2 border text-left">Amenity</th><th class="p-2 border w-24">Present</th><th class="p-2 border text-left">Remarks</th></tr></thead>
+<tbody>${(ci.checklist || []).map((it, i) => `<tr><td class="p-2 border text-center">${i + 1}</td><td class="p-2 border">${escapeHtml(it.name)}</td><td class="p-2 border text-center">${it.present ? '✓' : '✗'}</td><td class="p-2 border">${escapeHtml(it.remarks || '')}</td></tr>`).join('')}</tbody></table>
+<div class="mt-3">${ci.signatureUrl ? `<img src="${ci.signatureUrl}" class="h-24 border rounded bg-white p-1" alt="signature">` : '<p class="text-xs text-red-500">No signature stored</p>'}
+<p class="text-xs text-gray-500 mt-1">Submitted ${String(ci.timestamp || '').slice(0, 16).replace('T', ' ')}</p></div>
+<div class="mt-4 flex gap-2"><button onclick="downloadCheckInPdfById('${ci.id}')" class="px-4 py-2 bg-green-600 text-white rounded text-sm">⬇ Download Full PDF</button></div>`;
+document.getElementById('checkin-view-modal').classList.add('show');
+}
+function openCheckInEdit(id) {
+const ci = checkinsData.find(x => x.id === id); if (!ci) return;
+editingCheckInId = id;
+document.getElementById('cke-name').textContent = ci.employeeName || '';
+document.getElementById('cke-date').value = ci.checkin_date || '';
+document.getElementById('cke-doj').value = ci.doj || '';
+document.getElementById('cke-govtid').value = ci.govt_id || '';
+document.getElementById('cke-idexpiry').value = ci.id_expiry || '';
+document.getElementById('cke-gender').value = ci.gender || 'Male';
+document.getElementById('cke-country').value = ci.country || '';
+document.getElementById('cke-dob').value = ci.dob || '';
+document.getElementById('cke-mobile').value = ci.mobile || '';
+document.getElementById('cke-emergname').value = ci.emerg_name || '';
+document.getElementById('cke-emergnum').value = ci.emerg_num || '';
+document.getElementById('cke-dept').value = ci.dept || '';
+document.getElementById('cke-designation').value = ci.designation || '';
+document.getElementById('cke-amenities').innerHTML = (ci.checklist || []).map((it, i) => `
+<tr><td class="p-2 border text-center">${i + 1}</td><td class="p-2 border">${escapeHtml(it.name)}</td>
+<td class="p-2 border text-center"><input type="checkbox" class="cke-present w-4 h-4" data-idx="${i}" ${it.present ? 'checked' : ''}></td>
+<td class="p-2 border"><input type="text" class="cke-remark w-full px-2 py-1 border rounded text-sm" data-idx="${i}" value="${(it.remarks || '').replace(/"/g, '&quot;')}"></td></tr>`).join('');
+document.getElementById('checkin-edit-modal').classList.add('show');
+}
+async function saveCheckInEdit() {
+if (!editingCheckInId) return;
+const ci = checkinsData.find(x => x.id === editingCheckInId); if (!ci) return;
+const checks = document.querySelectorAll('.cke-present');
+const remarks = document.querySelectorAll('.cke-remark');
+const checklist = (ci.checklist || []).map((it, i) => ({ ...it, present: checks[i] ? checks[i].checked : it.present, remarks: remarks[i] ? remarks[i].value : it.remarks }));
+const updates = {
+checkin_date: document.getElementById('cke-date').value,
+doj: document.getElementById('cke-doj').value,
+govt_id: document.getElementById('cke-govtid').value,
+id_expiry: document.getElementById('cke-idexpiry').value,
+gender: document.getElementById('cke-gender').value,
+country: document.getElementById('cke-country').value,
+dob: document.getElementById('cke-dob').value,
+mobile: document.getElementById('cke-mobile').value,
+emerg_name: document.getElementById('cke-emergname').value,
+emerg_num: document.getElementById('cke-emergnum').value,
+dept: document.getElementById('cke-dept').value,
+designation: document.getElementById('cke-designation').value,
+checklist
+};
+try {
+await window.fb.updateDoc(window.fb.doc(window.fb.db, 'checkins', editingCheckInId), updates);
+// keep employee record in sync
+if (ci.employeeId) {
+await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', ci.employeeId), {
+govt_id: updates.govt_id, id_expiry: updates.id_expiry, dob: updates.dob, mobile: updates.mobile,
+country: updates.country, doj: updates.doj, emerg_name: updates.emerg_name, emerg_num: updates.emerg_num,
+dept: updates.dept, designation: updates.designation
+});
+}
+document.getElementById('checkin-edit-modal').classList.remove('show');
+loadCheckIns();
+alert('✓ Check-in form updated.');
+} catch (e) { alert('Error: ' + e.message); }
+}
+async function deleteCheckIn(id) {
+const ci = checkinsData.find(x => x.id === id); if (!ci) return;
+if (!confirm(`Delete the submitted check-in form of ${ci.employeeName}?\nThe employee will see the blank check-in form again and can re-submit.`)) return;
+try {
+await window.fb.deleteDoc(window.fb.doc(window.fb.db, 'checkins', id));
+loadCheckIns();
+alert('✓ Form deleted. Employee can fill it again.');
+} catch (e) { alert('Error: ' + e.message); }
+}
+function downloadFormsExcel() {
+const list = formsFiltered();
+exportRowsXlsx(`checkins-${formsTab}-${new Date().toISOString().slice(0, 10)}.xlsx`, list.map(ci => ({
+Employee: ci.employeeName, Type: ciType(ci), Room: ciRoomNo(ci), Block: ci.blockNo || '', Cabin: ci.cabinNo || '',
+'Check-In Date': ci.checkin_date, Submitted: String(ci.timestamp || '').slice(0, 16).replace('T', ' '),
+'Govt ID': ci.govt_id || '', 'ID Expiry': ci.id_expiry || '', Mobile: ci.mobile || '', Department: ci.dept || ''
+})), 'CheckIns');
+}
+function downloadFormsCombined() {
+const list = formsFiltered();
+if (!list.length) { alert('No forms in current filter.'); return; }
+if (list.length > 25 && !confirm(`This will generate one PDF with ${list.length} forms (3+ pages each). Continue?`)) return;
+const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+list.forEach((ci, i) => writeCheckInPages(doc, ci, i === 0));
+doc.save(`checkins-${formsTab}-${new Date().toISOString().slice(0, 10)}.pdf`);
+}
 // ===== ALERTS & NOTIFICATIONS =====
 function computeAlerts() {
 const alerts = [];
@@ -2341,18 +2743,21 @@ employeesData.forEach(e => {
 if (e.id_expiry) {
 const exp = new Date(e.id_expiry);
 const diff = Math.ceil((exp - today) / 86400000);
-if (diff < 0) alerts.push({ level: '🔴 EXPIRED', type: 'Govt ID Expired', who: e.name, dept: e.dept || '', idNo: e.govt_id || '', expiry: e.id_expiry, room: e.room || '', detail: `Expired ${-diff} day(s) ago` });
-else if (diff <= days) alerts.push({ level: '🟠 EXPIRING', type: 'Govt ID Expiring Soon', who: e.name, dept: e.dept || '', idNo: e.govt_id || '', expiry: e.id_expiry, room: e.room || '', detail: `${diff} day(s) left` });
+if (diff < 0) alerts.push({ level: '🔴 EXPIRED', type: 'Govt ID Expired', who: e.name, dept: e.dept || '', idNo: e.govt_id || '', expiry: e.id_expiry, room: e.room || '', detail: `Expired ${-diff} day(s) ago`, empId: e.id });
+else if (diff <= days) alerts.push({ level: '🟠 EXPIRING', type: 'Govt ID Expiring Soon', who: e.name, dept: e.dept || '', idNo: e.govt_id || '', expiry: e.id_expiry, room: e.room || '', detail: `${diff} day(s) left`, empId: e.id });
 } else if (e.registered) {
-alerts.push({ level: '🟡 MISSING', type: 'Govt ID expiry missing', who: e.name, dept: e.dept || '', idNo: e.govt_id || '', expiry: '', room: e.room || '', detail: 'No expiry date on file' });
+alerts.push({ level: '🟡 MISSING', type: 'Govt ID expiry missing', who: e.name, dept: e.dept || '', idNo: e.govt_id || '', expiry: '', room: e.room || '', detail: 'No expiry date on file', empId: e.id });
 }
-if (!e.room) alerts.push({ level: '🟡 MISSING', type: 'No room assigned', who: e.name, dept: e.dept || '', idNo: e.govt_id || '', expiry: e.id_expiry || '', room: '', detail: 'Employee has no room' });
-if (e.approvalStatus === 'pending') alerts.push({ level: '🔵 APPROVAL', type: 'Casual approval pending', who: e.name, dept: e.dept || '', idNo: e.govt_id || '', expiry: e.id_expiry || '', room: e.room || '', detail: 'Awaiting admin approval' });
-if (e.registered && e.loginEnabled === false && e.approvalStatus !== 'pending') alerts.push({ level: '⚪ INFO', type: 'Login disabled', who: e.name, dept: e.dept || '', idNo: e.govt_id || '', expiry: e.id_expiry || '', room: e.room || '', detail: 'Employee cannot sign in' });
+if (e.registered && (!e.emerg_name || !e.emerg_num)) {
+alerts.push({ level: '🟡 MISSING', type: 'Emergency contact missing', who: e.name, dept: e.dept || '', idNo: e.govt_id || '', expiry: e.id_expiry || '', room: e.room || '', detail: 'No emergency contact on file', empId: e.id });
+}
+if (!e.room) alerts.push({ level: '🟡 MISSING', type: 'No room assigned', who: e.name, dept: e.dept || '', idNo: e.govt_id || '', expiry: e.id_expiry || '', room: '', detail: 'Employee has no room', empId: e.id });
+if (e.approvalStatus === 'pending') alerts.push({ level: '🔵 APPROVAL', type: 'Casual approval pending', who: e.name, dept: e.dept || '', idNo: e.govt_id || '', expiry: e.id_expiry || '', room: e.room || '', detail: 'Awaiting admin approval', empId: e.id });
+if (e.registered && e.loginEnabled === false && e.approvalStatus !== 'pending') alerts.push({ level: '⚪ INFO', type: 'Login disabled', who: e.name, dept: e.dept || '', idNo: e.govt_id || '', expiry: e.id_expiry || '', room: e.room || '', detail: 'Employee cannot sign in', empId: e.id });
 });
 roomsData.forEach(r => {
 if ((r.occupants || []).length && !(r.inventory || []).length) {
-alerts.push({ level: '🟡 MISSING', type: 'Room without inventory', who: 'Room ' + r.number, dept: '', idNo: '', expiry: '', room: r.number, detail: 'Occupied but no inventory list' });
+alerts.push({ level: '🟡 MISSING', type: 'Room without inventory', who: 'Room ' + r.number, dept: '', idNo: '', expiry: '', room: r.number, detail: 'Occupied but no inventory list', empId: '' });
 }
 });
 return alerts;
@@ -2369,13 +2774,14 @@ tbody.innerHTML = alerts.length ? alerts.map(a => `
 <tr class="border-b hover:bg-gray-50">
 <td class="p-2 text-xs font-semibold">${a.level}</td>
 <td class="p-2">${a.type}</td>
-<td class="p-2">${a.who}</td>
-<td class="p-2">${a.dept}</td>
-<td class="p-2">${a.idNo}</td>
-<td class="p-2">${a.expiry}</td>
-<td class="p-2">${a.room}</td>
-<td class="p-2 text-xs text-gray-600">${a.detail}</td>
-</tr>`).join('') : '<tr><td colspan="8" class="p-4 text-center text-gray-500 italic">No alerts</td></tr>';
+<td class="p-2">${escapeHtml(a.who)}</td>
+<td class="p-2">${escapeHtml(a.dept)}</td>
+<td class="p-2">${escapeHtml(a.idNo)}</td>
+<td class="p-2">${escapeHtml(a.expiry)}</td>
+<td class="p-2">${escapeHtml(a.room)}</td>
+<td class="p-2 text-xs text-gray-600">${escapeHtml(a.detail)}</td>
+<td class="p-2">${a.empId ? `<button onclick="openEditEmpModal('${a.empId}')" class="text-blue-600 text-xs font-semibold hover:underline">✏️ Edit</button>` : ''}</td>
+</tr>`).join('') : '<tr><td colspan="9" class="p-4 text-center text-gray-500 italic">No alerts</td></tr>';
 }
 function downloadAlertsExcel() {
 const alerts = computeAlerts();
@@ -2431,7 +2837,7 @@ try {
 const snap = await window.fb.getDocs(window.fb.collection(window.fb.db, src));
 rows = snap.docs.map(d => flattenRow(d.data())).filter(r => {
 if (f.dept) { const emp = employeesData.find(e => e.name === r.employeeName); if (!emp || emp.dept !== f.dept) return false; }
-if (f.block) { const rm = roomsData.find(x => x.number === r.room); if (!rm || rm.block !== f.block) return false; }
+if (f.block) { const rm = roomsData.find(x => x.number === r.room || x.number === r.roomNo); if (!rm || rm.block !== f.block) return false; }
 return true;
 });
 } catch (e) { alert('Error loading ' + src + ': ' + e.message); }
@@ -2583,6 +2989,14 @@ document.getElementById('edit-room').innerHTML = '<option value="">-- No Room --
 document.getElementById('edit-gender').value = emp.gender || 'Male';
 document.getElementById('edit-type').value = emp.employmentType || '';
 document.getElementById('edit-status').value = emp.empStatus || 'active';
+document.getElementById('edit-govtid').value = emp.govt_id || '';
+document.getElementById('edit-idexpiry').value = emp.id_expiry || '';
+document.getElementById('edit-dob').value = emp.dob || '';
+document.getElementById('edit-mobile').value = emp.mobile || '';
+document.getElementById('edit-country').value = emp.country || '';
+document.getElementById('edit-doj').value = emp.doj || '';
+document.getElementById('edit-emergname').value = emp.emerg_name || '';
+document.getElementById('edit-emergnum').value = emp.emerg_num || '';
 document.getElementById('edit-company').value = emp.companyName || '';
 document.getElementById('edit-approval').value = emp.approvalStatus || 'approved';
 document.getElementById('edit-is-mod').checked = !!emp.isMOD;
@@ -2610,6 +3024,14 @@ block: room ? room.block : '',
 gender: document.getElementById('edit-gender').value,
 employmentType: document.getElementById('edit-type').value,
 empStatus: document.getElementById('edit-status').value,
+govt_id: document.getElementById('edit-govtid').value.trim(),
+id_expiry: document.getElementById('edit-idexpiry').value,
+dob: document.getElementById('edit-dob').value,
+mobile: document.getElementById('edit-mobile').value.trim(),
+country: document.getElementById('edit-country').value.trim(),
+doj: document.getElementById('edit-doj').value,
+emerg_name: document.getElementById('edit-emergname').value.trim(),
+emerg_num: document.getElementById('edit-emergnum').value.trim(),
 companyName: document.getElementById('edit-company').value.trim(),
 approvalStatus: approval,
 isMOD: document.getElementById('edit-is-mod').checked,
@@ -2633,6 +3055,7 @@ await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.n
 }
 await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', editingEmpId), updates);
 closeEditEmpModal();
+renderAlerts();
 alert('✓ Employee updated.');
 } catch (e) { alert('Error: ' + e.message); }
 }
@@ -2943,6 +3366,7 @@ roomsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 if (currentUser?.role === 'admin') {
 renderBlockTabs(); renderBlockSummary(); renderRooms(); renderUploadPreview(); updateStats(); populateInventoryDropdowns(); renderGuestControls(); refreshSectionUI();
 if (!document.getElementById('admin-alerts').classList.contains('hidden')) renderAlerts();
+if (!document.getElementById('admin-forms').classList.contains('hidden')) { populateFormsFilters(); renderFormsTable(); }
 } else if (currentUser?.role === 'employee') {
 loadMODRoomDropdown();
 if (!document.getElementById('emp-checkin').classList.contains('hidden')) renderAmenitiesTable();
@@ -2954,11 +3378,20 @@ window.fb.onSnapshot(window.fb.collection(window.fb.db, 'employees'), (snapshot)
 employeesData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 renderEmpTable(); renderUploadPreview(); updateStats();
 if (!document.getElementById('admin-alerts').classList.contains('hidden')) renderAlerts();
+if (!document.getElementById('admin-forms').classList.contains('hidden')) renderFormsTable();
 }, (err) => console.warn('employees listener:', err.message));
 window.fb.onSnapshot(window.fb.collection(window.fb.db, 'guests'), (snapshot) => {
 guestsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 renderGuestControls();
 }, (err) => console.warn('guests listener:', err.message));
+}
+if (currentUser?.role === 'employee') {
+window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, 'checkins'), window.fb.where('employeeId', '==', currentUser.id)), (snapshot) => {
+const arr = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+arr.sort((a, b) => String(a.timestamp || '').localeCompare(String(b.timestamp || '')));
+myCheckIn = arr.length ? arr[arr.length - 1] : null;
+if (!document.getElementById('emp-checkin').classList.contains('hidden')) renderCheckInMode();
+}, (err) => console.warn('my checkins listener:', err.message));
 }
 window.fb.onSnapshot(window.fb.collection(window.fb.db, 'modAssignments'), (snapshot) => {
 modAssignments = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
