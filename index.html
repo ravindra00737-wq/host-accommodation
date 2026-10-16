@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- BUILD v2026-10-16.5 : rules-pdf-storage-fix + exact-pdf-view-everywhere -->
+<!-- BUILD v2026-10-16.6 : 100% Storage-free (rules PDF + signatures embedded in Firestore / or free GitHub URL) -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -829,7 +829,12 @@ I have read and agree to abide by all accommodation rules.
 <div>Saved background:<br><img id="brand-bg-current" class="mt-1 h-10 object-cover rounded hidden" alt=""></div>
 <div id="brand-upload-status" class="text-xs text-gray-700"></div>
 </div>
-<div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Accommodation Rules PDF (stored & shown page-by-page exactly as PDF + downloadable)</label><input type="file" id="rules-pdf-input" accept="application/pdf" class="w-full text-sm" onchange="uploadRulesPdf(event)"><div id="rules-pdf-status" class="text-xs mt-1 text-gray-600"></div></div>
+<div class="md:col-span-2">
+<label class="block text-sm font-medium mb-1">Accommodation Rules PDF — FREE storage: embedded in Firestore (≤ ~700 KB) or paste a free GitHub URL</label>
+<input type="file" id="rules-pdf-input" accept="application/pdf" class="w-full text-sm" onchange="uploadRulesPdf(event)">
+<input type="text" id="rules-url-input" class="w-full px-3 py-2 border rounded mt-2 text-sm" placeholder="Or paste direct PDF URL (free): e.g. https://ravindra00737-wq.github.io/host-accommodation/rules.pdf">
+<div id="rules-pdf-status" class="text-xs mt-1 text-gray-600"></div>
+</div>
 </div>
 <div class="mt-6 flex gap-3">
 <button onclick="saveBranding()" class="px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700">💾 Preview & Apply</button>
@@ -974,7 +979,8 @@ let checkoutEditable = false;
 let pendingLogoUrl = null;
 let pendingBgUrl = null;
 let pendingRulesText = null;
-let pendingRulesSource = null;
+let pendingRulesData = null;   // base64 dataURL to store in Firestore (FREE)
+let pendingRulesUrl = null;    // external free URL (e.g., GitHub Pages)
 let currentLoginTab = 'employee';
 let currentModalRoom = null;
 let allocateTargetRoom = null;
@@ -1016,13 +1022,25 @@ const defaultRulesHtml = `<ol class="list-decimal pl-5 space-y-2">
 <li>Check-out must be done 24 hours in advance with admin approval.</li>
 </ol><p class="text-xs text-gray-500 mt-3 italic">(Actual rules PDF can be uploaded by admin in Branding)</p>`;
 if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-// ===== PDF RENDER / DOWNLOAD (exact PDF pages everywhere) =====
+// ===== PDF RENDER / DOWNLOAD (exact PDF pages, Storage-free) =====
 function dataUrlToUint8(dataUrl) {
 const b64 = dataUrl.split(',')[1];
 const bin = atob(b64);
 const u = new Uint8Array(bin.length);
 for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
 return u;
+}
+// Resolve where the rules PDF lives: 'db:rulesPdf' → Firestore doc, else URL/dataURL string
+async function resolveRulesSource() {
+const src = brandSettings.rulesPdfSource || '';
+if (!src) return '';
+if (src === 'db:rulesPdf') {
+try {
+const d = await window.fb.getDoc(window.fb.doc(window.fb.db, 'settings', 'rulesPdf'));
+return d.exists() ? (d.data().data || '') : '';
+} catch (e) { console.warn('rulesPdf doc read failed:', e.message); return ''; }
+}
+return src;
 }
 async function renderPdfPages(container, source, maxW) {
 if (!container) return;
@@ -1049,14 +1067,14 @@ container.innerHTML = rulesFallbackHtml();
 }
 }
 function rulesNoticeHtml() {
-return `<div class="mb-2 p-2 bg-yellow-50 border-l-4 border-yellow-400 text-xs text-yellow-800">⚠ The rules PDF file itself is not stored yet (it was uploaded with an older version, so only extracted text is available). Admin: re-upload the rules PDF in <strong>Branding → Preview & Apply</strong> once — after that the exact PDF pages will appear here and the Download button will work.</div>`;
+return `<div class="mb-2 p-2 bg-yellow-50 border-l-4 border-yellow-400 text-xs text-yellow-800">⚠ The rules PDF file itself is not stored yet (uploaded with an older version, so only extracted text is available). Admin: re-upload the rules PDF in <strong>Branding → Preview & Apply</strong> once — after that the exact PDF pages appear here and the Download button works.</div>`;
 }
 function rulesFallbackHtml() {
 const notice = (brandSettings.rulesFileName && !brandSettings.rulesPdfSource) ? rulesNoticeHtml() : '';
 return notice + (brandSettings.rulesText ? `<div class="rules-text">${escapeHtml(brandSettings.rulesText)}</div>` : defaultRulesHtml);
 }
-function renderRulesDisplays() {
-const src = brandSettings.rulesPdfSource;
+async function renderRulesDisplays() {
+const src = await resolveRulesSource();
 ['rules-display','guest-rules-box'].forEach(id => {
 const el = document.getElementById(id);
 if (!el) return;
@@ -1064,22 +1082,22 @@ if (src) renderPdfPages(el, src, 1000);
 else el.innerHTML = rulesFallbackHtml();
 });
 }
-function renderEmpRules() {
+async function renderEmpRules() {
 const el = document.getElementById('emp-rules-pages');
 if (!el) return;
-const src = brandSettings.rulesPdfSource;
+const src = await resolveRulesSource();
 if (src) renderPdfPages(el, src, 1000);
 else el.innerHTML = rulesFallbackHtml();
 const fn = document.getElementById('emp-rules-filename');
 if (fn) fn.textContent = brandSettings.rulesFileName ? ('File: ' + brandSettings.rulesFileName) : '';
 }
 async function downloadRulesPdf() {
-const src = brandSettings.rulesPdfSource;
+const src = await resolveRulesSource();
 if (!src) {
 if (brandSettings.rulesFileName) {
-alert('The rules PDF file itself was never stored (uploaded with an older version).\n\nADMIN FIX (one-time): Branding → re-upload "' + brandSettings.rulesFileName + '" → click "Preview & Apply".\nAfter that, the exact PDF view & this download button work everywhere.');
+alert('The rules PDF file itself was never stored (uploaded with an older version).\n\nADMIN FIX (one-time, free): Branding → re-upload "' + brandSettings.rulesFileName + '" (or paste its free GitHub URL) → click "Preview & Apply".');
 } else {
-alert('No rules PDF has been uploaded yet. Admin: upload it in Branding.');
+alert('No rules PDF has been uploaded yet. Admin: upload it in Branding (free — stored in Firestore or via GitHub URL).');
 }
 return;
 }
@@ -1163,7 +1181,7 @@ const d=document.getElementById('brand-desc-input'); if(d) d.value = brandSettin
 const c=document.getElementById('brand-color-input'); if(c) c.value = brandSettings.color || '#2563eb';
 const rs=document.getElementById('rules-pdf-status');
 if(rs) rs.textContent = brandSettings.rulesFileName
-? ('Current rules: ' + brandSettings.rulesFileName + (brandSettings.rulesPdfSource ? ' — PDF stored ✓' : ' — ⚠ PDF file NOT stored: re-upload below & Apply'))
+? ('Current rules: ' + brandSettings.rulesFileName + (brandSettings.rulesPdfSource ? (brandSettings.rulesPdfSource === 'db:rulesPdf' ? ' — stored FREE in database ✓' : ' — external URL ✓') : ' — ⚠ PDF file NOT stored: re-upload below & Apply'))
 : 'No rules PDF saved yet.';
 const cl=document.getElementById('brand-logo-current');
 if(cl){ if(brandSettings.logoUrl){cl.src=brandSettings.logoUrl;cl.classList.remove('hidden');} else cl.classList.add('hidden'); }
@@ -1220,7 +1238,7 @@ alert('Image processing failed: ' + err.message);
 status.textContent = '';
 }
 }
-// FIXED: store the PDF file itself (Storage preferred, embedded fallback) so exact pages + download work
+// FREE rules PDF: embed into Firestore doc settings/rulesPdf (no Storage, no subscription)
 async function uploadRulesPdf(event) {
 const file = event.target.files[0];
 if (!file) return;
@@ -1237,29 +1255,15 @@ const tc = await page.getTextContent();
 text += tc.items.map(it => it.str).join(' ') + '\n';
 }
 } catch (e) { console.warn('text extraction failed:', e.message); }
-let source = '';
-let where = '';
-try {
-const b64 = await new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = rej; rd.readAsDataURL(file); });
-const path = `branding/rules-${Date.now()}.pdf`;
-const r = window.fb.ref(window.fb.storage, path);
-await window.fb.uploadString(r, b64, 'data_url');
-source = await window.fb.getDownloadURL(r);
-where = 'Firebase Storage';
-} catch (storageErr) {
-console.warn('Storage upload failed for rules PDF:', storageErr.message);
-if (file.size < 950000) {
-source = await new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = rej; rd.readAsDataURL(file); });
-where = 'embedded in database';
-} else {
-alert('Could not upload the PDF to Firebase Storage and it is too large to embed (>950KB).\n\nFix: publish the Storage rules (Firebase Console → Storage → Rules):\nmatch /branding/{file} { allow read: if true; allow write: if request.auth != null; }\n\nThen retry the upload.');
+const dataUrl = await new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = rej; rd.readAsDataURL(file); });
+if (dataUrl.length > 950000) {
+alert(`PDF is ${Math.round(file.size/1024)} KB — too large to embed in the free database (limit ~700 KB).\n\nFREE alternative: add the PDF to your GitHub repo (e.g. host-accommodation/rules.pdf), commit & push, then paste this URL in the field below:\nhttps://ravindra00737-wq.github.io/host-accommodation/rules.pdf`);
 status.textContent = '';
 return;
 }
-}
+pendingRulesData = dataUrl;
 pendingRulesText = text.trim();
-pendingRulesSource = source;
-status.textContent = `✓ Rules PDF ready (${Math.round(file.size/1024)} KB, stored in ${where}). Click "Preview & Apply" to publish.`;
+status.textContent = `✓ Rules PDF ready (${Math.round(file.size/1024)} KB, will be stored FREE in Firestore). Click "Preview & Apply" to publish.`;
 } catch (err) {
 console.error(err);
 alert('PDF processing failed: ' + err.message);
@@ -1267,6 +1271,8 @@ status.textContent = '';
 }
 }
 async function saveBranding() {
+const urlInput = (document.getElementById('rules-url-input').value || '').trim();
+if (urlInput) pendingRulesUrl = urlInput;
 const data = {
 title: document.getElementById('brand-title-input').value.trim(),
 description: document.getElementById('brand-desc-input').value.trim(),
@@ -1274,18 +1280,24 @@ color: document.getElementById('brand-color-input').value,
 logoUrl: pendingLogoUrl || brandSettings.logoUrl || '',
 bgUrl: pendingBgUrl || brandSettings.bgUrl || '',
 rulesText: pendingRulesText || brandSettings.rulesText || '',
-rulesPdfSource: pendingRulesSource || brandSettings.rulesPdfSource || '',
-rulesFileName: pendingRulesSource ? (document.getElementById('rules-pdf-input').files[0]?.name || brandSettings.rulesFileName || '') : (brandSettings.rulesFileName || ''),
+rulesPdfSource: pendingRulesData ? 'db:rulesPdf' : (pendingRulesUrl || brandSettings.rulesPdfSource || ''),
+rulesFileName: (pendingRulesData || pendingRulesUrl) ? (document.getElementById('rules-pdf-input').files[0]?.name || urlInput.split('/').pop() || brandSettings.rulesFileName || '') : (brandSettings.rulesFileName || ''),
 updatedAt: new Date().toISOString()
 };
 try {
+if (pendingRulesData) {
+await window.fb.setDoc(window.fb.doc(window.fb.db, 'settings', 'rulesPdf'), {
+data: pendingRulesData, name: data.rulesFileName, updatedAt: new Date().toISOString()
+});
+}
 await window.fb.setDoc(window.fb.doc(window.fb.db, 'settings', 'branding'), data, { merge: true });
 const chk = await window.fb.getDoc(window.fb.doc(window.fb.db, 'settings', 'branding'));
 const stored = chk.exists() ? chk.data() : {};
-pendingLogoUrl = null; pendingBgUrl = null; pendingRulesText = null; pendingRulesSource = null;
+pendingLogoUrl = null; pendingBgUrl = null; pendingRulesText = null; pendingRulesData = null; pendingRulesUrl = null;
+document.getElementById('rules-url-input').value = '';
 applyBrandSettings(stored);
 loadBrandingIntoForm();
-alert(`✓ Branding saved & verified!\nLogo: ${stored.logoUrl ? 'saved ✓' : 'NONE'}\nBackground: ${stored.bgUrl ? 'saved ✓' : 'NONE'}\nRules PDF: ${stored.rulesPdfSource ? 'stored ✓ (exact PDF view + download enabled)' : 'NONE'}`);
+alert(`✓ Branding saved & verified!\nLogo: ${stored.logoUrl ? 'saved ✓' : 'NONE'}\nBackground: ${stored.bgUrl ? 'saved ✓' : 'NONE'}\nRules PDF: ${stored.rulesPdfSource ? 'stored ✓ (free — no Storage/subscription used)' : 'NONE'}`);
 } catch (e) {
 console.error(e);
 let msg = 'Error: ' + e.message;
@@ -1346,7 +1358,7 @@ return o;
 }
 // ===== INIT =====
 window.addEventListener('DOMContentLoaded', () => {
-console.log('%cHOST APP BUILD v2026-10-16.5', 'background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold');
+console.log('%cHOST APP BUILD v2026-10-16.6 (Storage-free)', 'background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold');
 const checkFirebase = setInterval(() => {
 if (window.fb && window.fb.onAuthStateChanged) {
 clearInterval(checkFirebase);
@@ -1614,8 +1626,8 @@ alert('✓ Submitted for admin approval!\nYou will be able to login once an admi
 } catch (error) {
 let msg = 'Registration failed.';
 if (error.code === 'auth/weak-password') msg = 'Password too weak.';
-else if (error.code === 'permission-denied') msg = 'Permission denied. Publish the Firestore Rules first.';
-else msg = error.message;
+if (error.code === 'permission-denied') msg = 'Permission denied. Publish the Firestore Rules first.';
+else if (msg === 'Registration failed.') msg = error.message;
 alert(msg);
 try { await window.fb.signOut(window.fb.auth); } catch(e) {}
 } finally {
@@ -1771,7 +1783,7 @@ tbody.innerHTML = items.map((it, i) => `
 <td class="p-2 border"><select class="co-condition w-full px-2 py-1 border rounded text-sm" data-idx="${i}" ${lastOccupant ? '' : 'disabled'}><option>OK</option><option>Damaged</option><option>Missing</option></select></td>
 <td class="p-2 border"><input type="text" class="co-remark w-full px-2 py-1 border rounded text-sm" data-idx="${i}" ${lastOccupant ? '' : 'disabled'} placeholder="Remarks"></td></tr>`).join('');
 }
-// ===== SUBMIT CHECK-IN / OUT =====
+// ===== SUBMIT CHECK-IN / OUT (signatures embedded FREE in Firestore) =====
 async function submitCheckIn() {
 if (!currentUser) return;
 if (!document.getElementById('rules-agree').checked) { alert('Please agree to rules'); return; }
@@ -1780,15 +1792,7 @@ if (!sig && !hasSignature(3)) { alert('Please provide signature on rules page');
 const form = document.getElementById('checkin-form');
 const data = Object.fromEntries(new FormData(form).entries());
 const checklist = readCheckinChecklist();
-let signatureUrl = '';
-if (canvases[3]) {
-try {
-const sigData = canvases[3].toDataURL('image/png');
-const sigRef = window.fb.ref(window.fb.storage, `signatures/${currentUser.id}/${Date.now()}.png`);
-await window.fb.uploadString(sigRef, sigData, 'data_url');
-signatureUrl = await window.fb.getDownloadURL(sigRef);
-} catch(e) { signatureUrl = sigData; }
-}
+const signatureUrl = canvases[3] ? canvases[3].toDataURL('image/png') : '';
 try {
 await window.fb.addDoc(window.fb.collection(window.fb.db, 'checkins'), {
 employeeId: currentUser.id, employeeName: currentUser.name,
