@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- BUILD v2026-10-16.4 : rules-pdf-viewer + multiblock-inventory + conditional-checkout + no-missing-banner -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -834,7 +835,7 @@ I have read and agree to abide by all accommodation rules.
 <div>Saved background:<br><img id="brand-bg-current" class="mt-1 h-10 object-cover rounded hidden" alt=""></div>
 <div id="brand-upload-status" class="text-xs text-gray-700"></div>
 </div>
-<div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Accommodation Rules PDF (shown exactly as PDF in check-in & Rules tab, downloadable)</label><input type="file" id="rules-pdf-input" accept="application/pdf" class="w-full text-sm" onchange="uploadRulesPdf(event)"><div id="rules-pdf-status" class="text-xs mt-1 text-gray-600"></div></div>
+<div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Accommodation Rules PDF (shown page-by-page exactly as PDF + downloadable by employees)</label><input type="file" id="rules-pdf-input" accept="application/pdf" class="w-full text-sm" onchange="uploadRulesPdf(event)"><div id="rules-pdf-status" class="text-xs mt-1 text-gray-600"></div></div>
 </div>
 <div class="mt-6 flex gap-3">
 <button onclick="saveBranding()" class="px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700">💾 Preview & Apply</button>
@@ -1023,7 +1024,7 @@ const defaultRulesHtml = `<ol class="list-decimal pl-5 space-y-2">
 </ol><p class="text-xs text-gray-500 mt-3 italic">(Actual rules PDF can be uploaded by admin in Branding)</p>`;
 if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// ===== PDF RENDER / DOWNLOAD =====
+// ===== PDF RENDER / DOWNLOAD (rules exactly as PDF) =====
 function dataUrlToUint8(dataUrl) {
 const b64 = dataUrl.split(',')[1];
 const bin = atob(b64);
@@ -1052,7 +1053,7 @@ await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).prom
 }
 } catch (e) {
 console.warn('PDF render failed:', e.message);
-container.innerHTML = brandSettings.rulesText ? `<div class="rules-text">${escapeHtml(brandSettings.rulesText)}</div>` : defaultRulesHtml;
+container.innerHTML = rulesFallbackHtml();
 }
 }
 function rulesFallbackHtml() {
@@ -1060,15 +1061,12 @@ return brandSettings.rulesText ? `<div class="rules-text">${escapeHtml(brandSett
 }
 function renderRulesDisplays() {
 const src = brandSettings.rulesPdfSource;
-const ids = ['rules-display', 'guest-rules-box'];
-ids.forEach(id => {
+['rules-display','guest-rules-box'].forEach(id => {
 const el = document.getElementById(id);
 if (!el) return;
 if (src) renderPdfPages(el, src, 900);
 else el.innerHTML = rulesFallbackHtml();
 });
-const fn = document.getElementById('emp-rules-filename');
-if (fn) fn.textContent = brandSettings.rulesFileName ? ('File: ' + brandSettings.rulesFileName) : '';
 }
 function renderEmpRules() {
 const el = document.getElementById('emp-rules-pages');
@@ -1218,7 +1216,6 @@ alert('Image processing failed: ' + err.message);
 status.textContent = '';
 }
 }
-// Rules PDF: extract text (fallback) + store the PDF itself (Storage preferred, embed if small)
 async function uploadRulesPdf(event) {
 const file = event.target.files[0];
 if (!file) return;
@@ -1234,12 +1231,12 @@ const page = await pdf.getPage(p);
 const tc = await page.getTextContent();
 text += tc.items.map(it => it.str).join(' ') + '\n';
 }
-} catch (e) { console.warn('text extraction failed', e.message); }
+} catch (e) { console.warn('text extraction failed:', e.message); }
 let source = '';
 try {
+const b64 = await new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = rej; rd.readAsDataURL(file); });
 const path = `branding/rules-${Date.now()}.pdf`;
 const r = window.fb.ref(window.fb.storage, path);
-const b64 = await new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = rej; rd.readAsDataURL(file); });
 await window.fb.uploadString(r, b64, 'data_url');
 source = await window.fb.getDownloadURL(r);
 } catch (storageErr) {
@@ -1247,14 +1244,14 @@ console.warn('Storage upload failed for rules PDF:', storageErr.message);
 if (file.size < 700000) {
 source = await new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.onerror = rej; rd.readAsDataURL(file); });
 } else {
-alert('Could not upload PDF to Storage and file is too large to embed (>700KB). Publish Storage rules or use a smaller PDF.');
+alert('Could not upload PDF to Storage and the file is too large to embed (>700KB). Publish Storage rules or use a smaller PDF.');
 status.textContent = '';
 return;
 }
 }
 pendingRulesText = text.trim();
 pendingRulesSource = source;
-status.textContent = `✓ Rules PDF ready (${Math.round(file.size/1024)} KB${text.trim() ? ', text extracted' : ''}). Click "Preview & Apply" to publish.`;
+status.textContent = `✓ Rules PDF ready (${Math.round(file.size/1024)} KB). Click "Preview & Apply" to publish.`;
 } catch (err) {
 console.error(err);
 alert('PDF processing failed: ' + err.message);
@@ -1341,6 +1338,7 @@ return o;
 }
 // ===== INIT =====
 window.addEventListener('DOMContentLoaded', () => {
+console.log('%cHOST APP BUILD v2026-10-16.4', 'background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold');
 const checkFirebase = setInterval(() => {
 if (window.fb && window.fb.onAuthStateChanged) {
 clearInterval(checkFirebase);
@@ -1450,6 +1448,7 @@ document.getElementById('employee-dashboard').classList.remove('hidden');
 document.getElementById('emp-name-display').textContent = empData.name;
 document.getElementById('emp-role-badge').textContent = empData.isMOD ? 'MOD' : (empData.employmentType === 'Casual' ? 'Casual' : 'Employee');
 document.getElementById('current-room-display').textContent = empData.room || 'Not assigned';
+// CONDITIONAL CARDS
 document.getElementById('card-mod').style.display = empData.isMOD ? '' : 'none';
 document.getElementById('card-changeroom').style.display = empData.roomChangeEnabled ? '' : 'none';
 document.getElementById('card-checkout').style.display = empData.checkoutEnabled ? '' : 'none';
@@ -2120,16 +2119,11 @@ el.innerHTML = `<span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full te
 }
 function refreshSectionUI() { populateSectionDropdowns(); renderSecChecklist(); }
 // ===== INVENTORY (MULTI-BLOCK + TEMPLATES) =====
-function populateInventoryDropdowns() {
-renderInvBlockChecklist();
-renderInvCabinOptions();
-renderInvRoomChecklist();
-}
 function renderInvBlockChecklist() {
 const el = document.getElementById('inv-block-checklist');
 if (!el) return;
 const blocks = [...new Set(roomsData.map(r => r.block))].filter(Boolean).sort(natCompare);
-el.innerHTML = blocks.map(b => `<label class="flex items-center gap-2 text-xs bg-white border rounded px-3 py-1 cursor-pointer ${invSelectedBlocks.includes(b) ? 'border-blue-400 bg-blue-50' : ''}"><input type="checkbox" class="w-4 h-4" ${invSelectedBlocks.includes(b) ? 'checked' : ''} onchange="toggleInvBlock('${b}', this.checked)"> <strong>${b}</strong></label>`).join('') || '<span class="text-xs text-gray-500 italic">No blocks yet</span>';
+el.innerHTML = blocks.map(b => `<label class="flex items-center gap-2 text-xs border rounded px-3 py-1 cursor-pointer ${invSelectedBlocks.includes(b) ? 'border-blue-400 bg-blue-50' : 'bg-white'}"><input type="checkbox" class="w-4 h-4" ${invSelectedBlocks.includes(b) ? 'checked' : ''} onchange="toggleInvBlock('${b}', this.checked)"> <strong>${b}</strong></label>`).join('') || '<span class="text-xs text-gray-500 italic">No blocks yet</span>';
 }
 function toggleInvBlock(b, on) {
 if (on && !invSelectedBlocks.includes(b)) invSelectedBlocks.push(b);
@@ -2175,7 +2169,12 @@ renderInvRoomChecklist();
 function renderInvChips() {
 const el = document.getElementById('inv-selected-chips');
 if (!el) return;
-el.innerHTML = invSelectedRooms.map(n => `<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold flex items-center gap-1">${n}<button onclick="toggleInvRoom('${n}', false)" class="text-blue-700 font-bold">×</button></span>`).join('') || '<span class="text-xs text-gray-500 italic">No rooms selected — pick rooms above</span>';
+el.innerHTML = invSelectedRooms.map(n => `<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold flex items-center gap-1">${n}<button onclick="toggleInvRoom('${n}', false)" class="text-blue-700 font-bold">×</button></span>`).join('') || '<span class="text-xs text-gray-500 italic">No rooms selected — pick blocks & rooms above</span>';
+}
+function populateInventoryDropdowns() {
+renderInvBlockChecklist();
+renderInvCabinOptions();
+renderInvRoomChecklist();
 }
 function addInvRow(item) {
 invEditList.push(item || { name: '', qty: 1, available: true, remarks: '' });
