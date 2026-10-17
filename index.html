@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- BUILD v2026-10-16.10 : boot-guard + newline-safe strings (fixes infinite loading screen) -->
+<!-- BUILD v2026-10-16.12 : FULL file + alerts grouping/filter/sort + mandatory fields + nationality list + casual-no-code + 2-line pdf header + single signature all pages -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -55,7 +55,7 @@ window.addEventListener('error', function (e) {
 window.__bootErrors.push((e.message || 'Unknown error') + ' (line ' + e.lineno + ')');
 if (!window.__appBooted) {
 var el = document.getElementById('loading-screen');
-if (el) el.innerHTML = '<div style="margin:16px;padding:20px;max-width:640px;text-align:left;background:#7f1d1d;color:#fff;border-radius:12px;font-family:monospace;font-size:12px;white-space:pre-wrap;">APP START FAILED:' + NL + NL + window.__bootErrors.join(NL) + NL + NL + 'The uploaded index.html is corrupted or outdated.' + NL + 'Re-upload the latest file, hard-refresh (Ctrl+Shift+R), and if this box still appears send a screenshot of it.</div>';
+if (el) el.innerHTML = '<div style="margin:16px;padding:20px;max-width:640px;text-align:left;background:#7f1d1d;color:#fff;border-radius:12px;font-family:monospace;font-size:12px;white-space:pre-wrap;">APP START FAILED:' + NL + NL + window.__bootErrors.join(NL) + NL + NL + 'The uploaded index.html is corrupted or outdated.' + NL + 'Re-upload the latest complete file, hard-refresh (Ctrl+Shift+R), and if this box still appears send a screenshot of it.</div>';
 }
 });
 setTimeout(function () {
@@ -374,24 +374,24 @@ Enter your details below. Your profile will be sent to <strong>admin for approva
 <div id="step-1" class="fade-in">
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 <div><label class="block text-sm font-medium mb-1">Full Name</label><input type="text" name="name" class="w-full px-3 py-2 border rounded bg-gray-50" readonly></div>
-<div><label class="block text-sm font-medium mb-1">Employee Code</label><input type="text" name="code" class="w-full px-3 py-2 border rounded bg-gray-50" readonly></div>
+<div id="ci-code-wrap"><label class="block text-sm font-medium mb-1">Employee Code</label><input type="text" name="code" class="w-full px-3 py-2 border rounded bg-gray-50" readonly></div>
 <div><label class="block text-sm font-medium mb-1">Department</label><select name="dept" id="checkin-dept" class="w-full px-3 py-2 border rounded"></select></div>
 <div><label class="block text-sm font-medium mb-1">Designation</label><input type="text" name="designation" class="w-full px-3 py-2 border rounded bg-gray-50"></div>
 <div><label class="block text-sm font-medium mb-1">Room Type</label><select name="room_type" class="w-full px-3 py-2 border rounded"><option value="">--</option><option>Single</option><option>Sharing</option></select></div>
 <div><label class="block text-sm font-medium mb-1">Date of Joining</label><input type="date" name="doj" class="w-full px-3 py-2 border rounded"></div>
 <div><label class="block text-sm font-medium mb-1">Check-In Date *</label><input type="date" name="checkin_date" class="w-full px-3 py-2 border rounded" required></div>
-<div><label class="block text-sm font-medium mb-1">Govt ID Number</label><input type="text" name="govt_id" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Govt ID Number *</label><input type="text" name="govt_id" class="w-full px-3 py-2 border rounded"></div>
 <div><label class="block text-sm font-medium mb-1">ID Expiry Date</label><input type="date" name="id_expiry" class="w-full px-3 py-2 border rounded"></div>
 <div><label class="block text-sm font-medium mb-1">Gender</label><select name="gender" class="w-full px-3 py-2 border rounded"><option>Male</option><option>Female</option><option>Other</option></select></div>
-<div><label class="block text-sm font-medium mb-1">Country</label><input type="text" name="country" class="w-full px-3 py-2 border rounded"></div>
-<div><label class="block text-sm font-medium mb-1">Date of Birth</label><input type="date" name="dob" class="w-full px-3 py-2 border rounded"></div>
-<div><label class="block text-sm font-medium mb-1">Mobile Number</label><input type="tel" name="mobile" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Nationality *</label><select name="country" id="checkin-country" class="w-full px-3 py-2 border rounded"><option value="">-- Select Nationality --</option></select></div>
+<div><label class="block text-sm font-medium mb-1">Date of Birth *</label><input type="date" name="dob" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Mobile Number *</label><input type="tel" name="mobile" class="w-full px-3 py-2 border rounded"></div>
 <div><label class="block text-sm font-medium mb-1">Email ID</label><input type="email" name="email" class="w-full px-3 py-2 border rounded bg-gray-50" readonly></div>
 <div><label class="block text-sm font-medium mb-1">Emergency Contact Name</label><input type="text" name="emerg_name" class="w-full px-3 py-2 border rounded"></div>
 <div><label class="block text-sm font-medium mb-1">Emergency Contact Number</label><input type="tel" name="emerg_num" class="w-full px-3 py-2 border rounded"></div>
 </div>
 <div class="mt-4">
-<label class="block text-sm font-medium mb-2">Signature (Draw or type) *</label>
+<label class="block text-sm font-medium mb-2">Signature (Draw or type) * — this signature is applied to every page of the form</label>
 <canvas id="signature-canvas-1" class="signature-pad w-full h-32 rounded bg-gray-50"></canvas>
 <div class="flex gap-2 mt-2">
 <button type="button" onclick="clearSignature(1)" class="text-sm text-red-500 hover:underline">Clear</button>
@@ -415,14 +415,7 @@ Enter your details below. Your profile will be sent to <strong>admin for approva
 <tbody id="amenities-table-body"></tbody>
 </table>
 </div>
-<div class="mt-4">
-<label class="block text-sm font-medium mb-2">Signature *</label>
-<canvas id="signature-canvas-2" class="signature-pad w-full h-32 rounded bg-gray-50"></canvas>
-<div class="flex gap-2 mt-2">
-<button type="button" onclick="clearSignature(2)" class="text-sm text-red-500 hover:underline">Clear</button>
-<input type="text" id="typed-signature-2" class="flex-1 px-3 py-1 border rounded text-sm" placeholder="Or type full name">
-</div>
-</div>
+<p class="text-xs text-gray-500 mt-2 italic">Signature from page 1 is applied automatically to this page and the PDF.</p>
 <div class="flex justify-between mt-6">
 <button type="button" onclick="goToStep(1)" class="px-6 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">← Back</button>
 <button type="button" onclick="goToStep(3)" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold">Next: Rules →</button>
@@ -435,14 +428,7 @@ Enter your details below. Your profile will be sent to <strong>admin for approva
 <input type="checkbox" id="rules-agree" class="mr-2" required>
 I have read and agree to abide by all accommodation rules.
 </label>
-<div class="mt-4">
-<label class="block text-sm font-medium mb-2">Signature *</label>
-<canvas id="signature-canvas-3" class="signature-pad w-full h-32 rounded bg-gray-50"></canvas>
-<div class="flex gap-2 mt-2">
-<button type="button" onclick="clearSignature(3)" class="text-sm text-red-500 hover:underline">Clear</button>
-<input type="text" id="typed-signature-3" class="flex-1 px-3 py-1 border rounded text-sm" placeholder="Or type full name">
-</div>
-</div>
+<p class="text-xs text-gray-500 italic">Signature from page 1 is applied automatically to this page and the PDF.</p>
 <div class="flex justify-between mt-6">
 <button type="button" onclick="goToStep(2)" class="px-6 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">← Back</button>
 <button type="button" onclick="submitCheckIn()" class="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold">✓ Submit Check-In</button>
@@ -758,7 +744,7 @@ I have read and agree to abide by all accommodation rules.
 <div><label class="block text-xs font-semibold mb-1">Room search</label><input id="rec-room-search" oninput="renderRecTable()" placeholder="e.g. I-7" class="px-3 py-2 border rounded text-sm"></div>
 <div><label class="block text-xs font-semibold mb-1">Employee name search</label><input id="rec-emp-search" oninput="renderRecTable()" placeholder="e.g. Ravindra" class="px-3 py-2 border rounded text-sm"></div>
 <div class="flex gap-2">
-<button onclick="openInvExport()" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">⬇ Excel Report (customisable)</button>
+<button onclick="openInvExport()" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700"> Excel Report (customisable)</button>
 </div>
 </div>
 <p id="rec-count" class="text-xs text-gray-500 mb-2"></p>
@@ -853,16 +839,26 @@ I have read and agree to abide by all accommodation rules.
 <tbody id="guest-stays-body"><tr><td colspan="6" class="p-3 text-center text-gray-500 italic">No guest stays yet</td></tr></tbody></table></div>
 </div>
 </div>
-<!-- ALERTS -->
+<!-- ALERTS (grouping + filter + sort) -->
 <div id="admin-alerts" class="hidden fade-in">
 <h3 class="text-lg font-bold mb-4">🔔 Alerts & Notifications</h3>
 <div class="flex gap-3 mb-3 flex-wrap items-center">
 <label class="text-sm font-medium">Govt ID expiry window:</label>
 <select id="alert-threshold" onchange="renderAlerts()" class="px-3 py-2 border rounded text-sm"><option value="30">30 days</option><option value="60" selected>60 days</option><option value="90">90 days</option></select>
+<label class="text-sm font-medium">Sort by:</label>
+<select id="alert-sort" onchange="renderAlerts()" class="px-3 py-2 border rounded text-sm"><option value="level">Severity (default)</option><option value="who">Employee name (A→Z)</option><option value="expiry">Expiry date (soonest first)</option><option value="room">Room number</option></select>
 <button onclick="renderAlerts()" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">🔄 Refresh</button>
 <button onclick="downloadAlertsExcel()" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">⬇ Download Excel Report</button>
 </div>
-<div id="alert-summary" class="flex flex-wrap gap-2 mb-3"></div>
+<div class="mb-2">
+<span class="text-xs font-semibold text-gray-600 uppercase">Groups by level — click to view:</span>
+<div id="alert-level-chips" class="flex flex-wrap gap-2 mt-1"></div>
+</div>
+<div class="mb-3">
+<span class="text-xs font-semibold text-gray-600 uppercase">Groups by alert type — click to view:</span>
+<div id="alert-type-chips" class="flex flex-wrap gap-2 mt-1"></div>
+</div>
+<p id="alert-filter-note" class="text-xs text-gray-600 mb-2 hidden bg-blue-50 border border-blue-200 rounded p-2"></p>
 <div class="overflow-x-auto bg-white border rounded">
 <table class="w-full text-sm text-left">
 <thead class="bg-gray-50 text-gray-600 uppercase text-xs"><tr><th class="p-2">Level</th><th class="p-2">Alert</th><th class="p-2">Employee / Room</th><th class="p-2">Department</th><th class="p-2">Govt ID No.</th><th class="p-2">Expiry Date</th><th class="p-2">Room</th><th class="p-2">Detail</th><th class="p-2">Action</th></tr></thead>
@@ -999,7 +995,7 @@ I have read and agree to abide by all accommodation rules.
 <div><label class="block text-sm font-medium mb-1">ID Expiry Date</label><input type="date" id="edit-idexpiry" class="w-full px-3 py-2 border rounded"></div>
 <div><label class="block text-sm font-medium mb-1">Date of Birth</label><input type="date" id="edit-dob" class="w-full px-3 py-2 border rounded"></div>
 <div><label class="block text-sm font-medium mb-1">Mobile Number</label><input type="tel" id="edit-mobile" class="w-full px-3 py-2 border rounded"></div>
-<div><label class="block text-sm font-medium mb-1">Country</label><input type="text" id="edit-country" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Nationality</label><select id="edit-country" class="w-full px-3 py-2 border rounded"><option value="">-- Select --</option></select></div>
 <div><label class="block text-sm font-medium mb-1">Date of Joining</label><input type="date" id="edit-doj" class="w-full px-3 py-2 border rounded"></div>
 <div><label class="block text-sm font-medium mb-1">Emergency Contact Name</label><input type="text" id="edit-emergname" class="w-full px-3 py-2 border rounded"></div>
 <div><label class="block text-sm font-medium mb-1">Emergency Contact Number</label><input type="tel" id="edit-emergnum" class="w-full px-3 py-2 border rounded"></div>
@@ -1046,7 +1042,7 @@ Linked login UID: <code id="edit-uid-info" class="text-gray-800"></code><br>
 <div><label class="block text-sm font-medium mb-1">Govt ID Number</label><input type="text" id="cke-govtid" class="w-full px-3 py-2 border rounded"></div>
 <div><label class="block text-sm font-medium mb-1">ID Expiry Date</label><input type="date" id="cke-idexpiry" class="w-full px-3 py-2 border rounded"></div>
 <div><label class="block text-sm font-medium mb-1">Gender</label><select id="cke-gender" class="w-full px-3 py-2 border rounded"><option>Male</option><option>Female</option><option>Other</option></select></div>
-<div><label class="block text-sm font-medium mb-1">Country</label><input type="text" id="cke-country" class="w-full px-3 py-2 border rounded"></div>
+<div><label class="block text-sm font-medium mb-1">Nationality</label><select id="cke-country" class="w-full px-3 py-2 border rounded"><option value="">-- Select --</option></select></div>
 <div><label class="block text-sm font-medium mb-1">Date of Birth</label><input type="date" id="cke-dob" class="w-full px-3 py-2 border rounded"></div>
 <div><label class="block text-sm font-medium mb-1">Mobile Number</label><input type="tel" id="cke-mobile" class="w-full px-3 py-2 border rounded"></div>
 <div><label class="block text-sm font-medium mb-1">Emergency Contact Name</label><input type="text" id="cke-emergname" class="w-full px-3 py-2 border rounded"></div>
@@ -1111,7 +1107,7 @@ Linked login UID: <code id="edit-uid-info" class="text-gray-800"></code><br>
 <label><input type="checkbox" id="exp-col-avail" checked class="mr-1">Available</label>
 <label><input type="checkbox" id="exp-col-remarks" checked class="mr-1">Remarks</label>
 </div>
-<button onclick="runInvExport()" class="w-full bg-green-600 text-white rounded py-2 hover:bg-green-700"> Export Excel</button>
+<button onclick="runInvExport()" class="w-full bg-green-600 text-white rounded py-2 hover:bg-green-700">⬇ Export Excel</button>
 </div>
 </div>
 </div>
@@ -1203,21 +1199,20 @@ let guestSession = null;
 let empStatusTab = 'all';
 let editingEmpId = null;
 let lastReportRows = [];
+let alertDismissals = [];
+let alertFilterLevel = '';
+let alertFilterType = '';
 let layoutFilters = { single:false, sharing:false, occupied:false, vacant:false, male:false, female:false, onroll:false, casual:false };
 const amenitiesList = ["Single Bed", "Mattress", "Pillow", "Blanket", "Wardrobe", "Study Table", "Chair", "AC", "Fan", "Light", "Mirror", "Curtains"];
 const departmentList = ["IT","Front Office","Kitchen","F&B Service","Spa","Stewarding","Finance","Engineering","Landscaping","Security","Sales and Marketing","Human Resources","Housekeeping & Laundry","Executive Office","Reservations","Purchasing","Sustainability","Pest Control"];
-const defaultRulesPlain = [
-'1. Rooms are allocated as per company policy based on designation and availability.',
-'2. Maintain cleanliness and hygiene in your room and common areas.',
-'3. Do not damage room inventory. Any damage will be charged to the employee.',
-'4. Visitors are not allowed in accommodation premises after 8:00 PM.',
-'5. No smoking or alcohol consumption inside the accommodation.',
-'6. Report any maintenance issues to admin immediately.',
-'7. No cooking inside rooms; use designated kitchen areas only.',
-'8. Keep noise to a minimum, especially between 10 PM and 6 AM.',
-'9. Company reserves the right to inspect rooms at any time.',
-'10. Check-out must be done 24 hours in advance with admin approval.'
-];
+// General world countries list (nationality dropdown)
+const COUNTRY_LIST = ["Afghanistan","Albania","Algeria","Andorra","Angola","Antigua & Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia & Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo (Democratic Republic of the)","Congo (Republic of the)","Costa Rica","Croatia","Cuba","Cyprus","Czechia","Denmark","Djibouti","Dominica","Dominican Republic","East Timor (Timor-Leste)","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Ivory Coast","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kosovo","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar (Burma)","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts & Nevis","Saint Lucia","Saint Vincent & the Grenadines","Samoa","San Marino","Sao Tome & Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Togo","Tonga","Trinidad & Tobago","Tunisia","Turkey (Türkiye)","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States of America","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"];
+function fillCountrySelect(sel, selected) {
+if (!sel) return;
+const opts = COUNTRY_LIST.slice();
+if (selected && !opts.includes(selected)) opts.unshift(selected);
+sel.innerHTML = '<option value="">-- Select Nationality --</option>' + opts.map(c => `<option value="${c}" ${c === selected ? 'selected' : ''}>${c}</option>`).join('');
+}
 function fillDeptSelect(sel, selected) {
 if (!sel) return;
 const opts = [...departmentList];
@@ -1235,6 +1230,18 @@ natCompare(x.number || '', y.number || '')
 );
 }
 function escapeHtml(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+const defaultRulesPlain = [
+'1. Rooms are allocated as per company policy based on designation and availability.',
+'2. Maintain cleanliness and hygiene in your room and common areas.',
+'3. Do not damage room inventory. Any damage will be charged to the employee.',
+'4. Visitors are not allowed in accommodation premises after 8:00 PM.',
+'5. No smoking or alcohol consumption inside the accommodation.',
+'6. Report any maintenance issues to admin immediately.',
+'7. No cooking inside rooms; use designated kitchen areas only.',
+'8. Keep noise to a minimum, especially between 10 PM and 6 AM.',
+'9. Company reserves the right to inspect rooms at any time.',
+'10. Check-out must be done 24 hours in advance with admin approval.'
+];
 const defaultRulesHtml = `<ol class="list-decimal pl-5 space-y-2">
 <li>Rooms are allocated as per company policy based on designation and availability.</li>
 <li>Maintain cleanliness and hygiene in your room and common areas.</li>
@@ -1336,41 +1343,48 @@ document.body.appendChild(a); a.click(); a.remove();
 URL.revokeObjectURL(url);
 } catch (e) { alert('Download failed: ' + e.message); }
 }
-// ===== SIGNATURE BLOCK HELPER (PDF) =====
+// ===== SIGNATURE BLOCK HELPER (PDF, fixed at page bottom) =====
 function addSigBlock(doc, sigDataUrl, typed, y) {
 doc.setFillColor(255, 255, 255);
-doc.rect(136, y - 2, 62, 28, 'F');
+doc.rect(136, y - 2, 62, 30, 'F');
 if (sigDataUrl) { try { doc.addImage(sigDataUrl, 'PNG', 140, y, 54, 19); } catch (e) {} }
 doc.setFontSize(8); doc.setFont(undefined, 'normal');
 doc.text('Employee Signature' + (typed && typed !== '[Drawn]' ? ' (typed: ' + typed + ')' : ''), 140, y + 23);
 }
-// ===== CHECK-IN PDF BUILDER =====
+// ===== CHECK-IN PDF BUILDER (2-line header + single sig at bottom of every page) =====
 async function writeCheckInPages(doc, ci, first) {
 const emp = employeesData.find(e => e.id === ci.employeeId) || employeesData.find(e => e.name === ci.employeeName) || {};
 const roomNo = ci.roomNo || emp.room || ((currentUser && currentUser.role === 'employee') ? currentUser.room : '') || '';
 const roomObj = roomsData.find(r => r.number === roomNo);
 const roomType = ci.room_type || (roomObj && roomObj.type) || '';
+const isCasual = (emp.employmentType === 'Casual');
 const logo = (brandSettings.logoUrl || '').startsWith('data:') ? brandSettings.logoUrl : null;
 const sig = (ci.signatureUrl || '').startsWith('data:') ? ci.signatureUrl : null;
 if (!first) doc.addPage();
-let y = 12;
-if (logo) { try { doc.addImage(logo, 'JPEG', 14, 10, 24, 24); } catch (e) {} }
-doc.setFontSize(14); doc.setFont(undefined, 'bold');
-doc.text((brandSettings.title || 'Host Accommodation') + ' — CHECK-IN FORM', 44, y + 6);
+// PAGE 1 — details with 2-line header
+let y = 10;
+if (logo) { try { doc.addImage(logo, 'JPEG', 14, y, 24, 24); } catch (e) {} }
+doc.setFontSize(15); doc.setFont(undefined, 'bold');
+doc.text(brandSettings.title || 'Six Senses Southern Dunes', 44, y + 8);
+doc.setFontSize(11);
+doc.text('Host Village - Check In & Check Out form', 44, y + 15);
 doc.setFont(undefined, 'normal'); doc.setFontSize(9);
-doc.text('Submitted: ' + String(ci.timestamp || '').slice(0, 16).replace('T', ' '), 44, y + 12);
-doc.autoTable({ startY: y + 16, theme: 'grid', styles: { fontSize: 9 }, body: [
-['Full Name', ci.name || emp.name || ''], ['Employee Code', ci.code || emp.code || ''],
+doc.text('Submitted: ' + String(ci.timestamp || '').slice(0, 16).replace('T', ' '), 44, y + 21);
+const bodyRows = [
+['Full Name', ci.name || emp.name || ''],
 ['Department', ci.dept || ''], ['Designation', ci.designation || ''],
 ['Room No.', roomNo], ['Room Type', roomType],
 ['Date of Joining', ci.doj || ''],
 ['Check-In Date', ci.checkin_date || ''], ['Govt ID Number', ci.govt_id || ''],
 ['ID Expiry Date', ci.id_expiry || ''], ['Gender', ci.gender || ''],
-['Country', ci.country || ''], ['Date of Birth', ci.dob || ''],
+['Nationality', ci.country || ''], ['Date of Birth', ci.dob || ''],
 ['Mobile Number', ci.mobile || ''], ['Email ID', ci.email || ''],
 ['Emergency Contact', (ci.emerg_name || '') + ' / ' + (ci.emerg_num || '')]
-], columnStyles: { 0: { fontStyle: 'bold', cellWidth: 45 } } });
-addSigBlock(doc, sig, ci.typedSignature, doc.lastAutoTable.finalY + 6);
+];
+if (!isCasual) bodyRows.splice(1, 0, ['Employee Code', ci.code || emp.code || '']);
+doc.autoTable({ startY: y + 26, theme: 'grid', styles: { fontSize: 9 }, body: bodyRows, columnStyles: { 0: { fontStyle: 'bold', cellWidth: 45 } } });
+addSigBlock(doc, sig, ci.typedSignature, 262);
+// PAGE 2 — disclaimer + amenities
 doc.addPage();
 doc.setFontSize(13); doc.setFont(undefined, 'bold');
 doc.text('Room Amenities Checklist (Inventory) — Room ' + roomNo + (roomType ? ' (' + roomType + ')' : ''), 14, 14);
@@ -1380,7 +1394,8 @@ doc.text(disc, 14, 20);
 const discEnd = 20 + disc.length * 3.6 + 2;
 doc.autoTable({ startY: discEnd, theme: 'grid', styles: { fontSize: 8 }, head: [['#', 'Amenity', 'Present', 'Remarks']],
 body: (ci.checklist || []).map((it, i) => [i + 1, it.name, it.present ? 'Yes' : 'No', it.remarks || '']) });
-addSigBlock(doc, sig, ci.typedSignature, doc.lastAutoTable.finalY + 6);
+addSigBlock(doc, sig, ci.typedSignature, 262);
+// PAGE 3+ — ACCOMMODATION RULES exactly as the uploaded PDF (image pages), signature at bottom of each
 const rulesSrc = await resolveRulesSource();
 let rendered = false;
 if (rulesSrc) {
@@ -1400,9 +1415,9 @@ doc.text('Accommodation Rules (page ' + p + ' of ' + rpdf.numPages + ')', 14, 10
 doc.setFont(undefined, 'normal');
 const ratio = vp.height / vp.width;
 let w = 180, h = w * ratio;
-if (h > 245) { h = 245; w = h / ratio; }
+if (h > 236) { h = 236; w = h / ratio; }
 doc.addImage(img, 'JPEG', (210 - w) / 2, 14, w, h);
-addSigBlock(doc, sig, ci.typedSignature, 268);
+addSigBlock(doc, sig, ci.typedSignature, 262);
 }
 rendered = rpdf.numPages > 0;
 } catch (e) { console.warn('rules embed failed:', e.message); }
@@ -1415,12 +1430,12 @@ doc.setFont(undefined, 'normal');
 const rulesText = brandSettings.rulesText || defaultRulesPlain.join(NL);
 const lines = doc.splitTextToSize(rulesText, 180);
 doc.setFontSize(8);
-let ry = 22; const pageH = 278;
+let ry = 22;
 for (const ln of lines) {
-if (ry > pageH - 32) { addSigBlock(doc, sig, ci.typedSignature, pageH - 28); doc.addPage(); ry = 16; }
+if (ry > 250) { addSigBlock(doc, sig, ci.typedSignature, 262); doc.addPage(); ry = 16; }
 doc.text(ln, 14, ry); ry += 4.2;
 }
-addSigBlock(doc, sig, ci.typedSignature, Math.min(ry + 4, pageH - 28));
+addSigBlock(doc, sig, ci.typedSignature, 262);
 }
 }
 async function downloadCheckInPdf(ci) {
@@ -1433,11 +1448,13 @@ async function downloadMyCheckInPdf() { if (myCheckIn) await downloadCheckInPdf(
 function appendCheckOutPages(doc, co, ci) {
 const sig = (co.signatureUrl || '').startsWith('data:') ? co.signatureUrl : null;
 doc.addPage();
-doc.setFontSize(14); doc.setFont(undefined, 'bold');
-doc.text((brandSettings.title || 'Host Accommodation') + ' — CHECK-OUT FORM', 14, 14);
+doc.setFontSize(15); doc.setFont(undefined, 'bold');
+doc.text(brandSettings.title || 'Six Senses Southern Dunes', 14, 14);
+doc.setFontSize(11);
+doc.text('Host Village - Check In & Check Out form', 14, 20);
 doc.setFont(undefined, 'normal'); doc.setFontSize(9);
-doc.text('Submitted: ' + String(co.timestamp || '').slice(0, 16).replace('T', ' '), 14, 20);
-doc.autoTable({ startY: 24, theme: 'grid', styles: { fontSize: 9 }, body: [
+doc.text('Check-Out submitted: ' + String(co.timestamp || '').slice(0, 16).replace('T', ' '), 14, 26);
+doc.autoTable({ startY: 30, theme: 'grid', styles: { fontSize: 9 }, body: [
 ['Employee', co.employeeName || ''], ['Room No.', co.roomNo || (ci && ci.roomNo) || ''],
 ['Check-In Date', (ci && ci.checkin_date) || co.checkinDate || ''], ['Check-Out Date', co.date || ''],
 ['Reason', co.reason || ''], ['Evaluation', (co.evaluation || []).length ? co.evaluation.map(x => x.name + ' (' + x.condition + ')').join('; ') : 'All items OK']
@@ -1451,7 +1468,7 @@ yy = doc.lastAutoTable.finalY + 8;
 doc.setFontSize(11); doc.setFont(undefined, 'bold'); doc.text('CHECK-OUT CHECKLIST (condition at check-out)', 14, yy); doc.setFont(undefined, 'normal');
 doc.autoTable({ startY: yy + 3, theme: 'grid', styles: { fontSize: 8 }, head: [['#', 'Amenity', 'At Check-In', 'Condition', 'Remarks']],
 body: (co.checkoutChecklist || []).map((it, i) => [i + 1, it.name, it.atCheckIn ? 'Yes' : 'No', it.condition || 'OK', it.remarks || '']) });
-addSigBlock(doc, sig, co.typedSignature, doc.lastAutoTable.finalY + 6);
+addSigBlock(doc, sig, co.typedSignature, Math.min(Math.max(doc.lastAutoTable.finalY + 6, 250), 268));
 }
 async function downloadMyFullFormPdf() {
 if (!myCheckIn) { alert('No check-in form found.'); return; }
@@ -1722,7 +1739,8 @@ return o;
 }
 // ===== INIT =====
 window.addEventListener('DOMContentLoaded', () => {
-console.log('%cHOST APP BUILD v2026-10-16.10', 'background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold');
+console.log('%cHOST APP BUILD v2026-10-16.12', 'background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold');
+fillCountrySelect(document.getElementById('checkin-country'), '');
 const checkFirebase = setInterval(() => {
 if (window.fb && window.fb.onAuthStateChanged) {
 clearInterval(checkFirebase);
@@ -1818,6 +1836,7 @@ if (user.email === 'admin@company.com') {
 currentUser = { role: 'admin', uid: user.uid, email: user.email };
 document.getElementById('login-screen').classList.add('hidden');
 document.getElementById('admin-dashboard').classList.remove('hidden');
+loadAlertDismissals();
 startRealtimeListeners();
 return;
 }
@@ -1866,7 +1885,6 @@ await loadMyCheckIn();
 await loadMyCheckOut();
 initAllSignaturePads();
 prefillCheckInForm(empData);
-prefillRoomType();
 loadMODRoomDropdown();
 startRealtimeListeners();
 } catch (error) { console.error(error); alert('Error loading profile: ' + error.message); }
@@ -2019,8 +2037,7 @@ closeCreateProfile();
 alert(`✓ Submitted for admin approval!
 You will be able to login once an admin approves your profile and assigns a room.`);
 } catch (error) {
-let msg = 'Registration failed: ' + error.message;
-alert(msg);
+alert('Registration failed: ' + error.message);
 try { await window.fb.signOut(window.fb.auth); } catch(e) {}
 } finally {
 btn.disabled = false;
@@ -2066,11 +2083,14 @@ else { view.classList.add('hidden'); edit.classList.remove('hidden'); prefillRoo
 function renderCheckInView() {
 const ci = myCheckIn; const body = document.getElementById('checkin-view-body');
 if (!body || !ci) return;
-const rows = [['Full Name', ci.name], ['Employee Code', ci.code], ['Department', ci.dept], ['Designation', ci.designation],
+const isCasual = currentUser && currentUser.employmentType === 'Casual';
+const rows = [['Full Name', ci.name]];
+if (!isCasual) rows.push(['Employee Code', ci.code]);
+rows.push(['Department', ci.dept], ['Designation', ci.designation],
 ['Room No.', ci.roomNo || (currentUser && currentUser.room)], ['Room Type', ci.room_type || ((getMyRoom() || {}).type) || ''], ['Check-In Date', ci.checkin_date], ['Date of Joining', ci.doj],
-['Govt ID Number', ci.govt_id], ['ID Expiry Date', ci.id_expiry], ['Gender', ci.gender], ['Country', ci.country],
+['Govt ID Number', ci.govt_id], ['ID Expiry Date', ci.id_expiry], ['Gender', ci.gender], ['Nationality', ci.country],
 ['Date of Birth', ci.dob], ['Mobile', ci.mobile], ['Email', ci.email],
-['Emergency Contact', (ci.emerg_name || '') + ' / ' + (ci.emerg_num || '')]];
+['Emergency Contact', (ci.emerg_name || '') + ' / ' + (ci.emerg_num || '')]);
 body.innerHTML = `
 <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">${rows.map(r => `<div class="bg-gray-50 border rounded p-2"><span class="block text-xs text-gray-500">${r[0]}</span><strong>${escapeHtml(r[1] || '—')}</strong></div>`).join('')}</div>
 <div><h4 class="font-semibold mb-2 mt-4">Amenities Checklist</h4>
@@ -2087,6 +2107,9 @@ fillDeptSelect(document.getElementById('checkin-dept'), emp.dept || '');
 form.designation.value = emp.designation || '';
 form.email.value = emp.email || '';
 form.gender.value = emp.gender || 'Male';
+fillCountrySelect(document.getElementById('checkin-country'), emp.country || '');
+const codeWrap = document.getElementById('ci-code-wrap');
+if (codeWrap) codeWrap.classList.toggle('hidden', emp.employmentType === 'Casual');
 }
 // ===== CHECK-OUT MODE (cross-check) =====
 function renderCheckoutMode() {
@@ -2143,21 +2166,21 @@ else ind.classList.add('step-pending');
 document.getElementById('step-' + step).classList.remove('hidden');
 if (step > 1) document.getElementById('step-1-bar').style.width = '100%';
 if (step > 2) document.getElementById('step-2-bar').style.width = '100%';
-if (step === 2) { initSignaturePad(2); renderAmenitiesTable(); }
-if (step === 3) { initSignaturePad(3); renderRulesDisplays(); }
+if (step === 2) { renderAmenitiesTable(); }
+if (step === 3) { renderRulesDisplays(); }
 }
 function validateStep1() {
 const form = document.getElementById('checkin-form');
 if (!form.checkin_date.value) { alert('Please select check-in date'); return false; }
+if (!form.govt_id.value) { alert('Please enter Govt ID Number (mandatory)'); return false; }
+if (!form.dob.value) { alert('Please select Date of Birth (mandatory)'); return false; }
+if (!form.mobile.value) { alert('Please enter Mobile Number (mandatory)'); return false; }
+if (!form.country.value) { alert('Please select Nationality (mandatory)'); return false; }
 const sig = document.getElementById('typed-signature-1').value;
-if (!sig && !hasSignature(1)) { alert('Please provide signature'); return false; }
+if (!sig && !hasSignature(1)) { alert('Please provide signature (draw or type)'); return false; }
 return true;
 }
-function validateStep2() {
-const sig = document.getElementById('typed-signature-2').value;
-if (!sig && !hasSignature(2)) { alert('Please provide signature on amenities page'); return false; }
-return true;
-}
+function validateStep2() { return true; }
 // ===== SIGNATURE =====
 let canvases = {}, contexts = {};
 function initAllSignaturePads() { [1,2,3].forEach(i => initSignaturePad(i)); }
@@ -2231,16 +2254,15 @@ const checks = document.querySelectorAll('.amenity-check');
 const remarks = document.querySelectorAll('.amenity-remark');
 return checkinItems.map((it, i) => ({ name: it.name, present: checks[i] ? checks[i].checked : false, remarks: remarks[i] ? remarks[i].value : '' }));
 }
-// ===== SUBMIT CHECK-IN =====
+// ===== SUBMIT CHECK-IN (single signature from page 1) =====
 async function submitCheckIn() {
 if (!currentUser) return;
 if (!document.getElementById('rules-agree').checked) { alert('Please agree to rules'); return; }
-const sig = document.getElementById('typed-signature-3').value;
-if (!sig && !hasSignature(3)) { alert('Please provide signature on rules page'); return; }
 const form = document.getElementById('checkin-form');
 const data = Object.fromEntries(new FormData(form).entries());
 const checklist = readCheckinChecklist();
-const signatureUrl = canvases[3] ? canvases[3].toDataURL('image/png') : '';
+const sig = document.getElementById('typed-signature-1').value;
+const signatureUrl = canvases[1] ? canvases[1].toDataURL('image/png') : '';
 const room = getMyRoom();
 try {
 await window.fb.addDoc(window.fb.collection(window.fb.db, 'checkins'), {
@@ -2612,7 +2634,7 @@ const bt = document.getElementById('invtab-' + tab);
 bt.classList.add('tab-active'); bt.classList.remove('text-gray-500');
 if (tab === 'records') { populateRecFilters(); renderRecTable(); }
 }
-// ===== INVENTORY MANAGEMENT (MULTI-BLOCK + TEMPLATES) =====
+// ===== INVENTORY MANAGEMENT =====
 function renderInvBlockChecklist() {
 const el = document.getElementById('inv-block-checklist');
 if (!el) return;
@@ -2934,7 +2956,7 @@ showInvTab(invTab);
 if (section === 'layout') refreshSectionUI();
 if (section === 'branding') loadBrandingIntoForm();
 if (section === 'modguest') renderGuestControls();
-if (section === 'alerts') renderAlerts();
+if (section === 'alerts') { loadAlertDismissals().then(renderAlerts); }
 if (section === 'reports') populateReportFilters();
 if (section === 'forms') { populateFormsFilters(); loadCheckIns(); }
 }
@@ -3056,10 +3078,13 @@ async function downloadCheckInPdfById(id) { const ci = checkinsData.find(x => x.
 function viewCheckIn(id) {
 const ci = checkinsData.find(x => x.id === id); if (!ci) return;
 document.getElementById('ckv-name').textContent = ci.employeeName || '';
-const rows = [['Full Name', ci.name], ['Employee Code', ci.code], ['Department', ci.dept], ['Designation', ci.designation],
+const isCasual = ciType(ci) === 'Casual';
+const rows = [['Full Name', ci.name]];
+if (!isCasual) rows.push(['Employee Code', ci.code]);
+rows.push(['Department', ci.dept], ['Designation', ci.designation],
 ['Room No.', ciRoomNo(ci)], ['Room Type', ciRoomType(ci)], ['Check-In Date', ci.checkin_date], ['Date of Joining', ci.doj], ['Govt ID Number', ci.govt_id],
-['ID Expiry Date', ci.id_expiry], ['Gender', ci.gender], ['Country', ci.country], ['Date of Birth', ci.dob],
-['Mobile', ci.mobile], ['Email', ci.email], ['Emergency Contact', (ci.emerg_name || '') + ' / ' + (ci.emerg_num || '')]];
+['ID Expiry Date', ci.id_expiry], ['Gender', ci.gender], ['Nationality', ci.country], ['Date of Birth', ci.dob],
+['Mobile', ci.mobile], ['Email', ci.email], ['Emergency Contact', (ci.emerg_name || '') + ' / ' + (ci.emerg_num || '')]);
 document.getElementById('checkin-admin-view-body').innerHTML = `
 <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">${rows.map(r => `<div class="bg-gray-50 border rounded p-2"><span class="block text-xs text-gray-500">${r[0]}</span><strong>${escapeHtml(r[1] || '—')}</strong></div>`).join('')}</div>
 <h4 class="font-semibold mt-4 mb-2">Amenities Checklist</h4>
@@ -3081,7 +3106,7 @@ document.getElementById('cke-roomtype').value = ci.room_type || ciRoomType(ci) |
 document.getElementById('cke-govtid').value = ci.govt_id || '';
 document.getElementById('cke-idexpiry').value = ci.id_expiry || '';
 document.getElementById('cke-gender').value = ci.gender || 'Male';
-document.getElementById('cke-country').value = ci.country || '';
+fillCountrySelect(document.getElementById('cke-country'), ci.country || '');
 document.getElementById('cke-dob').value = ci.dob || '';
 document.getElementById('cke-mobile').value = ci.mobile || '';
 document.getElementById('cke-emergname').value = ci.emerg_name || '';
@@ -3124,9 +3149,12 @@ govt_id: updates.govt_id, id_expiry: updates.id_expiry, dob: updates.dob, mobile
 country: updates.country, doj: updates.doj, emerg_name: updates.emerg_name, emerg_num: updates.emerg_num,
 dept: updates.dept, designation: updates.designation
 });
+const emp = employeesData.find(e => e.id === ci.employeeId);
+if (emp) Object.assign(emp, updates);
 }
 document.getElementById('checkin-edit-modal').classList.remove('show');
 loadCheckIns();
+renderAlerts();
 alert('✓ Check-in form updated.');
 } catch (e) { alert('Error: ' + e.message); }
 }
@@ -3145,7 +3173,7 @@ const list = formsFiltered();
 exportRowsXlsx(`checkins-${formsTab}-${new Date().toISOString().slice(0, 10)}.xlsx`, list.map(ci => ({
 Employee: ci.employeeName, Type: ciType(ci), Room: ciRoomNo(ci), 'Room Type': ciRoomType(ci), Block: ci.blockNo || '', Cabin: ci.cabinNo || '',
 'Check-In Date': ci.checkin_date, Submitted: String(ci.timestamp || '').slice(0, 16).replace('T', ' '),
-'Govt ID': ci.govt_id || '', 'ID Expiry': ci.id_expiry || '', Mobile: ci.mobile || '', Department: ci.dept || ''
+'Govt ID': ci.govt_id || '', 'ID Expiry': ci.id_expiry || '', Mobile: ci.mobile || '', Nationality: ci.country || '', Department: ci.dept || ''
 })), 'CheckIns');
 }
 async function downloadFormsCombined() {
@@ -3156,7 +3184,23 @@ const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
 for (let i = 0; i < list.length; i++) await writeCheckInPages(doc, list[i], i === 0);
 doc.save(`checkins-${formsTab}-${new Date().toISOString().slice(0, 10)}.pdf`);
 }
-// ===== ALERTS & NOTIFICATIONS =====
+// ===== ALERTS & NOTIFICATIONS (grouping + filter + sort + dismiss) =====
+const ALERT_LEVEL_ORDER = { '🔴 EXPIRED': 0, '🟠 EXPIRING': 1, '🟡 MISSING': 2, '🔵 APPROVAL': 3, '⚪ INFO': 4 };
+async function loadAlertDismissals() {
+try {
+const d = await window.fb.getDoc(window.fb.doc(window.fb.db, 'settings', 'alertDismissals'));
+alertDismissals = (d.exists() && Array.isArray(d.data().keys)) ? d.data().keys : [];
+} catch (e) { console.warn('dismissals load:', e.message); }
+}
+async function dismissAlert(encodedKey) {
+const key = decodeURIComponent(encodedKey);
+if (alertDismissals.includes(key)) { renderAlerts(); return; }
+alertDismissals.push(key);
+try {
+await window.fb.setDoc(window.fb.doc(window.fb.db, 'settings', 'alertDismissals'), { keys: alertDismissals, updatedAt: new Date().toISOString() }, { merge: true });
+} catch (e) { console.warn('dismissal save:', e.message); }
+renderAlerts();
+}
 function computeAlerts() {
 const alerts = [];
 const today = new Date(); today.setHours(0,0,0,0);
@@ -3182,17 +3226,52 @@ if ((r.occupants || []).length && !(r.inventory || []).length) {
 alerts.push({ level: '🟡 MISSING', type: 'Room without inventory', who: 'Room ' + r.number, dept: '', idNo: '', expiry: '', room: r.number, detail: 'Occupied but no inventory list', empId: '' });
 }
 });
+alerts.forEach(a => { a.key = [a.type, a.who, a.room].join('|'); });
 return alerts;
 }
+function alertsVisible() { return computeAlerts().filter(a => !alertDismissals.includes(a.key)); }
+function alertsFilteredSorted() {
+let list = alertsVisible();
+list = list.filter(a => (!alertFilterLevel || a.level === alertFilterLevel) && (!alertFilterType || a.type === alertFilterType));
+const sortMode = document.getElementById('alert-sort')?.value || 'level';
+list.sort((a, b) => {
+if (sortMode === 'who') return String(a.who).localeCompare(String(b.who));
+if (sortMode === 'room') return natCompare(a.room || 'zzzz', b.room || 'zzzz');
+if (sortMode === 'expiry') {
+const da = a.expiry ? new Date(a.expiry).getTime() : Infinity;
+const db = b.expiry ? new Date(b.expiry).getTime() : Infinity;
+return da - db;
+}
+return ((ALERT_LEVEL_ORDER[a.level] ?? 9) - (ALERT_LEVEL_ORDER[b.level] ?? 9)) || String(a.who).localeCompare(String(b.who));
+});
+return list;
+}
+function setAlertFilter(kind, value) {
+if (kind === 'level') alertFilterLevel = (alertFilterLevel === value ? '' : value);
+else if (kind === 'type') { const v = decodeURIComponent(value); alertFilterType = (alertFilterType === v ? '' : v); }
+else { alertFilterLevel = ''; alertFilterType = ''; }
+renderAlerts();
+}
 function renderAlerts() {
-const alerts = computeAlerts();
-const summary = document.getElementById('alert-summary');
-if (!summary) return;
-const counts = {};
-alerts.forEach(a => { counts[a.level] = (counts[a.level] || 0) + 1; });
-summary.innerHTML = Object.keys(counts).map(k => `<span class="px-3 py-1 bg-white border rounded-full text-xs font-semibold">${k}: ${counts[k]}</span>`).join('') || '<span class="text-xs text-green-600 font-semibold">✓ No alerts — everything looks good</span>';
+const levelChips = document.getElementById('alert-level-chips');
+const typeChips = document.getElementById('alert-type-chips');
+if (!levelChips || !typeChips) return;
+const all = alertsVisible();
+const lvlCounts = {}, typeCounts = {};
+all.forEach(a => { lvlCounts[a.level] = (lvlCounts[a.level] || 0) + 1; typeCounts[a.type] = (typeCounts[a.type] || 0) + 1; });
+levelChips.innerHTML = `<button onclick="setAlertFilter('level','')" class="chip ${!alertFilterLevel ? 'active' : ''}">ALL (${all.length})</button>` +
+Object.keys(lvlCounts).sort((x, y) => (ALERT_LEVEL_ORDER[x] ?? 9) - (ALERT_LEVEL_ORDER[y] ?? 9)).map(k => `<button onclick="setAlertFilter('level','${k}')" class="chip ${alertFilterLevel === k ? 'active' : ''}">${k}: ${lvlCounts[k]}</button>`).join('');
+typeChips.innerHTML = Object.keys(typeCounts).sort().map(k => `<button onclick="setAlertFilter('type','${encodeURIComponent(k)}')" class="chip ${alertFilterType === k ? 'active' : ''}">${escapeHtml(k)}: ${typeCounts[k]}</button>`).join('') || '<span class="text-xs text-green-600 font-semibold">✓ No alerts — everything looks good</span>';
+const list = alertsFilteredSorted();
+const note = document.getElementById('alert-filter-note');
+if (note) {
+if (alertFilterLevel || alertFilterType) {
+note.classList.remove('hidden');
+note.innerHTML = `Filter active: <strong>${escapeHtml(alertFilterLevel || '')}${alertFilterLevel && alertFilterType ? ' / ' : ''}${escapeHtml(alertFilterType || '')}</strong> — showing ${list.length} of ${all.length} alerts. <button onclick="setAlertFilter('clear','')" class="text-blue-600 underline font-semibold">clear filter</button>`;
+} else note.classList.add('hidden');
+}
 const tbody = document.getElementById('alerts-body');
-tbody.innerHTML = alerts.length ? alerts.map(a => `
+tbody.innerHTML = list.length ? list.map(a => `
 <tr class="border-b hover:bg-gray-50">
 <td class="p-2 text-xs font-semibold">${a.level}</td>
 <td class="p-2">${a.type}</td>
@@ -3202,11 +3281,14 @@ tbody.innerHTML = alerts.length ? alerts.map(a => `
 <td class="p-2">${escapeHtml(a.expiry)}</td>
 <td class="p-2">${escapeHtml(a.room)}</td>
 <td class="p-2 text-xs text-gray-600">${escapeHtml(a.detail)}</td>
-<td class="p-2">${a.empId ? `<button onclick="openEditEmpModal('${a.empId}')" class="text-blue-600 text-xs font-semibold hover:underline">✏️ Edit</button>` : ''}</td>
-</tr>`).join('') : '<tr><td colspan="9" class="p-4 text-center text-gray-500 italic">No alerts</td></tr>';
+<td class="p-2"><div class="flex gap-2">
+${a.empId ? `<button onclick="openEditEmpModal('${a.empId}')" class="text-blue-600 text-xs font-semibold hover:underline">✏️ Edit</button>` : ''}
+<button onclick="dismissAlert('${encodeURIComponent(a.key)}')" class="text-red-600 text-xs font-semibold hover:underline">🗑 Delete</button>
+</div></td>
+</tr>`).join('') : '<tr><td colspan="9" class="p-4 text-center text-gray-500 italic">No alerts in the current filter</td></tr>';
 }
 function downloadAlertsExcel() {
-const alerts = computeAlerts();
+const alerts = alertsFilteredSorted();
 exportRowsXlsx(`alerts-report-${new Date().toISOString().slice(0,10)}.xlsx`, alerts.map(a => ({ Level: a.level, Alert: a.type, Employee: a.who, Department: a.dept, 'Govt ID No': a.idNo, 'Expiry Date': a.expiry, Room: a.room, Detail: a.detail })), 'Alerts');
 }
 // ===== CUSTOM REPORTS =====
@@ -3247,7 +3329,7 @@ rows = employeesData.filter(e =>
 (!f.gender || e.gender === f.gender) &&
 (!f.empType || e.employmentType === f.empType) &&
 (!f.empStatus || (e.empStatus || 'active') === f.empStatus)
-).map(e => ({ Name: e.name, Code: e.code || '', Department: e.dept || '', Designation: e.designation || '', Room: e.room || '', Block: e.block || '', Gender: e.gender || '', Type: e.employmentType || '', Company: e.companyName || '', Status: e.empStatus || 'active', Registration: e.registered ? 'Registered' : 'Pending', Approval: e.approvalStatus || '-', Email: e.email || '', Mobile: e.mobile || '', 'Govt ID': e.govt_id || '', 'ID Expiry': e.id_expiry || '', 'Check-In Date': e.lastCheckIn ? e.lastCheckIn.slice(0,10) : '' }));
+).map(e => ({ Name: e.name, Code: e.code || '', Department: e.dept || '', Designation: e.designation || '', Room: e.room || '', Block: e.block || '', Gender: e.gender || '', Nationality: e.country || '', Type: e.employmentType || '', Company: e.companyName || '', Status: e.empStatus || 'active', Registration: e.registered ? 'Registered' : 'Pending', Approval: e.approvalStatus || '-', Email: e.email || '', Mobile: e.mobile || '', 'Govt ID': e.govt_id || '', 'ID Expiry': e.id_expiry || '', 'Check-In Date': e.lastCheckIn ? e.lastCheckIn.slice(0,10) : '' }));
 } else if (src === 'rooms') {
 rows = roomsData.filter(r =>
 (!f.block || r.block === f.block) &&
@@ -3295,7 +3377,7 @@ for (const c of cols) {
 const snap = await window.fb.getDocs(window.fb.collection(window.fb.db, c));
 data.collections[c] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
-for (const s of ['branding','inventoryTemplates']) {
+for (const s of ['branding','inventoryTemplates','alertDismissals']) {
 const d = await window.fb.getDoc(window.fb.doc(window.fb.db, 'settings', s));
 if (d.exists()) data.settings[s] = d.data();
 }
@@ -3415,7 +3497,7 @@ document.getElementById('edit-govtid').value = emp.govt_id || '';
 document.getElementById('edit-idexpiry').value = emp.id_expiry || '';
 document.getElementById('edit-dob').value = emp.dob || '';
 document.getElementById('edit-mobile').value = emp.mobile || '';
-document.getElementById('edit-country').value = emp.country || '';
+fillCountrySelect(document.getElementById('edit-country'), emp.country || '');
 document.getElementById('edit-doj').value = emp.doj || '';
 document.getElementById('edit-emergname').value = emp.emerg_name || '';
 document.getElementById('edit-emergnum').value = emp.emerg_num || '';
@@ -3450,7 +3532,7 @@ govt_id: document.getElementById('edit-govtid').value.trim(),
 id_expiry: document.getElementById('edit-idexpiry').value,
 dob: document.getElementById('edit-dob').value,
 mobile: document.getElementById('edit-mobile').value.trim(),
-country: document.getElementById('edit-country').value.trim(),
+country: document.getElementById('edit-country').value,
 doj: document.getElementById('edit-doj').value,
 emerg_name: document.getElementById('edit-emergname').value.trim(),
 emerg_num: document.getElementById('edit-emergnum').value.trim(),
@@ -3476,6 +3558,7 @@ const occ = (room.occupants || []).map(n => n === old.name ? updates.name : n);
 await window.fb.updateDoc(window.fb.doc(window.fb.db, 'rooms', room.id || room.number), { occupants: occ });
 }
 await window.fb.updateDoc(window.fb.doc(window.fb.db, 'employees', editingEmpId), updates);
+Object.assign(old, updates);
 closeEditEmpModal();
 renderAlerts();
 alert('✓ Employee updated.');
@@ -3794,8 +3877,8 @@ if (!document.getElementById('admin-forms').classList.contains('hidden')) { popu
 if (!document.getElementById('admin-inventory').classList.contains('hidden') && invTab === 'records') renderRecTable();
 } else if (currentUser?.role === 'employee') {
 loadMODRoomDropdown();
-if (!document.getElementById('emp-checkin').classList.contains('hidden')) { renderCheckInMode(); }
-if (!document.getElementById('emp-checkout').classList.contains('hidden')) { renderCheckoutMode(); }
+if (!document.getElementById('emp-checkin').classList.contains('hidden')) renderCheckInMode();
+if (!document.getElementById('emp-checkout').classList.contains('hidden')) renderCheckoutMode();
 }
 }, (err) => console.warn('rooms listener:', err.message));
 if (currentUser?.role === 'admin') {
